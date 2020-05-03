@@ -8,19 +8,7 @@ Locker is a header-only C++20 class with static member functions to lock files i
 
     #include "locker.hpp"
 
-    bool success = locker::try_lock("a.lock");               //tries to lock a file, returns immediately
-    bool success = locker::try_lock("a.lock", "b.lock");     //tries to lock multiple files, returns immediately
-    bool success = locker::try_lock({"a.lock", "b.lock"});   //arguments can also be sent as a list or a vector of filenames
-
-    locker::lock("a.lock");                                  //only returns when the file is locked
-    locker::lock("a.lock", "b.lock");                        //only returns when all files are locked
-    locker::lock({"a.lock", "b.lock", "c.lock"});            //arguments can also be sent as a list or a vector of filenames
-
-    locker::unlock("a.lock");                                //unlocks a file (if locked)
-    locker::unlock("a.block", "b.lock");                     //unlocks files in reverse order of function arguments (same as unlock<false>)
-    locker::unlock<true>("a.block", "b.lock", "c.lock");     //set template argument to unlock in strict order of function arguments
-    locker::unlock({"a.block", "b.lock", "c.lock"});         //arguments can also be sent as a list or a vector of filenames
-
-    auto my_lock = locker::lock_guard("a.lock");             //locks a file and automatically unlocks it when leaving current scope
-    auto my_lock = locker::lock_guard("a.lock", "b.lock");   //locks multiple files and automatically unlocks them when leaving current scope
-    auto my_lock = locker::lock_guard({"a.lock", "b.lock"}); //arguments can also be sent as a list or a vector of filenames
+    bool success = locker::try_lock("a.lock");               //tries to lock a file once, returns immediately
+    locker::lock("a.lock");                                  //keep trying to lock a file, only returns when file is locked
+    locker::unlock("a.lock");                                //unlocks a file if it is locked
+    auto my_lock = locker::lock_guard("a.lock");             //locks a file and automatically unlocks it before leaving current scope
