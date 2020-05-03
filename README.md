@@ -14,7 +14,7 @@ Usage:
     locker::lock("a.lock", "b.lock");                        //only returns when all files are locked
     locker::lock({"a.lock", "b.lock", "c.lock"});            //same as above
 
-    locker::unlock("a.lock");                                //unlocks file if locked
+    locker::unlock("a.lock");                                //unlocks a file (if locked)
     locker::unlock("a.block", "b.lock");                     //unlocks files in the reverse order of the arguments (same as "unlock<false>")
     locker::unlock({"a.block", "b.lock", "c.lock"});         //same as above
     locker::unlock<true>("a.block", "b.lock", "c.lock");     //use template argument to unlock in the strict order of the arguments
