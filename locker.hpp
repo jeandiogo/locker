@@ -19,11 +19,15 @@
 // 
 // Locker is a header-only C++20 class with static member functions to lock files in Linux systems, so they can be used as inter-process mutexes.
 // Be aware that locking a file does not prevent other programs from reading or writing to it. The locking policy works only among programs using this library.
+// Be also aware that the locking does not prevent data races among threads of the current process. Use mutexes to perform exclusive reading/writing of files inside your program.
 // All methods will throw an exception if an empty filename is given or if the program does not have permission to write to the file or to the directory the file is stored.
 // If the file to be locked does not exist, it will be created.
 // After locking a file, you still need to open it using the input/output method you preffer. Do not forget to close the file before unlocking it.
-// It is a good practice to create a separate lockfile for each file you intend to use (e.g. if you want to open "a.txt" exclusively, create a lockfile "a.txt.lock" and use it as a mutex.)
-// To compile with GCC, use the flag -std=c++2a.
+// Actually, there are helper functions to lock-open, to unlock-close, to lock-open-read-close-unlock, and to lock-open-write-close-unlock. And they are all thread-safe.
+// There are also guards for the locks and for the opening of files. Prefer them over manual locking/unlocking and opening/closing.
+// Nevertheless, it may be a good practice to create a separate lockfile for each file you intend to use (e.g. to open "a.txt" exclusively, lock-guard the file "a.txt.lock").
+// 
+// (To compile with GCC, use the flag -std=c++2a.)
 // 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // 
@@ -31,22 +35,34 @@
 // 
 // #include "locker.hpp"
 // 
-// bool success = locker::try_lock("a.lock");               //tries to lock a file, returns immediately
-// bool success = locker::try_lock("a.lock", "b.lock");     //tries to lock multiple files, returns immediately
-// bool success = locker::try_lock({"a.lock", "b.lock"});   //arguments can also be sent as a list or a vector of filenames
+// bool success = locker::try_lock("a.lock");                           //tries to lock a file, returns immediately
+// bool success = locker::try_lock("a.lock", "b.lock");                 //tries to lock multiple files, returns immediately
+// bool success = locker::try_lock({"a.lock", "b.lock"});               //arguments can also be sent as a list or a vector of filenames
 // 
-// locker::lock("a.lock");                                  //only returns when the file is locked
-// locker::lock("a.lock", "b.lock");                        //only returns when all files are locked
-// locker::lock({"a.lock", "b.lock", "c.lock"});            //arguments can also be sent as a list or a vector of filenames
+// locker::lock("a.lock");                                              //only returns when the file is locked
+// locker::lock("a.lock", "b.lock");                                    //only returns when all files are locked
+// locker::lock({"a.lock", "b.lock", "c.lock"});                        //arguments can also be sent as a list or a vector of filenames
 // 
-// locker::unlock("a.lock");                                //unlocks a file (if locked)
-// locker::unlock("a.block", "b.lock");                     //unlocks files in reverse order of function arguments (same as unlock<false>)
-// locker::unlock<true>("a.block", "b.lock", "c.lock");     //set template argument to unlock in strict order of function arguments
-// locker::unlock({"a.block", "b.lock", "c.lock"});         //arguments can also be sent as a list or a vector of filenames
+// locker::unlock("a.lock");                                            //unlocks a file (if locked)
+// locker::unlock("a.block", "b.lock");                                 //unlocks files in reverse order of function arguments (same as unlock<false>)
+// locker::unlock<true>("a.block", "b.lock", "c.lock");                 //set template argument to unlock in strict order of function arguments
+// locker::unlock({"a.block", "b.lock", "c.lock"});                     //arguments can also be sent as a list or a vector of filenames
 // 
-// auto my_lock = locker::lock_guard("a.lock");             //locks a file and automatically unlocks it when leaving current scope
-// auto my_lock = locker::lock_guard("a.lock", "b.lock");   //locks multiple files and automatically unlocks them when leaving current scope
-// auto my_lock = locker::lock_guard({"a.lock", "b.lock"}); //arguments can also be sent as a list or a vector of filenames
+// auto my_lock = locker::lock_guard("a.lock");                         //locks a file and automatically unlocks it when leaving current scope
+// auto my_lock = locker::lock_guard("a.lock", "b.lock");               //locks multiple files and automatically unlocks them when leaving current scope
+// auto my_lock = locker::lock_guard({"a.lock", "b.lock"});             //arguments can also be sent as a list or a vector of filenames
+// 
+// std::fstream & my_stream = locker::xopen("a.txt");                   //locks a file, opens it, and returns a reference to its stream
+// std::fstream & my_stream = locker::xopen("a.txt", std::fstream::in); //the opening mode can be specified as a function argument
+// 
+// locker::xclose("a.txt");                                             //closes and unlocks a file
+// locker::xclose("a.txt", "b.txt");                                    //closes and unlocks multiple files
+// 
+// auto my_guard = locker::open_guard("a.txt", std::fstream::out);      //this will xopen a file and automatically xclose it when leaving current scope
+// std::fstream & my_stream = my_guard.stream;                          //the stream is available as a public member
+// 
+// std::string my_data = locker::xread("a.txt");                        //this will exclusively read a file and return its content as a string
+// locker::xwrite("a.txt", my_data);                                    //this will exclusively write a string (or any insertable type) to a file
 // 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -69,7 +85,9 @@
 class locker
 {
 	std::map<std::string, int> descriptors;
+	std::map<std::string, std::fstream> streams;
 	std::mutex descriptors_mutex;
+	std::mutex streams_mutex;
 	
 	static auto & get_singleton()
 	{
@@ -109,6 +127,7 @@ class locker
 	locker(locker &&) = delete;
 	auto & operator=(locker) = delete;
 	
+	template <bool dummy = false>
 	static auto unlock(std::string const & filename)
 	{
 		if(filename.empty())
@@ -129,13 +148,13 @@ class locker
 	{
 		if constexpr(should_not_reverse)
 		{
-			unlock(filename);
-			unlock(std::forward<TS>(filenames) ...);
+			unlock<should_not_reverse>(filename);
+			unlock<should_not_reverse>(std::forward<TS>(filenames) ...);
 		}
 		else
 		{
-			unlock(std::forward<TS>(filenames) ...);
-			unlock(filename);
+			unlock<should_not_reverse>(std::forward<TS>(filenames) ...);
+			unlock<should_not_reverse>(filename);
 		}
 	}
 	
@@ -190,19 +209,19 @@ class locker
 			throw std::runtime_error("does not have permission to lock file \"" + filename + "\"");
 		}
 		mode_t mask = umask(0);
-		int file_descriptor = open(filename.c_str(), O_RDWR | O_CREAT, 0666);
+		int descriptor = open(filename.c_str(), O_RDWR | O_CREAT, 0666);
 		umask(mask);
-		if(file_descriptor < 0)
+		if(descriptor < 0)
 		{
 			return false;
 		}
-		if(flock(file_descriptor, LOCK_EX | LOCK_NB) < 0)
+		if(flock(descriptor, LOCK_EX | LOCK_NB) < 0)
 		{
-			close(file_descriptor);
-			file_descriptor = -1;
+			close(descriptor);
+			descriptor = -1;
 			return false;
 		}
-		descriptors[filename] = file_descriptor;
+		descriptors[filename] = descriptor;
 		return true;
 	}
 	
@@ -284,4 +303,109 @@ class locker
 			}
 		}
 	};
+	
+	static auto & xopen(std::string const & filename, std::ios_base::openmode mode = std::fstream::app)
+	{
+		lock(filename);
+		auto const guard = std::scoped_lock<std::mutex>(get_singleton().streams_mutex);
+		auto & streams = get_singleton().streams;
+		if(streams.contains(filename))
+		{
+			if(streams.at(filename).is_open())
+			{
+				streams.at(filename).flush();
+				streams.at(filename).close();
+			}
+			streams.erase(filename);
+		}
+		streams[filename] = std::fstream(filename, mode);
+		if(!streams.at(filename).good())
+		{
+			streams.erase(filename);
+			unlock(filename);
+			throw std::runtime_error("could not xopen file \"" + filename + "\"");
+		}
+		return streams.at(filename);
+	}
+	
+	template <bool dummy = false>
+	static auto xclose(std::string const & filename)
+	{
+		if(filename.size())
+		{
+			auto const guard = std::scoped_lock<std::mutex>(get_singleton().streams_mutex);
+			auto & streams = get_singleton().streams;
+			if(streams.contains(filename))
+			{
+				if(streams.at(filename).is_open())
+				{
+					streams.at(filename).flush();
+					streams.at(filename).close();
+				}
+				streams.erase(filename);
+				unlock(filename);
+			}
+		}
+	}
+	
+	template <bool should_not_reverse = false, typename ... TS>
+	static auto xclose(std::string const & filename, TS && ... filenames)
+	{
+		if constexpr(should_not_reverse)
+		{
+			xclose<should_not_reverse>(filename);
+			xclose<should_not_reverse>(std::forward<TS>(filenames) ...);
+		}
+		else
+		{
+			xclose<should_not_reverse>(std::forward<TS>(filenames) ...);
+			xclose<should_not_reverse>(filename);
+		}
+	}
+	
+	class open_guard
+	{
+		std::string filename;
+		
+		public:
+		
+		std::fstream & stream;
+		
+		open_guard(open_guard const &) = delete;
+		open_guard(open_guard &&) = delete;
+		auto & operator=(open_guard) = delete;
+		auto operator&() = delete;
+		
+		open_guard(std::string const & f, std::ios_base::openmode mode = std::fstream::app) : filename(f), stream(xopen(filename, mode))
+		{
+		}
+		
+		~open_guard()
+		{
+			xclose(filename);
+		}
+	};
+	
+	static auto xread(std::string const & filename)
+	{
+		auto guard = open_guard(filename, std::fstream::in);
+		auto & input = guard.stream;
+		std::string data;
+		input.seekg(0, std::ios::end);
+		data.reserve(static_cast<std::size_t>(input.tellg()));
+		input.seekg(0, std::ios::beg);
+		data.assign((std::istreambuf_iterator<char>(input)), std::istreambuf_iterator<char>());
+		if(data.size() and data.back() == '\n')
+		{
+			data.pop_back();
+		}
+		return data;
+	}
+	
+	template <typename T>
+	static auto xwrite(std::string const & filename, T const & data)
+	{
+		auto output = open_guard(filename, std::fstream::out);
+		output.stream << data << std::flush;
+	}
 };
