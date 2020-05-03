@@ -34,10 +34,10 @@
 // 
 // #include "locker.hpp"
 // 
-// bool success = locker::try_lock("a.lock");               //tries to lock a file once, returns immediately
-// locker::lock("a.lock");                                  //keep trying to lock a file, only returns when file is locked
-// locker::unlock("a.lock");                                //unlocks a file if it is locked
-// auto my_lock = locker::lock_guard("a.lock");             //locks a file and automatically unlocks it before leaving current scope
+// bool success = locker::try_lock("a.lock");   //tries to lock a file once, returns immediately
+// locker::lock("a.lock");                      //keep trying to lock a file, only returns when file is locked
+// locker::unlock("a.lock");                    //unlocks a file if it is locked
+// auto my_lock = locker::lock_guard("a.lock"); //locks a file and automatically unlocks it before leaving current scope
 // 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
