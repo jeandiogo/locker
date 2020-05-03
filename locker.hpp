@@ -21,7 +21,7 @@
 // Be aware that locking a file does not prevent other programs from reading or writing to it. The locking policy works only among programs using this library.
 // All methods will throw an exception if an empty filename is given or if the program does not have permission to write to the file or to the directory the file is stored.
 // If the file to be locked does not exist, it will be created.
-// After locking a file, you still need to open it using the input/output method you preffer.
+// After locking a file, you still need to open it using the input/output method you preffer. Do not forget to close the file before unlocking it.
 // It is a good practice to create a separate lockfile for each file you intend to use (e.g. if you want to open "a.txt" exclusively, create a lockfile "a.txt.lock" and use it as a mutex.)
 // To compile with GCC, use the flag -std=c++2a.
 // 
@@ -68,8 +68,8 @@
 
 class locker
 {
-	std::map<std::string, int> file_descriptors;
-	std::mutex file_descriptors_mutex;
+	std::map<std::string, int> descriptors;
+	std::mutex descriptors_mutex;
 	
 	static auto & get_singleton()
 	{
@@ -99,9 +99,9 @@ class locker
 	
 	~locker()
 	{
-		for(auto const & file_descriptor : file_descriptors)
+		for(auto const & descriptor : descriptors)
 		{
-			close(file_descriptor.second);
+			close(descriptor.second);
 		}
 	}
 	
@@ -115,8 +115,8 @@ class locker
 		{
 			return;
 		}
-		auto const guard = std::scoped_lock<std::mutex>(get_singleton().file_descriptors_mutex);
-		auto & fds = get_singleton().file_descriptors;
+		auto const guard = std::scoped_lock<std::mutex>(get_singleton().descriptors_mutex);
+		auto & fds = get_singleton().descriptors;
 		if(fds.contains(filename))
 		{
 			close(fds.at(filename));
@@ -177,9 +177,9 @@ class locker
 				break;
 			}
 		}
-		auto const guard = std::scoped_lock<std::mutex>(get_singleton().file_descriptors_mutex);
-		auto & file_descriptors = get_singleton().file_descriptors;
-		if(file_descriptors.contains(filename))
+		auto const guard = std::scoped_lock<std::mutex>(get_singleton().descriptors_mutex);
+		auto & descriptors = get_singleton().descriptors;
+		if(descriptors.contains(filename))
 		{
 			return true;
 		}
@@ -202,7 +202,7 @@ class locker
 			file_descriptor = -1;
 			return false;
 		}
-		file_descriptors[filename] = file_descriptor;
+		descriptors[filename] = file_descriptor;
 		return true;
 	}
 	
