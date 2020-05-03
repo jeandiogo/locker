@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // 
-// Locker (C++20 library)
+// Locker (C++ library)
 // 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // 
@@ -17,7 +17,7 @@
 // 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // 
-// Locker is a header-only dependency-free C++20 class with static member functions to lock files in Linux systems, so they can be used as inter-process mutexes.
+// Locker is a header-only C++20 class with static member functions to lock files in Linux systems, so they can be used as inter-process mutexes.
 // Be aware that locking a file does not prevent other processes to modify the locked file or what it is protecting. The locking policy is only valid between programs using this library.
 // All methods will throw an exception if an empty filename is given or if the program does not have permission to modify the locked file or the directory the locked file is stored.
 // If the file to be locked does not exist, it will be created.
