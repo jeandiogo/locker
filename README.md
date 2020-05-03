@@ -1,8 +1,10 @@
 # Locker
 
-Locker is a header-only C++20 class with static member functions to lock files in Linux systems, so they can be used as inter-process mutexes. **Be aware that locking a file does not prevent other programs from reading or writing to it. The locking policy works only among programs using this library.** All methods will throw an exception if an empty filename is given or if the program does not have permission to write to the file or to the directory the file is stored. If the file to be locked does not exist, it will be created. **After locking a file, you still need to open it using the input/output method you preffer. Do not forget to close the file before unlocking it.** It is a good practice to create a separate lockfile for each file you intend to use (e.g. if you want to open "a.txt" exclusively, create a lockfile "a.txt.lock" and use it as a mutex). To compile with GCC, use the flag *-std=c++2a*.
+Locker is a header-only dependency-free C++20 class with static member functions to lock files in Linux systems, so they can be used as inter-process mutexes. **Be aware that locking a file does not prevent other processes to modify the locked file or what it is protecting. The locking policy is only valid between programs using this library.** All methods will throw an exception if an empty filename is given or if the program does not have permission to modify the locked file or the directory the locked file is stored. If the file to be locked does not exist, it will be created. If you want to read or write to a locked file, you still have to open it using the input/output method you preffer, and it is your responsability to handle input/ouput data races among threads in your process. It may be a good practice to create a separate lockfile to each file you intend to use (e.g. to open "a.txt" with exclusivity, lock the file "a.txt.lock"). If you opened a locked file, close it before unlocking. Do not forget to unlock every file you have manually locked, and prefer to use the lock guard, which will automatically unlock the file before leaving current scope.
 
-Usage:
+*To compile with GCC, use the flag -std=c++2a".*
+
+## Usage:
 
     #include "locker.hpp"
 
