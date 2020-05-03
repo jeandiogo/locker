@@ -4,7 +4,7 @@
 // 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // 
-// Copyright 2019-2020 Jean Kurpel Diogo (aka Jango) <jeandiogo@gmail.com>
+// Copyright 2020 Jean Kurpel Diogo (aka Jango) <jeandiogo@gmail.com>
 // 
 // Licensed under the Apache License Version 2.0 (the "License").
 // You may not use this file except in compliance with the License.
