@@ -1,6 +1,6 @@
 # Locker
 
-Locker is a header-only C++ class with static methods to lock files in Linux systems, so they can be used as inter-process mutexes. **Locking a file does not prevent other programs from reading/writing to it. The locking policy is valid only for programs using this library.** All methods will throw an exception if an empty filename is given or if the program does not have permission to write to it and to its directory. If the file to be locked does not exist, it will be created. To compile with GCC, use the flag "-std=c++2a".
+Locker is a header-only C++ class with static methods to lock files in Linux systems, so they can be used as inter-process mutexes. **Be aware that locking a file does not prevent other programs from reading/writing to it. The locking policy is valid only for programs using this library.** All methods will throw an exception if an empty filename is given or if the program does not have permission to write to it and to its directory. If the file to be locked does not exist, it will be created. **After locking a file, you still need to open it using the good old fashioned std::fstream.** It is a good practice, though, to create a separate lockfile for each file you intend to use (e.g. if you will open the file "file.txt", create a lockfile called "file.txt.lock" to use as a mutex). To compile with GCC, use the flag "-std=c++2a".
 
 Usage:
 
