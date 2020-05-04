@@ -14,20 +14,23 @@
 // 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // 
-// Locker is a header-only C++20 class with static member functions to lock files in Linux systems, so they can be used as inter-process mutexes.
-// Be aware that locking a file does not prevent other processes to modify the locked file or what it is protecting. The locking policy is only valid between programs using this library.
-// All methods will throw an exception if an empty filename is given or if the program does not have permission to modify the locked file or the directory the locked file is stored.
-// If the file to be locked does not exist, it will be created.
-// If you want to read or write to a locked file, you still have to open it using the input/output method you preffer, and it is your responsability to handle input/ouput data races among threads inside your process.
+// Locker is a header-only C++20 class with static member functions to lock files and directories in Linux systems, so they can be used exclusively or as inter-process mutexes.
+// 
+// [Disclaimers]
+// 
+// The locking policy is only valid between programs using this library, so locking a file does not prevent other processes to modify the locked file or what it is protecting.
+// All locking methods will throw an exception if an empty filename is given or if the program does not have permission to modify the target or the directory it is in.
+// If the file/directory to be locked does not exist, it will be created.
+// If you want to read or write to a locked file, you still have to open it using the input/output method you preffer.
+// Do not forget to unlock every file you have manually locked. And if you want to open a locked file, do not forget to close it before unlocking.
+// It is also your responsability to handle input/ouput data races among threads inside your process.
 // It may be a good practice to create a separate lockfile to each file you intend to use (e.g. to open "a.txt" with exclusivity, first lock the file, say, "a.txt.lock").
-// If you opened a locked file, close it before unlocking.
-// Do not forget to unlock every file you have manually locked, and prefer to use the lock guard, which will automatically unlock the file before leaving current scope.
+// It may also be a good practice to lock the directory of the files you want to have exclusive access, instead of locking the files themselves.
+// Nonetheless, always prefer to use the lock guard, which will automatically unlock the file before leaving current scope.
+// 
+// [Usage]
 // 
 // (To compile with GCC, use the flag "-std=c++2a".)
-// 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// 
-// Usage:
 // 
 // #include "locker.hpp"
 // 
@@ -36,9 +39,9 @@
 // locker::unlock("a.lock");                    //unlocks a file if it is locked
 // auto my_lock = locker::lock_guard("a.lock"); //locks a file and automatically unlocks it before leaving current scope
 // 
+// 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-#include <cstring>
 #include <filesystem>
 #include <map>
 #include <mutex>
@@ -75,8 +78,8 @@ class locker
 		}
 	};
 	
-	std::map<std::string, int> descriptors;
 	std::mutex descriptors_mutex;
+	std::map<std::string, int> descriptors;
 	
 	static auto & get_singleton()
 	{
@@ -98,7 +101,7 @@ class locker
 		return has_owner_permissions or has_group_permissions or has_other_permissions;
 	}
 		
-	locker()
+	locker() : descriptors_mutex(), descriptors()
 	{
 	}
 	
@@ -118,22 +121,26 @@ class locker
 	
 	static auto try_lock(std::string filename)
 	{
-		while(filename.size() and filename.back() == '/')
+		if(filename.empty())
+		{
+			throw std::runtime_error("name of lockfile must not be empty");
+		}
+		while(filename.size() > 1 and filename.back() == '/')
 		{
 			filename.pop_back();
 		}
-		if(filename.empty())
-		{
-			throw std::runtime_error("filename must not be an empty string");
-		}
-		std::string dirname = ".";
+		std::string path_to_file = ".";
 		for(long i = static_cast<long>(filename.size() - 1); i >= 0; --i)
 		{
 			if(filename[static_cast<std::size_t>(i)] == '/')
 			{
-				dirname = std::string(filename.begin(), filename.begin() + i);
+				path_to_file = std::string(filename.begin(), filename.begin() + i + 1);
 				break;
 			}
+		}
+		while(path_to_file.size() > 1 and path_to_file.back() == '/')
+		{
+			path_to_file.pop_back();
 		}
 		auto const guard = std::scoped_lock<std::mutex>(get_singleton().descriptors_mutex);
 		auto & descriptors = get_singleton().descriptors;
@@ -141,9 +148,9 @@ class locker
 		{
 			return true;
 		}
-		auto directory_is_valid = (std::filesystem::exists(dirname) or std::filesystem::create_directories(dirname)) and has_permission(dirname);
-		auto file_is_valid = !std::filesystem::exists(filename) or (std::filesystem::is_regular_file(std::filesystem::status(filename)) and has_permission(filename));
-		if(!directory_is_valid or !file_is_valid)
+		auto has_permission_to_path = (std::filesystem::exists(path_to_file) or std::filesystem::create_directories(path_to_file)) and has_permission(path_to_file);
+		auto has_permission_to_file = !std::filesystem::exists(filename) or (std::filesystem::is_regular_file(std::filesystem::status(filename)) and has_permission(filename));
+		if(!has_permission_to_path or !has_permission_to_file)
 		{
 			throw std::runtime_error("does not have permission to lock file \"" + filename + "\"");
 		}
