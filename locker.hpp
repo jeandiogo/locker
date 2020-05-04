@@ -14,19 +14,19 @@
 // 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // 
-// Locker is a header-only C++20 class with static member functions to lock files and directories in Linux systems, so they can be used exclusively or as inter-process mutexes.
+// Locker is a header-only C++20 class with static member functions to lock files in Linux systems, so they can be used exclusively or as inter-process mutexes.
 // 
 // [Disclaimers]
 // 
-// The locking policy is only valid between programs using this library, so locking a file does not prevent other processes to modify the locked file or what it is protecting.
-// All locking methods will throw an exception if an empty filename is given or if the program does not have permission to modify the target or the directory it is in.
-// If the file/directory to be locked does not exist, it will be created.
-// If you want to read or write to a locked file, you still have to open it using the input/output method you preffer.
+// The locking policy is only valid between programs using this library, so locking a file does not prevent other processes from modifying it or what it protects.
+// An exception will be throw if an empty filename is given, if a directory name is given, or if the program does not have permission to modify the file and its directory.
+// If the file to be locked does not exist, it will be created.
+// If you want to read or write to a locked file, you still have to open it using "fstream" or "fopen" methods.
 // Do not forget to unlock every file you have manually locked. And if you want to open a locked file, do not forget to close it before unlocking.
 // It is also your responsability to handle input/ouput data races among threads inside your process.
-// It may be a good practice to create a separate lockfile to each file you intend to use (e.g. to open "a.txt" with exclusivity, first lock the file, say, "a.txt.lock").
-// It may also be a good practice to lock the directory of the files you want to have exclusive access, instead of locking the files themselves.
-// Nonetheless, always prefer to use the lock guard, which will automatically unlock the file before leaving current scope.
+// It may be a good practice to create a separate lockfile for each file you intend to use, and be consistent with the naming convention.
+// Example: to open "a.txt" with exclusivity, lock the file, say, "a.txt.lock". This will prevent you from losing the lock in case you need to erase and recreate "a.txt".
+// Last but not least, instead of manual locking/unlocking, prefer using the lock guard, which will automatically unlock the file before leaving the current scope.
 // 
 // [Usage]
 // 
@@ -121,13 +121,13 @@ class locker
 	
 	static auto try_lock(std::string filename)
 	{
+		while(filename.size() and filename.back() == '/')
+		{
+			filename.pop_back();
+		}
 		if(filename.empty())
 		{
 			throw std::runtime_error("name of lockfile must not be empty");
-		}
-		while(filename.size() > 1 and filename.back() == '/')
-		{
-			filename.pop_back();
 		}
 		std::string path_to_file = ".";
 		for(long i = static_cast<long>(filename.size() - 1); i >= 0; --i)
@@ -148,8 +148,8 @@ class locker
 		{
 			return true;
 		}
-		auto has_permission_to_path = (std::filesystem::exists(path_to_file) or std::filesystem::create_directories(path_to_file)) and has_permission(path_to_file);
-		auto has_permission_to_file = !std::filesystem::exists(filename) or (std::filesystem::is_regular_file(std::filesystem::status(filename)) and has_permission(filename));
+		auto const has_permission_to_path = (std::filesystem::exists(path_to_file) or std::filesystem::create_directories(path_to_file)) and has_permission(path_to_file);
+		auto const has_permission_to_file = !std::filesystem::exists(filename) or (std::filesystem::is_regular_file(std::filesystem::status(filename)) and has_permission(filename));
 		if(!has_permission_to_path or !has_permission_to_file)
 		{
 			throw std::runtime_error("does not have permission to lock file \"" + filename + "\"");
