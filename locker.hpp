@@ -14,12 +14,13 @@
 // 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // 
-// Locker is a header-only C++20 class with static member functions to lock files in Linux systems, so they can be used exclusively or as inter-process mutexes.
+// Locker is a header-only C++20 class with static member functions to lock files in Linux systems, so they can be accessed exclusively or as inter-process mutexes.	
 // 
 // [Disclaimers]
 // 
 // The locking policy is only valid between programs using this library, so locking a file does not prevent other processes from modifying it or what it protects.
 // An exception will be throw if an empty filename is given, if a directory name is given, or if the program does not have permission to modify the file and its directory.
+// All functions are variadic, accepting a single filename, multiple filenames, a list of filenames, or a vector of filenames.
 // If the file to be locked does not exist, it will be created.
 // If you want to read or write to a locked file, you still have to open it using "fstream" or "fopen" methods.
 // Do not forget to unlock every file you have manually locked. And if you want to open a locked file, do not forget to close it before unlocking.
@@ -39,7 +40,6 @@
 // locker::unlock("a.lock");                    //unlocks a file if it is locked
 // auto my_lock = locker::lock_guard("a.lock"); //locks a file and automatically unlocks it before leaving current scope
 // 
-// 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #include <filesystem>
@@ -47,6 +47,9 @@
 #include <mutex>
 #include <stdexcept>
 #include <string>
+#include <utility>
+#include <vector>
+#include <iostream>
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -58,7 +61,7 @@ class locker
 {
 	class [[nodiscard]] lock_guard_t
 	{
-		std::string filename;
+		std::vector<std::string> filenames;
 		
 		public:
 		
@@ -67,14 +70,20 @@ class locker
 		auto & operator=(lock_guard_t) = delete;
 		auto operator&() = delete;
 		
-		lock_guard_t(std::string const & f) : filename(f)
+		lock_guard_t(std::vector<std::string> && fs) : filenames(fs)
 		{
-			lock(filename);
+			lock(filenames);
+		}
+		
+		template <typename ... TS>
+		lock_guard_t(TS && ... fs) : filenames({std::forward<TS>(fs) ...})
+		{
+			lock(filenames);
 		}
 		
 		~lock_guard_t()
 		{
-			unlock(filename);
+			unlock(filenames);
 		}
 	};
 	
@@ -168,13 +177,59 @@ class locker
 			return false;
 		}
 		descriptors[filename] = descriptor;
+		std::cout << filename << std::endl;
 		return true;
+	}
+	
+	template <typename ... TS>
+	static auto try_lock(std::string const & filename, TS && ... filenames)
+	{
+		if(!try_lock(filename))
+		{
+			return false;
+		}
+		if(!try_lock(std::forward<TS>(filenames) ...))
+		{
+			unlock(filename);
+			return false;
+		}
+		return true;
+	}
+	
+	static void try_lock(std::vector<std::string> const & filenames)
+	{
+		for(std::size_t i = 0; i < filenames.size(); ++i)
+		{
+			if(!try_lock(filenames[i]))
+			{
+				for(std::size_t j = i - 1; static_cast<long>(j) >= 0; --j)
+				{
+					unlock(filenames[j]);
+				}
+			}
+		}
 	}
 	
 	static void lock(std::string const & filename)
 	{
 		while(!try_lock(filename))
 		{
+		}
+	}
+	
+	template <typename ... TS>
+	static void lock(std::string const & filename, TS && ... filenames)
+	{
+		while(!try_lock(filename, std::forward<TS>(filenames) ...))
+		{
+		}
+	}
+	
+	static void lock(std::vector<std::string> const & filenames)
+	{
+		for(auto it = filenames.begin(); it != filenames.end(); ++it)
+		{
+			lock(*it);
 		}
 	}
 	
@@ -191,10 +246,32 @@ class locker
 			close(descriptors.at(filename));
 			descriptors.erase(filename);
 		}
+		std::cout << filename << std::endl;
 	}
 	
-	static auto lock_guard(std::string const & filename)
+	template <typename ... TS>
+	static void unlock(std::string const & filename, TS && ... filenames)
 	{
-		return lock_guard_t(filename);
+		unlock(std::forward<TS>(filenames) ...);
+		unlock(filename);
+	}
+	
+	static void unlock(std::vector<std::string> const & filenames)
+	{
+		for(auto it = filenames.rbegin(); it != filenames.rend(); ++it)
+		{
+			unlock(*it);
+		}
+	}
+	
+	template <typename ... TS>
+	static auto lock_guard(TS && ... filenames)
+	{
+		return lock_guard_t(std::forward<TS>(filenames) ...);
+	}
+	
+	static auto lock_guard(std::vector<std::string> const & filenames)
+	{
+		return lock_guard_t(filenames);
 	}
 };
