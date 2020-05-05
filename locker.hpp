@@ -31,7 +31,7 @@
 // 
 // [Usage]
 // 
-// (To compile with GCC, use the flag "-std=c++2a".)
+// (When compiling with g++ use the flag "-std=c++2a", available in GCC 7.0 or later.)
 // 
 // #include "locker.hpp"
 // 
