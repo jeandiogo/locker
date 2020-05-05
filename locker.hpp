@@ -43,6 +43,7 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #include <filesystem>
+#include <fstream>
 #include <map>
 #include <mutex>
 #include <stdexcept>
@@ -85,7 +86,7 @@ class locker
 			unlock(filenames);
 		}
 	};
-	
+		
 	std::mutex descriptors_mutex;
 	std::map<std::string, int> descriptors;
 	
@@ -127,28 +128,20 @@ class locker
 	locker(locker &&) = delete;
 	auto & operator=(locker) = delete;
 	
-	static auto try_lock(std::string filename)
+	static auto try_lock(std::string const & filename)
 	{
-		while(filename.size() and filename.back() == '/')
+		if(filename.empty() or filename.back() == '/')
 		{
-			filename.pop_back();
+			throw std::runtime_error("lockfile's name must not be empty");
 		}
-		if(filename.empty())
+		std::string path_to_file = "./";
+		for(std::size_t i = filename.size() - 1; static_cast<long>(i) >= 0; --i)
 		{
-			throw std::runtime_error("name of lockfile must not be empty");
-		}
-		std::string path_to_file = ".";
-		for(long i = static_cast<long>(filename.size() - 1); i >= 0; --i)
-		{
-			if(filename[static_cast<std::size_t>(i)] == '/')
+			if(filename[i] == '/')
 			{
-				path_to_file = std::string(filename.begin(), filename.begin() + i + 1);
+				path_to_file = std::string(filename, 0, i + 1);
 				break;
 			}
-		}
-		while(path_to_file.size() > 1 and path_to_file.back() == '/')
-		{
-			path_to_file.pop_back();
 		}
 		auto const guard = std::scoped_lock<std::mutex>(get_singleton().descriptors_mutex);
 		auto & descriptors = get_singleton().descriptors;
@@ -176,7 +169,6 @@ class locker
 			return false;
 		}
 		descriptors[filename] = descriptor;
-		std::cout << filename << std::endl;
 		return true;
 	}
 	
@@ -234,7 +226,7 @@ class locker
 	
 	static void unlock(std::string const & filename)
 	{
-		if(filename.empty())
+		if(filename.empty() or filename.back() == '/')
 		{
 			return;
 		}
@@ -245,7 +237,6 @@ class locker
 			close(descriptors.at(filename));
 			descriptors.erase(filename);
 		}
-		std::cout << filename << std::endl;
 	}
 	
 	template <typename ... TS>
