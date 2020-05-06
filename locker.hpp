@@ -169,7 +169,7 @@ class locker
 		auto const has_permission_to_file = !std::filesystem::exists(filename) or (std::filesystem::is_regular_file(std::filesystem::status(filename)) and has_permission(filename));
 		if(!has_permission_to_path or !has_permission_to_file)
 		{
-			throw std::runtime_error("does not have permission to lock file \"" + filename + "\"");
+			throw std::runtime_error("do not have permission to lock file \"" + filename + "\"");
 		}
 		mode_t mask = umask(0);
 		int descriptor = open(filename.c_str(), O_RDWR | O_CREAT, 0666);
