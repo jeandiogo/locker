@@ -29,6 +29,7 @@
 // It is also your responsability to handle race conditions among threads that have opened a lockfile in your process, and you should avoid forking a program while it has some file locked.
 // If possible, instead of manually opening a lockfile, use the functions this library provides to perform exclusive reading and exclusive writing (which are process-safe, but still not thread-safe).
 // Finally, it may be a good practice to create a separate lockfile for each file you intend to use, because this will prevent losing the lock in case you need to erase and recreate the file.
+// For example: to exclusively open "a.txt", lock the file "a.txt.lock" (and be consistent with your lockfile's names throughout your programs).
 // 
 // [Usage]
 // 
