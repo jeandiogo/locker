@@ -246,7 +246,7 @@ class locker
 	{
 		if(filename.empty() or filename.back() == '/')
 		{
-			return;
+			throw std::runtime_error("filename must not be empty");
 		}
 		auto const guard = std::scoped_lock<std::mutex>(get_singleton().descriptors_mutex);
 		auto & descriptors = get_singleton().descriptors;
