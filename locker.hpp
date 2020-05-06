@@ -21,14 +21,14 @@
 // Locker is a header-only C++20 class with static member functions to lock files in Linux systems, so they can be accessed exclusively or used as inter-process mutexes.
 // The locking policy is only valid between programs using this library, so locking a file does not prevent other processes from modifying it or what it protects.
 // An exception will be throw if an empty filename is given, if a directory name is given, or if the program does not have permission to modify the file and its directory.
-// All functions are variadic, accepting a single filename, multiple filenames, a list of filenames, or a vector of filenames.
 // If the file to be locked does not exist, it will be created.
-// Locking and unlocking operations are independent from opening and closing operations. If you want to read from or write to a lockfile, you still need to open it using "fstream" or "fopen" methods.
-// Do not forget to unlock every file you have manually locked. And if you want to open a lockfile, do not forget to flush the output and close the file before unlocking.
-// It is also your responsability to handle input/ouput data races related to the lockfile among threads inside your process, and you should avoid forking a program whenever it has some file locked.
-// It may be a good practice to create a separate lockfile for each file you intend to use, and be consistent with the naming convention.
-// Example: to open "a.txt" with exclusivity, lock the file, say, "a.txt.lock". This will prevent you from losing the lock in case you need to erase and recreate "a.txt" for some reason.
-// Last but not least, instead of manual locking/unlocking, prefer using the lock guard, which will automatically unlock the file before leaving the current scope.
+// All locking/unlocking functions are variadic, accepting a single filename, multiple filenames, a list of filenames, or a vector of filenames.
+// Instead of manually lock/unlock a file, prefer using the lock guard, which will automatically unlock the file before leaving its scope of declaration.
+// If you have manually locked a file, do not forget to unlock it.
+// Lock/unlock operations are independent from open/close operations. If you want to open a lockfile, you need to use "fstream" or "fopen" methods, and close the file before uncloking it.
+// It is also your responsability to handle race conditions among threads that have opened a lockfile in your process, and you should avoid forking a program while it has some file locked.
+// If possible, instead of manually opening a lockfile, use the functions this library provides to perform exclusive reading and exclusive writing.
+// Finally, it may be a good practice to create a separate lockfile for each file you intend to use. This will prevent losing the lock in case you need to erase and recreate the file.
 // 
 // [Usage]
 // 
@@ -36,10 +36,25 @@
 // 
 // #include "locker.hpp"
 // 
-// bool success = locker::try_lock("a.lock");   //tries to lock a file once, returns immediately
-// locker::lock("a.lock");                      //keep trying to lock a file, only returns when file is locked
-// locker::unlock("a.lock");                    //unlocks a file if it is locked
-// auto my_lock = locker::lock_guard("a.lock"); //locks a file and automatically unlocks it before leaving current scope
+// bool success = locker::try_lock("a.lock");               //tries to lock a file once, returns immediately
+// bool success = locker::try_lock("a.lock", "b.lock");     //tries to lock multiple files once, returns immediately
+// bool success = locker::try_lock({"a.lock", "b.lock"});   //same as above
+// 
+// locker::lock("a.lock");                                  //keeps trying to lock a file, only returns when file is locked
+// locker::lock("a.lock", "b.lock");                        //keeps trying to lock multiple files, only returns when files are locked
+// locker::lock({"a.lock", "b.lock"});                      //same as above
+// 
+// locker::unlock("a.lock");                                //unlocks a file if it is locked
+// locker::unlock("a.lock", "b.lock");                      //unlocks multiple files if they are locked
+// locker::unlock({"a.lock", "b.lock"});                    //same as above
+// 
+// auto my_lock = locker::lock_guard("a.lock");             //locks a file and automatically unlocks it before leaving current scope
+// auto my_lock = locker::lock_guard("a.lock", "b.lock");   //locks multiple files and automatically unlocks them before leaving current scope
+// auto my_lock = locker::lock_guard({"a.lock", "b.lock"}); //same as above
+// 
+// std::string my_data = locker::xread("a.txt");            //performs an exclusive read of a file and returns its content as a string
+// locker::xwrite("a.txt", my_data);                        //performs an exclusive write of an argument to a file
+// locker::xwrite("a.txt", "secret", ':', 42);              //performs an exclusive write of multiple arguments to a file
 // 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
