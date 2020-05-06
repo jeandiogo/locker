@@ -148,7 +148,7 @@ class locker
 	{
 		if(filename.empty() or filename.back() == '/')
 		{
-			throw std::runtime_error("lockfile's name must not be empty");
+			throw std::runtime_error("filename must not be empty");
 		}
 		std::string path_to_file = "./";
 		for(std::size_t i = filename.size() - 1; static_cast<long>(i) >= 0; --i)
