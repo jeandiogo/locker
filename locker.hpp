@@ -18,7 +18,6 @@
 // 
 // [Notice]
 // 
-// Locker is a header-only C++20 class with static member functions to lock files in Linux systems, so they can be accessed exclusively or used as inter-process mutexes.
 // The locking policy is only valid between programs using this library, so locking a file does not prevent other processes from modifying it or what it protects.
 // An exception will be throw if an empty filename is given, if a directory name is given, or if the program does not have permission to modify the file and its directory.
 // If the file to be locked does not exist, it will be created.
