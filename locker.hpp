@@ -44,6 +44,7 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #include <filesystem>
+#include <fstream>
 #include <map>
 #include <mutex>
 #include <stdexcept>
@@ -110,7 +111,7 @@ class locker
 		return has_owner_permissions or has_group_permissions or has_other_permissions;
 	}
 		
-	locker() : descriptors_mutex(), descriptors()
+	locker()
 	{
 	}
 	
@@ -263,5 +264,38 @@ class locker
 	static auto lock_guard(std::vector<std::string> const & filenames)
 	{
 		return lock_guard_t(filenames);
+	}
+	
+	static auto xread(std::string const & filename)
+	{
+		auto guard = lock_guard(filename);
+		auto input = std::ifstream(filename);
+		if(!input.good())
+		{
+			throw std::runtime_error("could not open file \"" + filename + "\"");
+		}
+		std::string data;
+		input.seekg(0, std::ios::end);
+		data.reserve(static_cast<std::size_t>(input.tellg()));
+		input.seekg(0, std::ios::beg);
+		data.assign((std::istreambuf_iterator<char>(input)), std::istreambuf_iterator<char>());
+		if(data.size() and data.back() == '\n')
+		{
+			data.pop_back();
+		}
+		return data;
+	}
+	
+	template <typename ... TS>
+	static auto xwrite(std::string const & filename, TS && ... data)
+	{
+		auto guard = lock_guard(filename);
+		auto output = std::ofstream(filename);
+		if(!output.good())
+		{
+			throw std::runtime_error("could not open file \"" + filename + "\"");
+		}
+		(output << ... << std::forward<TS>(data)) << std::flush;
+		output.close();
 	}
 };
