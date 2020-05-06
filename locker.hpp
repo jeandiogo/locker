@@ -54,8 +54,9 @@
 // auto my_lock = locker::lock_guard({"a.lock", "b.lock"}); //same as above
 // 
 // std::string my_data = locker::xread("a.txt");            //performs an exclusive read of a file and returns its content as a string
+// 
 // locker::xwrite("a.txt", my_data);                        //performs an exclusive write of an argument to a file
-// locker::xwrite("a.txt", "value", ':', 42);              //performs an exclusive write of multiple arguments to a file
+// locker::xwrite("a.txt", "value", ':', 42);               //performs an exclusive write of multiple arguments to a file
 // 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
