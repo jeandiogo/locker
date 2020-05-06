@@ -28,7 +28,7 @@
 // Lock/unlock operations are independent from open/close operations. If you want to open a lockfile, you need to use "fstream" or "fopen" methods, and close the file before uncloking it.
 // It is also your responsability to handle race conditions among threads that have opened a lockfile in your process, and you should avoid forking a program while it has some file locked.
 // If possible, instead of manually opening a lockfile, use the functions this library provides to perform exclusive reading and exclusive writing.
-// Finally, it may be a good practice to create a separate lockfile for each file you intend to use. This will prevent losing the lock in case you need to erase and recreate the file.
+// Finally, it may be a good practice to create a separate lockfile for each file you intend to use, because this will prevent losing the lock in case you need to erase and recreate the file.
 // 
 // [Usage]
 // 
@@ -54,7 +54,7 @@
 // 
 // std::string my_data = locker::xread("a.txt");            //performs an exclusive read of a file and returns its content as a string
 // locker::xwrite("a.txt", my_data);                        //performs an exclusive write of an argument to a file
-// locker::xwrite("a.txt", "secret", ':', 42);              //performs an exclusive write of multiple arguments to a file
+// locker::xwrite("a.txt", "value", ':', 42);              //performs an exclusive write of multiple arguments to a file
 // 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
