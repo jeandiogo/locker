@@ -47,7 +47,7 @@
 // auto my_lock = locker::lock_guard({"a.lock", "b.lock"});   //same as above
 // 
 // bool success = locker::is_locked("a.lock");                //asserts if a file is already locked by current process
-// std::vector<std::string> my_locked = locker::get_locked(); //returns name of all files locked by current process
+// std::vector<std::string> my_locked = locker::get_locked(); //returns the names of all files locked by current process
 // locker::clear();                                           //unlocks all lockfiles (dont call this if there are opened files)
 // 
 // std::string my_data = locker::xread("a.txt");              //performs an exclusive read of a file and returns its content as a string
