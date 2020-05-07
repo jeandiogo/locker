@@ -18,7 +18,7 @@
 // 
 // [Notice]
 // 
-// The locking policy is valid only between programs using this library, so locking a file does not prevent other processes from accessing it or what it protects.** Moreover, the lock is process-safe but not thread-safe, so once a process acquired the lock, its threads and future forks will not be stopped by the lock. Avoid forking a program while it has some file locked.
+// The locking policy is valid only between programs using this library, so locking a file does not prevent other processes from accessing it or what it protects.** Moreover, the lock is process-safe but not thread-safe, so once a process has acquired the lock, its threads and future forks will not be stopped by the lock. Avoid forking a program while it has some file locked.
 // 
 // Lock/unlock operations are independent from open/close operations. If you want to open a lockfile, you need to use "fstream" or "fopen" methods, and close the file before uncloking it. It is your responsability to handle race conditions among threads that have opened a file locked by the process that spawn them. If possible, instead of manually opening a lockfile, use the functions this library provides to perform exclusive read and exclusive write (which are both process-safe and thread-safe).
 // 
@@ -47,11 +47,10 @@
 // auto my_lock = locker::lock_guard({"a.lock", "b.lock"});   //same as above
 // 
 // bool success = locker::is_locked("a.lock");                //asserts if a file is already locked by current process
-// 
 // std::vector<std::string> my_locked = locker::get_locked(); //returns name of all files locked by current process
+// locker::clear();                                           //unlocks all lockfiles (dont call this if there are opened files)
 // 
 // std::string my_data = locker::xread("a.txt");              //performs an exclusive read of a file and returns its content as a string
-// 
 // locker::xwrite("a.txt", my_data);                          //performs an exclusive write of an argument to a file
 // locker::xwrite("a.txt", "value", ':', 42);                 //performs an exclusive write of multiple arguments to a file
 // 
@@ -133,15 +132,23 @@ class locker
 	
 	~locker()
 	{
-		for(auto const & descriptor : descriptors)
-		{
-			close(descriptor.second);
-		}
+		clear();
 	}
 	
 	locker(locker const &) = delete;
 	locker(locker &&) = delete;
 	auto & operator=(locker) = delete;
+	
+	static void clear()
+	{
+		auto const descriptors_guard = std::scoped_lock<std::mutex>(get_singleton().descriptors_mutex);
+		auto & descriptors = get_singleton().descriptors;
+		for(auto & descriptor : descriptors)
+		{
+			close(descriptor.second);
+		}
+		descriptors.clear();
+	}
 	
 	static auto is_locked(std::string const & filename)
 	{
