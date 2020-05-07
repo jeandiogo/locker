@@ -30,28 +30,29 @@
 // 
 // #include "locker.hpp"
 // 
-// bool success = locker::try_lock("a.lock");               //tries to lock a file once, returns immediately
-// bool success = locker::try_lock("a.lock", "b.lock");     //tries to lock multiple files once, returns immediately
-// bool success = locker::try_lock({"a.lock", "b.lock"});   //same as above
+// bool success = locker::try_lock("a.lock");                 //tries to lock a file once, returns immediately
+// bool success = locker::try_lock("a.lock", "b.lock");       //tries to lock multiple files once, returns immediately
+// bool success = locker::try_lock({"a.lock", "b.lock"});     //same as above
 // 
-// locker::lock("a.lock");                                  //keeps trying to lock a file, only returns when file is locked
-// locker::lock("a.lock", "b.lock");                        //keeps trying to lock multiple files, only returns when files are locked
-// locker::lock({"a.lock", "b.lock"});                      //same as above
+// locker::lock("a.lock");                                    //keeps trying to lock a file, only returns when file is locked
+// locker::lock("a.lock", "b.lock");                          //keeps trying to lock multiple files, only returns when files are locked
+// locker::lock({"a.lock", "b.lock"});                        //same as above
 // 
-// locker::unlock("a.lock");                                //unlocks a file if it is locked
-// locker::unlock("a.lock", "b.lock");                      //unlocks multiple files if they are locked
-// locker::unlock({"a.lock", "b.lock"});                    //same as above
+// locker::unlock("a.lock");                                  //unlocks a file if it is locked
+// locker::unlock("a.lock", "b.lock");                        //unlocks multiple files if they are locked
+// locker::unlock({"a.lock", "b.lock"});                      //same as above
 // 
-// auto my_lock = locker::lock_guard("a.lock");             //locks a file and automatically unlocks it before leaving current scope
-// auto my_lock = locker::lock_guard("a.lock", "b.lock");   //locks multiple files and automatically unlocks them before leaving current scope
-// auto my_lock = locker::lock_guard({"a.lock", "b.lock"}); //same as above
+// auto my_lock = locker::lock_guard("a.lock");               //locks a file and automatically unlocks it before leaving current scope
+// auto my_lock = locker::lock_guard("a.lock", "b.lock");     //locks multiple files and automatically unlocks them before leaving current scope
+// auto my_lock = locker::lock_guard({"a.lock", "b.lock"});   //same as above
 // 
-// bool success = locker::is_locked("a.lock");              //asserts if a file is already locked by the current process
+// bool success = locker::is_locked("a.lock");                //asserts if a file is already locked by current process
+// std::vector<std::string> my_locked = locker::get_locked(); //returns name of all files locked by current process
 // 
-// std::string my_data = locker::xread("a.txt");            //performs an exclusive read of a file and returns its content as a string
+// std::string my_data = locker::xread("a.txt");              //performs an exclusive read of a file and returns its content as a string
 // 
-// locker::xwrite("a.txt", my_data);                        //performs an exclusive write of an argument to a file
-// locker::xwrite("a.txt", "value", ':', 42);               //performs an exclusive write of multiple arguments to a file
+// locker::xwrite("a.txt", my_data);                          //performs an exclusive write of an argument to a file
+// locker::xwrite("a.txt", "value", ':', 42);                 //performs an exclusive write of multiple arguments to a file
 // 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -144,6 +145,19 @@ class locker
 	static auto is_locked(std::string const & filename)
 	{
 		return get_singleton().descriptors.contains(filename);
+	}
+	
+	static auto get_locked()
+	{
+		std::vector<std::string> locked;
+		auto const guard = std::scoped_lock<std::mutex>(get_singleton().descriptors_mutex);
+		auto & descriptors = get_singleton().descriptors;
+		locked.reserve(descriptors.size());
+		for(auto const & descriptor : descriptors)
+		{
+			locked.emplace_back(descriptor.first);
+		}
+		return locked;
 	}
 	
 	static auto try_lock(std::string const & filename)
