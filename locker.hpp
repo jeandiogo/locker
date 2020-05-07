@@ -18,9 +18,7 @@
 // 
 // [Notice]
 // 
-// Locker is a header-only C++20 class with static member functions to lock files in Linux systems, so they can be accessed exclusively or used as inter-process mutexes. The locking policy is valid only between programs using this library, so locking a file does not prevent other processes from accessing it or what it protects. Also, the lock is process-safe but not thread-safe, so once a process acquired the lock, its threads will not be stopped by the lock. Same is true for all forks executed after the lock, so you should avoid forking a program while it has some file locked.
-// 
-// An exception will be throw if an empty filename is given, if a directory name is given, or if the program does not have permission to modify the file and its directory. If the file to be locked does not exist, it will be created. All locking and unlocking functions are variadic, accepting a single filename, multiple filenames, a list of filenames, or a vector of filenames. If you have manually locked a file, do not forget to unlock it. Nevertheless, instead of manually locking/unlocking a file, prefer using the lock guard, which will automatically unlock the file before leaving its scope of declaration.
+// The locking policy is valid only between programs using this library, so locking a file does not prevent other processes from accessing it or what it protects.** Moreover, the lock is process-safe but not thread-safe, so once a process acquired the lock, its threads and future forks will not be stopped by the lock. Avoid forking a program while it has some file locked.
 // 
 // Lock/unlock operations are independent from open/close operations. If you want to open a lockfile, you need to use "fstream" or "fopen" methods, and close the file before uncloking it. It is your responsability to handle race conditions among threads that have opened a file locked by the process that spawn them. If possible, instead of manually opening a lockfile, use the functions this library provides to perform exclusive read and exclusive write (which are both process-safe and thread-safe).
 // 
