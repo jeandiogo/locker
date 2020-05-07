@@ -31,6 +31,7 @@ Finally, it may be a good practice to create a separate lockfile for each file y
 	auto my_lock = locker::lock_guard({"a.lock", "b.lock"});   //same as above
     
 	bool success = locker::is_locked("a.lock");                //asserts if a file is already locked by current process
+	
 	std::vector<std::string> my_locked = locker::get_locked(); //returns name of all files locked by current process
     
 	std::string my_data = locker::xread("a.txt");              //performs an exclusive read of a file and returns its content as a string
