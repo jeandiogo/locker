@@ -285,20 +285,39 @@ class locker
 	
 	static auto xread(std::string const & filename)
 	{
-		auto guard = lock_guard(filename);
-		auto input = std::ifstream(filename);
-		if(!input.good())
-		{
-			throw std::runtime_error("could not open file \"" + filename + "\"");
-		}
 		std::string data;
-		input.seekg(0, std::ios::end);
-		data.reserve(static_cast<std::size_t>(input.tellg()));
-		input.seekg(0, std::ios::beg);
-		data.assign((std::istreambuf_iterator<char>(input)), std::istreambuf_iterator<char>());
-		if(data.size() and data.back() == '\n')
+		auto should_lock = !is_locked(filename);
+		if(should_lock)
 		{
-			data.pop_back();
+			lock(filename);
+		}
+		try
+		{
+			auto input = std::ifstream(filename);
+			if(!input.good())
+			{
+				throw std::runtime_error("could not open file \"" + filename + "\" for input");
+			}
+			input.seekg(0, std::ios::end);
+			data.reserve(static_cast<std::size_t>(input.tellg()));
+			input.seekg(0, std::ios::beg);
+			data.assign((std::istreambuf_iterator<char>(input)), std::istreambuf_iterator<char>());
+			if(data.size() and data.back() == '\n')
+			{
+				data.pop_back();
+			}
+		}
+		catch(...)
+		{
+			if(should_lock)
+			{
+				unlock(filename);
+			}
+			throw;
+		}
+		if(should_lock)
+		{
+			unlock(filename);
 		}
 		return data;
 	}
@@ -306,13 +325,31 @@ class locker
 	template <typename ... TS>
 	static auto xwrite(std::string const & filename, TS && ... data)
 	{
-		auto guard = lock_guard(filename);
-		auto output = std::ofstream(filename);
-		if(!output.good())
+		auto should_lock = !is_locked(filename);
+		if(should_lock)
 		{
-			throw std::runtime_error("could not open file \"" + filename + "\"");
+			lock(filename);
 		}
-		(output << ... << std::forward<TS>(data)) << std::flush;
-		output.close();
+		try
+		{
+			auto output = std::ofstream(filename);
+			if(!output.good())
+			{
+				throw std::runtime_error("could not open file \"" + filename + "\" for output");
+			}
+			(output << ... << std::forward<TS>(data)) << std::flush;
+		}	
+		catch(...)
+		{
+			if(should_lock)
+			{
+				unlock(filename);
+			}
+			throw;
+		}
+		if(should_lock)
+		{
+			unlock(filename);
+		}
 	}
 };
