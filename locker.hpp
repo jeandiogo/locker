@@ -22,7 +22,7 @@
 // 
 // Lock/unlock operations are independent from open/close operations. If you want to open a lockfile, you need to use "fstream" or "fopen" methods, and close the file before uncloking it. It is your responsability to handle race conditions among threads that have opened a file locked by the process that spawn them. If possible, instead of manually opening a lockfile, use the functions this library provides to perform exclusive read and exclusive write (which are both process-safe and thread-safe).
 // 
-// Finally, it may be a good practice to create a separate lockfile for each file you intend to use (and be consistent with your lockfile's names throughout your programs). This will prevent losing the lock in case you need to erase and recreate the file. For example: to exclusively open "a.txt", lock the file "a.txt.lock".
+// Finally, it may be a good practice to create a separate lockfile for each file you intend to use. This will prevent losing the lock in case you need to erase a file and recreate it before any other process can reach to it. For example: to exclusively open "a.txt", lock the file "a.txt.lock" (be consistent with the name of the lockfiles throughout your programs).
 // 
 // [Usage]
 // 
