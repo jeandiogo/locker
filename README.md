@@ -6,7 +6,7 @@ An exception will be throw if an empty filename is given, if a directory name is
 
 Lock/unlock operations are independent from open/close operations. If you want to open a lockfile, you need to use "fstream" or "fopen" methods, and close the file before uncloking it. If you prefer, instead of manually opening a lockfile, use the functions this library provides to perform exclusive read and exclusive write, which are process-safe but still not thread-safe. It is your responsability to handle race conditions among threads that have opened a file locked by their parent.
 
-Finally, it may be a good practice to create separate lockfiles for each file you intend to use. This will prevent losing the lock in case you need to erase a file and recreate it before any other process can reach to it. For example: to exclusively open "a.txt", lock the file "a.txt.lock" (be consistent with the name of the lockfiles throughout your programs).
+Finally, if you delete a locked file, you will lose the lock. So it may be a good practice to create separate lockfiles for each file you intend to use (e.g. to exclusively open "a.txt", lock the file "a.txt.lock"). This will prevent you from losing the lock in case you need to erase and recreate the file without losing the lock to other processes. Do not forget to be consistent with the name of the lockfiles throughout your programs.
 
 *When compiling with g++ use the flag "-std=c++2a" (available in GCC 7.0 or later).*
 
