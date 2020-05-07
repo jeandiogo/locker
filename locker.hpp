@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // 
 // Locker (C++ library)
-// Copyright 2020 Jean Diogo (aka Jango) <jeandiogo@gmail.com>
+// Copyright 2020 Jean Diogo (Jango) <jeandiogo@gmail.com>
 // 
 // Licensed under the Apache License Version 2.0 (the "License").
 // You may not use this file except in compliance with the License.
