@@ -37,3 +37,5 @@ Finally, it may be a good practice to create a separate lockfile for each file y
     
 	locker::xwrite("a.txt", my_data);                          //performs an exclusive write of an argument to a file
 	locker::xwrite("a.txt", "value", ':', 42);                 //performs an exclusive write of multiple arguments to a file
+
+*Copyright 2020 Jean Kurpel Diogo (aka [Jango](jeandiogo@gmail.com))*
