@@ -21,7 +21,11 @@ Finally, if you delete a locked file, you will lose the lock. So it may be a goo
 	locker::lock("a.lock");                                    //keeps trying to lock a file, only returns when file is locked
 	locker::lock("a.lock", "b.lock");                          //keeps trying to lock multiple files, only returns when files are locked
 	locker::lock({"a.lock", "b.lock"});                        //same as above
-		
+	
+	locker::lock(1, "a.lock");                                 //keeps trying to lock in intervals of approximately 1 millisecond
+	locker::lock<std::chrono::nanoseconds>(1000, "a.lock");    //use template argument to change the unit of measurement
+	locker::lock(20, "a.lock", "b.lock");                      //also works for the variadic versions
+	
 	locker::unlock("a.lock");                                  //unlocks a file if it is locked
 	locker::unlock("a.lock", "b.lock");                        //unlocks multiple files if they are locked
 	locker::unlock({"a.lock", "b.lock"});                      //same as above
