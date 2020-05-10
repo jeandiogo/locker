@@ -6,7 +6,7 @@ Locker is a header-only C++20 class with static member functions to lock files i
 
 **Lock and unlock operations are independent from open and close operations**. If you want to open a lockfile, you need to use "fstream" or "fopen" methods, and close the file before unlocking it. If you prefer, instead of manually opening a lockfile, use the functions this library provides to perform exclusive read and exclusive write, which are process-safe but still not thread-safe. It is your responsability to handle race conditions among threads that have opened a file locked by their parent.
 
-Finally, **if you delete a lockfile, you will lose the lock**. So it may be a good practice to create separate lockfiles for each file you intend to use (e.g. to exclusively open "a.txt", lock the file "a.txt.lock"). This will prevent you from losing the lock in case you need to erase and recreate the file without losing the lock to other processes. Do not forget to be consistent with the name of lockfiles throughout your programs.
+Finally, **you will lose the lock if a lockfile is deleted**. So it may be a good practice to create separate lockfiles for each file you intend to use (e.g. to exclusively open "a.txt", lock the file "a.txt.lock"). This will prevent you from losing the lock in case you need to erase and recreate the file without losing the lock to other processes. Do not forget to be consistent with the name of lockfiles throughout your programs.
 
 *When compiling with g++ use the flag "-std=c++2a" (available in GCC 7.0 or later).*
 
