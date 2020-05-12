@@ -54,7 +54,7 @@
 // 
 // bool success = locker::is_locked("a.lock");                //asserts if a file is already locked by current process
 // std::vector<std::string> my_locked = locker::get_locked(); //returns the names of all files locked by current process
-// locker::clear();                                           //unlocks all lockfiles (dont call this if there are opened files)
+// locker::clear();                                           //unlocks all locked files (do not call this if some lockfile is open)
 // 
 // std::string my_data = locker::xread("a.txt");              //performs an exclusive read of a file and returns its content as a string
 // locker::xwrite("a.txt", my_data);                          //performs an exclusive write of an argument to a file
@@ -63,7 +63,9 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #include <chrono>
+#include <cerrno>
 #include <cstdlib>
+#include <cstring>
 #include <filesystem>
 #include <fstream>
 #include <map>
@@ -124,7 +126,7 @@ class locker
 		struct stat file_info;
 		if(stat(filename.c_str(), &file_info) != 0)
 		{
-			throw std::runtime_error("could not assert permission to write in \"" + filename + "\"");
+			throw std::runtime_error("could not assert permission to write in \"" + filename + "\": " + std::string(strerror(errno)));
 		}
 		auto permissions = std::filesystem::status(filename).permissions();
 		auto const has_owner_permissions = file_info.st_uid == getuid() and (permissions & std::filesystem::perms::owner_read) != std::filesystem::perms::none and (permissions & std::filesystem::perms::owner_write) != std::filesystem::perms::none;
