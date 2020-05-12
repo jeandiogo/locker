@@ -38,7 +38,7 @@ Finally, **you will lose the lock if a lockfile is deleted**. So it may be a goo
 		
 	bool success = locker::is_locked("a.lock");                //asserts if a file is already locked by current process
 	std::vector<std::string> my_locked = locker::get_locked(); //returns the names of all files locked by current process
-	locker::clear();                                           //unlocks all lockfiles (use with caution, close all opened files before clearing)
+	locker::clear();                                           //unlocks all locked files (do not call this if some lockfile is open)
 	
 	std::string my_data = locker::xread("a.txt");              //performs an exclusive read of a file and returns its content as a string
 	locker::xwrite("a.txt", my_data);                          //performs an exclusive write of an argument to a file
