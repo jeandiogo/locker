@@ -45,7 +45,7 @@
 // locker::lock(20, "a.lock", "b.lock");                      //also works for the variadic versions
 // 
 // locker::unlock("a.lock");                                  //unlocks a file if it is locked
-// locker::unlock("a.lock", "b.lock");                        //unlocks multiple files if they are locked
+// locker::unlock("a.lock", "b.lock");                        //unlocks multiple files (in reverse order) if they are locked
 // locker::unlock({"a.lock", "b.lock"});                      //same as above
 // 
 // auto my_lock = locker::lock_guard("a.lock");               //locks a file and automatically unlocks it before leaving current scope
