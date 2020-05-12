@@ -181,7 +181,7 @@ class locker
 	{
 		if(filename.empty() or filename.back() == '/')
 		{
-			throw std::runtime_error("filename must not be empty");
+			throw std::runtime_error("cannot lock \"\": filename must not be empty");
 		}
 		std::string path_to_file = "./";
 		for(std::size_t i = filename.size() - 1; static_cast<long>(i) >= 0; --i)
@@ -202,7 +202,7 @@ class locker
 		auto const has_permission_to_file = !std::filesystem::exists(filename) or (std::filesystem::is_regular_file(std::filesystem::status(filename)) and has_permission(filename));
 		if(!has_permission_to_path or !has_permission_to_file)
 		{
-			throw std::runtime_error("cannot lock \"" + filename + "\" (file must be regular and writeable, or non-existing)");
+			throw std::runtime_error("cannot lock \"" + filename + "\": file must be regular and writeable, or non-existing");
 		}
 		mode_t mask = umask(0);
 		int descriptor = open(filename.c_str(), O_RDWR | O_CREAT, 0666);
@@ -310,7 +310,7 @@ class locker
 	{
 		if(filename.empty() or filename.back() == '/')
 		{
-			throw std::runtime_error("filename must not be empty");
+			throw std::runtime_error("cannot unlock \"\": filename must not be empty");
 		}
 		auto const guard = std::scoped_lock<std::mutex>(get_singleton().descriptors_mutex);
 		auto & descriptors = get_singleton().descriptors;
