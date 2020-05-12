@@ -14,9 +14,9 @@ Finally, **you will lose the lock if a lockfile is deleted**. So it may be a goo
 
 ## Usage:
 
-    #include "locker.hpp"
+	#include "locker.hpp"
 	
-    bool success = locker::try_lock("a.lock");                 //tries to lock a file once, returns immediately
+	bool success = locker::try_lock("a.lock");                 //tries to lock a file once, returns immediately
 	bool success = locker::try_lock("a.lock", "b.lock");       //tries to lock multiple files once, returns immediately
 	bool success = locker::try_lock({"a.lock", "b.lock"});     //same as above
 		
