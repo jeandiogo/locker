@@ -56,9 +56,9 @@
 // std::vector<std::string> my_locked = locker::get_locked(); //returns the names of all files locked by current process
 // locker::clear();                                           //unlocks all locked files (do not call this if some lockfile is open)
 // 
-// std::string my_data = locker::xread("a.txt");              //performs an exclusive read of a file and returns its content as a string
-// locker::xwrite("a.txt", my_data);                          //performs an exclusive write of an argument to a file
-// locker::xwrite("a.txt", "value", ':', 42);                 //performs an exclusive write of multiple arguments to a file
+// std::string my_data = locker::xread("a.txt");              //exclusive-reads a file and returns its content as a string
+// locker::xwrite("a.txt", my_data);                          //exclusive-writes data to a file (type of data must be insertable to std::ofstream)
+// locker::xwrite("a.txt", "value", ':', 42);                 //exclusive-writes multiple data to a file
 // 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
