@@ -41,7 +41,7 @@ Finally, **you will lose the lock if a lockfile is deleted**. So it may be a goo
 	locker::clear();                                           //unlocks all locked files (do not call this if some lockfile is open)
 	
 	std::string my_data = locker::xread("a.txt");              //performs an exclusive read of a file and returns its content as a string
-	locker::xwrite("a.txt", my_data);                          //performs an exclusive write of an argument to a file
+	locker::xwrite("a.txt", my_data);                          //performs an exclusive write of data to a file (type of data must be insertable to std::ofstream)
 	locker::xwrite("a.txt", "value", ':', 42);                 //performs an exclusive write of multiple arguments to a file
 
 *Copyright 2020 Jean Diogo ([Jango](mailto:jeandiogo@gmail.com))*
