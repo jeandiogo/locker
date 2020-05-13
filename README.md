@@ -40,8 +40,8 @@ Finally, **you will lose the lock if a lockfile is deleted**. So it may be a goo
 	std::vector<std::string> my_locked = locker::get_locked(); //returns the names of all files locked by current process
 	locker::clear();                                           //unlocks all locked files (do not call this if some lockfile is open)
 	
-	std::string my_data = locker::xread("a.txt");              //performs an exclusive read of a file and returns its content as a string
-	locker::xwrite("a.txt", my_data);                          //performs an exclusive write of data to a file (type of data must be insertable to std::ofstream)
-	locker::xwrite("a.txt", "value", ':', 42);                 //performs an exclusive write of multiple arguments to a file
+	std::string my_data = locker::xread("a.txt");              //reads a file exclusively and returns its content as a string
+	locker::xwrite("a.txt", my_data);                          //writes data to a file exclusively (type of data must be insertable to std::ofstream)
+	locker::xwrite("a.txt", "value", ':', 42);                 //writes multiple data to a file exclusively
 
 *Copyright 2020 Jean Diogo ([Jango](mailto:jeandiogo@gmail.com))*
