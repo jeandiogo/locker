@@ -22,7 +22,7 @@
 // 
 // An exception will be throw if an empty filename is given, if a directory name is given, or if the program does not have permission to read from and write to the file and its directory. If the file to be locked does not exist, it will be created. All locking and unlocking functions are variadic, accepting a single filename, multiple filenames, a list of filenames, or a vector of filenames. If you have manually locked a file, do not forget to unlock it. Nevertheless, prefer using the lock guard, which will automatically unlock the file before leaving its scope of declaration.
 // 
-// Be aware that lock and unlock operations are independent from open and close operations. If you want to open a lockfile, you need to use file handlers ("fstream", "fopen" etc.) and close the file before unlocking it. It is also your responsability to handle race conditions among threads that have opened a file locked by their parent. If you prefer, instead of manually locking and opening a file, use the functions this library provides to perform exclusive read and exclusive write, which are process-safe (but still not thread-safe).
+// Be aware that lock and unlock operations are independent from open and close operations. If you want to open a lockfile, you need to use file handlers like "fstream" or "fopen", and close the file before unlocking it. It is also your responsability to handle race conditions among threads that have opened a file locked by their parent. If you prefer, instead of manually locking and opening a file, use the functions this library provides to perform exclusive read, write or append, which are all process-safe but still not thread-safe.
 // 
 // Finally, you will lose the lock if a lockfile is deleted. So it may be a good practice to create separate lockfiles for each file you intend to use (e.g. to exclusively open "a.txt", lock the file "a.txt.lock"). This will prevent you from losing the lock in case you need to erase and recreate the file without losing the lock to other processes. Do not forget to be consistent with the name of lockfiles throughout your programs.
 // 
@@ -57,8 +57,15 @@
 // locker::clear();                                           //unlocks all locked files (do not call this if some lockfile is open)
 // 
 // std::string my_data = locker::xread("a.txt");              //exclusive-reads a file and returns its content as a string
-// locker::xwrite("a.txt", my_data);                          //exclusive-writes data to a file (type of data must be insertable to std::ofstream)
+// std::string my_data = locker::xread<true>("a.txt");        //same as above, but opens the file in binary mode
+// 
+// locker::xwrite("a.txt", my_data);                          //exclusive-writes data to a file (type of data must be insertable to std::fstream)
+// locker::xwrite<true>("a.txt", my_data);                    //same as above, but opens the file in binary mode
 // locker::xwrite("a.txt", "value", ':', 42);                 //exclusive-writes multiple data to a file
+// 
+// locker::xappend("a.txt", my_data);                         //exclusive-appends data to a file (type of data must be insertable to std::fstream)
+// locker::xappend<true>("a.txt", my_data);                   //same as above, but opens the file in binary mode
+// locker::xappend("a.txt", "value", ':', 42);                //exclusive-appends multiple data to a file
 // 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -349,6 +356,7 @@ class locker
 		return lock_guard_t(filenames);
 	}
 	
+	template <bool should_add_binary_flag = false>
 	static auto xread(std::string const & filename)
 	{
 		std::string data;
@@ -359,16 +367,24 @@ class locker
 		}
 		try
 		{
-			auto input = std::ifstream(filename);
+			std::fstream input;
+			if constexpr(should_add_binary_flag)
+			{
+				input.open(filename, std::fstream::in | std::fstream::binary);
+			}
+			else
+			{
+				input.open(filename, std::fstream::in);
+			}
 			if(!input.good())
 			{
 				throw std::runtime_error("could not open file \"" + filename + "\" for input");
 			}
 			input.seekg(0, std::ios::end);
-			data.reserve(static_cast<std::size_t>(input.tellg()));
+			data.resize(static_cast<std::size_t>(input.tellg()));
 			input.seekg(0, std::ios::beg);
-			data.assign((std::istreambuf_iterator<char>(input)), std::istreambuf_iterator<char>());
-			if(data.size() and data.back() == '\n')
+			input.read(&data[0], static_cast<long>(data.size()));
+			while(data.size() and data.back() == '\n')
 			{
 				data.pop_back();
 			}
@@ -387,8 +403,8 @@ class locker
 		}
 		return data;
 	}
-	
-	template <typename ... TS>
+
+	template <bool should_add_binary_flag = false, typename ... TS>
 	static auto xwrite(std::string const & filename, TS && ... data)
 	{
 		auto should_lock = !is_locked(filename);
@@ -398,10 +414,57 @@ class locker
 		}
 		try
 		{
-			auto output = std::ofstream(filename);
+			std::fstream output;
+			if constexpr(should_add_binary_flag)
+			{
+				output.open(filename, std::fstream::out | std::fstream::binary);
+			}
+			else
+			{
+				output.open(filename, std::fstream::out);
+			}
 			if(!output.good())
 			{
 				throw std::runtime_error("could not open file \"" + filename + "\" for output");
+			}
+			(output << ... << std::forward<TS>(data)) << std::flush;
+		}	
+		catch(...)
+		{
+			if(should_lock)
+			{
+				unlock(filename);
+			}
+			throw;
+		}
+		if(should_lock)
+		{
+			unlock(filename);
+		}
+	}
+
+	template <bool should_add_binary_flag = false, typename ... TS>
+	static auto xappend(std::string const & filename, TS && ... data)
+	{
+		auto should_lock = !is_locked(filename);
+		if(should_lock)
+		{
+			lock(filename);
+		}
+		try
+		{
+			std::fstream output;
+			if constexpr(should_add_binary_flag)
+			{
+				output.open(filename, std::fstream::app | std::fstream::binary);
+			}
+			else
+			{
+				output.open(filename, std::fstream::app);
+			}
+			if(!output.good())
+			{
+				throw std::runtime_error("could not open file \"" + filename + "\" for append");
 			}
 			(output << ... << std::forward<TS>(data)) << std::flush;
 		}	
