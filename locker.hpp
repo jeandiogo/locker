@@ -59,11 +59,11 @@
 // std::string my_data = locker::xread("a.txt");              //exclusive-reads a file and returns its content as a string
 // std::string my_data = locker::xread<true>("a.txt");        //same as above, but opens the file in binary mode
 // 
-// locker::xwrite("a.txt", my_data);                          //exclusive-writes data to a file (type of data must be insertable to std::fstream)
+// locker::xwrite("a.txt", my_data);                          //exclusive-writes data to a file (data type must be insertable to std::fstream)
 // locker::xwrite<true>("a.txt", my_data);                    //same as above, but opens the file in binary mode
 // locker::xwrite("a.txt", "value", ':', 42);                 //exclusive-writes multiple data to a file
 // 
-// locker::xappend("a.txt", my_data);                         //exclusive-appends data to a file (type of data must be insertable to std::fstream)
+// locker::xappend("a.txt", my_data);                         //exclusive-appends data to a file (data type must be insertable to std::fstream)
 // locker::xappend<true>("a.txt", my_data);                   //same as above, but opens the file in binary mode
 // locker::xappend("a.txt", "value", ':', 42);                //exclusive-appends multiple data to a file
 // 
