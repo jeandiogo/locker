@@ -32,40 +32,40 @@
 // 
 // #include "locker.hpp"
 // 
-// bool success = locker::try_lock("a.lock");                 //tries to lock a file once, returns immediately
-// bool success = locker::try_lock("a.lock", "b.lock");       //tries to lock multiple files once, returns immediately
-// bool success = locker::try_lock({"a.lock", "b.lock"});     //same as above
+// bool success = locker::try_lock("a.lock");                         //tries to lock a file once, returns immediately
+// bool success = locker::try_lock("a.lock", "b.lock");               //tries to lock multiple files once, returns immediately
+// bool success = locker::try_lock({"a.lock", "b.lock"});             //same as above
 // 
-// locker::lock("a.lock");                                    //keeps trying to lock a file, only returns when file is locked
-// locker::lock("a.lock", "b.lock");                          //keeps trying to lock multiple files, only returns when files are locked
-// locker::lock({"a.lock", "b.lock"});                        //same as above
+// locker::lock("a.lock");                                            //keeps trying to lock a file, only returns when file is locked
+// locker::lock("a.lock", "b.lock");                                  //keeps trying to lock multiple files, only returns when files are locked
+// locker::lock({"a.lock", "b.lock"});                                //same as above
 // 
-// locker::lock(1, "a.lock");                                 //keeps trying to lock in intervals of approximately 1 millisecond
-// locker::lock<std::chrono::nanoseconds>(1000, "a.lock");    //use template argument to change the unit of measurement
-// locker::lock(20, "a.lock", "b.lock");                      //also works for the variadic versions
+// locker::lock(1, "a.lock");                                         //keeps trying to lock in intervals of approximately 1 millisecond
+// locker::lock<std::chrono::nanoseconds>(1000, "a.lock");            //use template argument to change the unit of measurement
+// locker::lock(20, "a.lock", "b.lock");                              //also works for the variadic versions
 // 
-// locker::unlock("a.lock");                                  //unlocks a file if it is locked
-// locker::unlock("a.lock", "b.lock");                        //unlocks multiple files (in reverse order) if they are locked
-// locker::unlock({"a.lock", "b.lock"});                      //same as above
+// locker::unlock("a.lock");                                          //unlocks a file if it is locked
+// locker::unlock("a.lock", "b.lock");                                //unlocks multiple files (in reverse order) if they are locked
+// locker::unlock({"a.lock", "b.lock"});                              //same as above
 // 
-// auto my_lock = locker::lock_guard("a.lock");               //locks a file and automatically unlocks it before leaving current scope
-// auto my_lock = locker::lock_guard("a.lock", "b.lock");     //locks multiple files and automatically unlocks them before leaving current scope
-// auto my_lock = locker::lock_guard({"a.lock", "b.lock"});   //same as above
+// auto my_lock = locker::lock_guard("a.lock");                       //locks a file and automatically unlocks it before leaving current scope
+// auto my_lock = locker::lock_guard("a.lock", "b.lock");             //locks multiple files and automatically unlocks them before leaving current scope
+// auto my_lock = locker::lock_guard({"a.lock", "b.lock"});           //same as above
 // 
-// std::string my_data = locker::xread("a.txt");              //exclusive-reads a file and returns its content as a string
-// std::string my_data = locker::xread<true>("a.bin");        //same as above, but opens the file in binary mode
+// std::string my_data = locker::xread("a.txt");                      //exclusive-reads a file and returns its content as a string
+// std::vector<unsigned char> my_data = locker::xread<true>("a.bin"); //same as above, but opens the file in binary mode
 // 
-// locker::xwrite("a.txt", my_data);                          //exclusive-writes data to a file (data type must be insertable to std::fstream)
-// locker::xwrite<true>("a.bin", my_data);                    //same as above, but opens the file in binary mode
-// locker::xwrite("a.txt", "value", ':', 42);                 //exclusive-writes multiple data to a file
+// locker::xwrite("a.txt", my_data);                                  //exclusive-writes data to a file (data type must be insertable to std::fstream)
+// locker::xwrite<true>("a.bin", my_data);                            //same as above, but opens the file in binary mode
+// locker::xwrite("a.txt", "value", ':', 42);                         //exclusive-writes multiple data to a file
 // 
-// locker::xappend("a.txt", my_data);                         //exclusive-appends data to a file (data type must be insertable to std::fstream)
-// locker::xappend<true>("a.bin", my_data);                   //same as above, but opens the file in binary mode
-// locker::xappend("a.txt", "value", ':', 42);                //exclusive-appends multiple data to a file
+// locker::xappend("a.txt", my_data);                                 //exclusive-appends data to a file (data type must be insertable to std::fstream)
+// locker::xappend<true>("a.bin", my_data);                           //same as above, but opens the file in binary mode
+// locker::xappend("a.txt", "value", ':', 42);                        //exclusive-appends multiple data to a file
 // 
-// bool success = locker::is_locked("a.lock");                //asserts if a file is already locked by current process
-// std::vector<std::string> my_locked = locker::get_locked(); //returns the names of all files locked by current process
-// locker::clear();                                           //unlocks all locked files (do not call this if some lockfile is open)
+// bool success = locker::is_locked("a.lock");                        //asserts if a file is already locked by current process
+// std::vector<std::string> my_locked = locker::get_locked();         //returns the names of all files locked by current process
+// locker::clear();                                                   //unlocks all locked files (do not call this if some lockfile is open)
 // 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -359,7 +359,6 @@ class locker
 	template <bool should_add_binary_flag = false>
 	static auto xread(std::string const & filename)
 	{
-		std::string data;
 		auto should_lock = !is_locked(filename);
 		if(should_lock)
 		{
@@ -367,26 +366,45 @@ class locker
 		}
 		try
 		{
-			std::fstream input;
 			if constexpr(should_add_binary_flag)
 			{
-				input.open(filename, std::fstream::in | std::fstream::binary);
+				auto input = std::fstream(filename, std::fstream::in | std::fstream::ate | std::fstream::binary);
+				if(!input.good())
+				{
+					throw std::runtime_error("could not open file \"" + filename + "\" for input");
+				}
+				auto data = std::vector<unsigned char>(static_cast<std::size_t>(input.tellg()));
+				input.seekg(0);
+				input.read(reinterpret_cast<char *>(&data[0]), static_cast<long>(data.size()));
+				while(data.size() and data.back() == '\n')
+				{
+					data.pop_back();
+				}
+				if(should_lock)
+				{
+					unlock(filename);
+				}
+				return data;
 			}
 			else
 			{
-				input.open(filename, std::fstream::in);
-			}
-			if(!input.good())
-			{
-				throw std::runtime_error("could not open file \"" + filename + "\" for input");
-			}
-			input.seekg(0, std::ios::end);
-			data.resize(static_cast<std::size_t>(input.tellg()));
-			input.seekg(0, std::ios::beg);
-			input.read(&data[0], static_cast<long>(data.size()));
-			while(data.size() and data.back() == '\n')
-			{
-				data.pop_back();
+				auto input = std::fstream(filename, std::fstream::in | std::fstream::ate);
+				if(!input.good())
+				{
+					throw std::runtime_error("could not open file \"" + filename + "\" for input");
+				}
+				auto data = std::string(static_cast<std::size_t>(input.tellg()), '\0');
+				input.seekg(0);
+				input.read(&data[0], static_cast<long>(data.size()));
+				while(data.size() and data.back() == '\n')
+				{
+					data.pop_back();
+				}
+				if(should_lock)
+				{
+					unlock(filename);
+				}
+				return data;
 			}
 		}
 		catch(...)
@@ -397,13 +415,8 @@ class locker
 			}
 			throw;
 		}
-		if(should_lock)
-		{
-			unlock(filename);
-		}
-		return data;
 	}
-
+	
 	template <bool should_add_binary_flag = false, typename ... TS>
 	static auto xwrite(std::string const & filename, TS && ... data)
 	{
