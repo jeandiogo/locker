@@ -44,11 +44,11 @@ Finally, **a process will loose the lock if the lockfile is deleted**. So it may
 	std::string my_data = locker::xread<true>("a.txt");        //same as above, but opens the file in binary mode
 	
 	locker::xwrite("a.txt", my_data);                          //exclusive-writes data to a file (data type must be insertable to std::fstream)
-	locker::xwrite<true>("a.txt", my_data);                    //same as above, but opens the file in binary mode
+	locker::xwrite<true>("a.bin", my_data);                    //same as above, but opens the file in binary mode
 	locker::xwrite("a.txt", "value", ':', 42);                 //exclusive-writes multiple data to a file
 	
 	locker::xappend("a.txt", my_data);                         //exclusive-appends data to a file (data type must be insertable to std::fstream)
-	locker::xappend<true>("a.txt", my_data);                   //same as above, but opens the file in binary mode
+	locker::xappend<true>("a.bin", my_data);                   //same as above, but opens the file in binary mode
 	locker::xappend("a.txt", "value", ':', 42);                //exclusive-appends multiple data to a file
 
 *Copyright 2020 Jean Diogo ([Jango](mailto:jeandiogo@gmail.com))*
