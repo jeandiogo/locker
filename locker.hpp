@@ -64,7 +64,7 @@
 // locker::xwrite("a.txt", "value", ':', 42);                 //exclusive-writes multiple data to a file
 // 
 // locker::xappend("a.txt", my_data);                         //exclusive-appends data to a file (data type must be insertable to std::fstream)
-// locker::xappend<true>("a.txt", my_data);                   //same as above, but opens the file in binary mode
+// locker::xappend<true>("a.bin", my_data);                   //same as above, but opens the file in binary mode
 // locker::xappend("a.txt", "value", ':', 42);                //exclusive-appends multiple data to a file
 // 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
