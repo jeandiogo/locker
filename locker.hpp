@@ -373,7 +373,7 @@ class locker
 				{
 					throw std::runtime_error("could not open file \"" + filename + "\" for input");
 				}
-				auto data = std::vector<unsigned char>(static_cast<std::size_t>(input.tellg()));
+				auto data = std::vector<unsigned char>(static_cast<std::size_t>(input.tellg()), '\0');
 				input.seekg(0);
 				input.read(reinterpret_cast<char *>(&data[0]), static_cast<long>(data.size()));
 				while(data.size() and data.back() == '\n')
