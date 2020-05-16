@@ -52,10 +52,6 @@
 // auto my_lock = locker::lock_guard("a.lock", "b.lock");     //locks multiple files and automatically unlocks them before leaving current scope
 // auto my_lock = locker::lock_guard({"a.lock", "b.lock"});   //same as above
 // 
-// bool success = locker::is_locked("a.lock");                //asserts if a file is already locked by current process
-// std::vector<std::string> my_locked = locker::get_locked(); //returns the names of all files locked by current process
-// locker::clear();                                           //unlocks all locked files (do not call this if some lockfile is open)
-// 
 // std::string my_data = locker::xread("a.txt");              //exclusive-reads a file and returns its content as a string
 // std::string my_data = locker::xread<true>("a.bin");        //same as above, but opens the file in binary mode
 // 
@@ -66,6 +62,10 @@
 // locker::xappend("a.txt", my_data);                         //exclusive-appends data to a file (data type must be insertable to std::fstream)
 // locker::xappend<true>("a.bin", my_data);                   //same as above, but opens the file in binary mode
 // locker::xappend("a.txt", "value", ':', 42);                //exclusive-appends multiple data to a file
+// 
+// bool success = locker::is_locked("a.lock");                //asserts if a file is already locked by current process
+// std::vector<std::string> my_locked = locker::get_locked(); //returns the names of all files locked by current process
+// locker::clear();                                           //unlocks all locked files (do not call this if some lockfile is open)
 // 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
