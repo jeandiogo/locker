@@ -102,13 +102,13 @@ class locker
 		auto & operator=(lock_guard_t) = delete;
 		auto operator&() = delete;
 		
-		lock_guard_t(std::vector<std::string> && fs) : filenames(fs)
+		explicit lock_guard_t(std::vector<std::string> && fs) : filenames(fs)
 		{
 			lock(filenames);
 		}
 		
 		template <typename ... TS>
-		lock_guard_t(TS && ... fs) : filenames({std::forward<TS>(fs) ...})
+		explicit lock_guard_t(TS && ... fs) : filenames({std::forward<TS>(fs) ...})
 		{
 			lock(filenames);
 		}
