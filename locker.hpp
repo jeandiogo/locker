@@ -142,7 +142,7 @@ class locker
 		return has_owner_permissions or has_group_permissions or has_other_permissions;
 	}
 		
-	locker()
+	locker() : descriptors_mutex(), descriptors()
 	{
 	}
 	
