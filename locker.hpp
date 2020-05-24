@@ -175,9 +175,9 @@ class locker
 	
 	static auto get_locked()
 	{
-		std::vector<std::string> locked;
 		auto const guard = std::scoped_lock<std::mutex>(get_singleton().descriptors_mutex);
 		auto & descriptors = get_singleton().descriptors;
+		std::vector<std::string> locked;
 		locked.reserve(descriptors.size());
 		for(auto const & descriptor : descriptors)
 		{
