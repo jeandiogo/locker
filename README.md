@@ -51,4 +51,4 @@ Finally, **a process will loose the lock if the lockfile is deleted**. So it may
 	std::vector<std::string> my_locked = locker::get_locked();         //returns the names of all files locked by current process
 	locker::clear();                                                   //unlocks all locked files (do not call this if some lockfile is open)
 
-*Copyright 2020 Jean Diogo ([Jango](mailto:jeandiogo@gmail.com))*
+*Copyright (C) 2020 Jean Diogo ([Jango](mailto:jeandiogo@gmail.com))*
