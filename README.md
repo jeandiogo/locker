@@ -45,7 +45,7 @@ Finally, **a process will loose the lock if the lockfile is deleted**. So it may
 	locker::xappend("a.txt", "value", ':', 42);                        //exclusive-appends multiple data to a file
 	
 	bool success = locker::is_locked("a.lock");                        //asserts if a file is already locked by current process
-	std::vector<std::string> my_locked = locker::get_locked();         //returns the names of all files locked by current process
+	std::vector<std::string> my_locked = locker::get_locked();         //returns the canonical names of all files locked by current process
 	locker::clear();                                                   //unlocks all locked files (do not call this if some lockfile is open)
 
 *Copyright 2020 Jean Diogo ([Jango](mailto:jeandiogo@gmail.com))*
