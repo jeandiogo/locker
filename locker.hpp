@@ -50,14 +50,11 @@
 // auto my_lock = locker::lock_guard({"a.lock", "b.lock"});           //same as above
 // 
 // std::string my_data = locker::xread("a.txt");                      //exclusive-reads a file and returns its content as a string
-// std::vector<unsigned char> my_data = locker::xread<true>("a.bin"); //same as above, but opens the file in binary mode
 // 
 // locker::xwrite("a.txt", my_data);                                  //exclusive-writes data to a file (data type must be insertable to std::fstream)
-// locker::xwrite<true>("a.bin", my_data);                            //same as above, but opens the file in binary mode
 // locker::xwrite("a.txt", "value", ':', 42);                         //exclusive-writes multiple data to a file
 // 
 // locker::xappend("a.txt", my_data);                                 //exclusive-appends data to a file (data type must be insertable to std::fstream)
-// locker::xappend<true>("a.bin", my_data);                           //same as above, but opens the file in binary mode
 // locker::xappend("a.txt", "value", ':', 42);                        //exclusive-appends multiple data to a file
 // 
 // bool success = locker::is_locked("a.lock");                        //asserts if a file is already locked by current process
@@ -353,7 +350,6 @@ class locker
 		return lock_guard_t(filenames);
 	}
 	
-	template <bool should_add_binary_flag = false>
 	static auto xread(std::string const & filename)
 	{
 		auto should_lock = !is_locked(filename);
@@ -363,46 +359,23 @@ class locker
 		}
 		try
 		{
-			if constexpr(should_add_binary_flag)
+			auto input = std::fstream(filename, std::fstream::in | std::fstream::ate);
+			if(!input.good())
 			{
-				auto input = std::fstream(filename, std::fstream::in | std::fstream::ate | std::fstream::binary);
-				if(!input.good())
-				{
-					throw std::runtime_error("could not open file \"" + filename + "\" for input");
-				}
-				auto data = std::vector<unsigned char>(static_cast<std::size_t>(input.tellg()), '\0');
-				input.seekg(0);
-				input.read(reinterpret_cast<char *>(&data[0]), static_cast<long>(data.size()));
-				while(data.size() and data.back() == '\n')
-				{
-					data.pop_back();
-				}
-				if(should_lock)
-				{
-					unlock(filename);
-				}
-				return data;
+				throw std::runtime_error("could not open file \"" + filename + "\" for input");
 			}
-			else
+			auto data = std::string(static_cast<std::size_t>(input.tellg()), '\0');
+			input.seekg(0);
+			input.read(&data[0], static_cast<long>(data.size()));
+			while(data.size() and data.back() == '\n')
 			{
-				auto input = std::fstream(filename, std::fstream::in | std::fstream::ate);
-				if(!input.good())
-				{
-					throw std::runtime_error("could not open file \"" + filename + "\" for input");
-				}
-				auto data = std::string(static_cast<std::size_t>(input.tellg()), '\0');
-				input.seekg(0);
-				input.read(&data[0], static_cast<long>(data.size()));
-				while(data.size() and data.back() == '\n')
-				{
-					data.pop_back();
-				}
-				if(should_lock)
-				{
-					unlock(filename);
-				}
-				return data;
+				data.pop_back();
 			}
+			if(should_lock)
+			{
+				unlock(filename);
+			}
+			return data;
 		}
 		catch(...)
 		{
@@ -413,8 +386,8 @@ class locker
 			throw;
 		}
 	}
-	
-	template <bool should_add_binary_flag = false, typename ... TS>
+
+	template <typename ... TS>
 	static auto xwrite(std::string const & filename, TS && ... data)
 	{
 		auto should_lock = !is_locked(filename);
@@ -424,15 +397,7 @@ class locker
 		}
 		try
 		{
-			std::fstream output;
-			if constexpr(should_add_binary_flag)
-			{
-				output.open(filename, std::fstream::out | std::fstream::binary);
-			}
-			else
-			{
-				output.open(filename, std::fstream::out);
-			}
+			auto output = std::ofstream(filename);
 			if(!output.good())
 			{
 				throw std::runtime_error("could not open file \"" + filename + "\" for output");
@@ -453,7 +418,7 @@ class locker
 		}
 	}
 
-	template <bool should_add_binary_flag = false, typename ... TS>
+	template <typename ... TS>
 	static auto xappend(std::string const & filename, TS && ... data)
 	{
 		auto should_lock = !is_locked(filename);
@@ -463,15 +428,7 @@ class locker
 		}
 		try
 		{
-			std::fstream output;
-			if constexpr(should_add_binary_flag)
-			{
-				output.open(filename, std::fstream::app | std::fstream::binary);
-			}
-			else
-			{
-				output.open(filename, std::fstream::app);
-			}
+			auto output = std::fstream(filename, std::fstream::app);
 			if(!output.good())
 			{
 				throw std::runtime_error("could not open file \"" + filename + "\" for append");
