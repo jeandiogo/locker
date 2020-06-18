@@ -37,14 +37,11 @@ Finally, **a process will loose the lock if the lockfile is deleted**. So it may
 	auto my_lock = locker::lock_guard({"a.lock", "b.lock"});           //same as above
 	
 	std::string my_data = locker::xread("a.txt");                      //exclusive-reads a file and returns its content as a string
-	std::vector<unsigned char> my_data = locker::xread<true>("a.bin"); //same as above, but opens the file in binary mode
 	
 	locker::xwrite("a.txt", my_data);                                  //exclusive-writes data to a file (data type must be insertable to std::fstream)
-	locker::xwrite<true>("a.bin", my_data);                            //same as above, but opens the file in binary mode
 	locker::xwrite("a.txt", "value", ':', 42);                         //exclusive-writes multiple data to a file
 	
 	locker::xappend("a.txt", my_data);                                 //exclusive-appends data to a file (data type must be insertable to std::fstream)
-	locker::xappend<true>("a.bin", my_data);                           //same as above, but opens the file in binary mode
 	locker::xappend("a.txt", "value", ':', 42);                        //exclusive-appends multiple data to a file
 	
 	bool success = locker::is_locked("a.lock");                        //asserts if a file is already locked by current process
