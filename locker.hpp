@@ -35,9 +35,6 @@
 // locker::lock("a.lock");                                                  //keeps trying to lock a file, only returns when file is locked
 // locker::lock({"a.lock", "b.lock"});                                      //keeps trying to lock multiple files, only returns when files are locked
 // 
-// locker::lock(1, "a.lock");                                               //keeps trying to lock in intervals of approximately 1 millisecond
-// locker::lock<std::chrono::nanoseconds>(1000, "a.lock");                  //use template argument to change the unit of measurement
-// 
 // locker::unlock("a.lock");                                                //unlocks a file if it is locked
 // locker::unlock({"a.lock", "b.lock"});                                    //unlocks multiple files (in reverse order) if they are locked
 // 
@@ -387,18 +384,6 @@ class locker
 		for(auto it = filenames.begin(); it != filenames.end(); ++it)
 		{
 			lock(*it);
-		}
-	}
-	
-	template <typename T = std::chrono::milliseconds>
-	static void lock(long timespan, std::string const & filename)
-	{
-		while(!try_lock(filename))
-		{
-			if(timespan)
-			{
-				std::this_thread::sleep_for(T(std::abs(timespan)));
-			}
 		}
 	}
 	
