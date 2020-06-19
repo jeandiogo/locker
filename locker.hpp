@@ -30,40 +30,39 @@
 // #include "locker.hpp"
 // 
 // bool success = locker::try_lock("a.lock");                               //tries to lock a file once, returns immediately
-// bool success = locker::try_lock("a.lock", "b.lock");                     //tries to lock multiple files once, returns immediately
-// bool success = locker::try_lock({"a.lock", "b.lock"});                   //same as above
+// bool success = locker::try_lock({"a.lock", "b.lock"});                   //tries to lock multiple files once, returns immediately
 // 
 // locker::lock("a.lock");                                                  //keeps trying to lock a file, only returns when file is locked
-// locker::lock("a.lock", "b.lock");                                        //keeps trying to lock multiple files, only returns when files are locked
-// locker::lock({"a.lock", "b.lock"});                                      //same as above
+// locker::lock({"a.lock", "b.lock"});                                      //keeps trying to lock multiple files, only returns when files are locked
 // 
 // locker::lock(1, "a.lock");                                               //keeps trying to lock in intervals of approximately 1 millisecond
 // locker::lock<std::chrono::nanoseconds>(1000, "a.lock");                  //use template argument to change the unit of measurement
-// locker::lock(20, "a.lock", "b.lock");                                    //also works for the variadic versions
 // 
 // locker::unlock("a.lock");                                                //unlocks a file if it is locked
-// locker::unlock("a.lock", "b.lock");                                      //unlocks multiple files (in reverse order) if they are locked
-// locker::unlock({"a.lock", "b.lock"});                                    //same as above
+// locker::unlock({"a.lock", "b.lock"});                                    //unlocks multiple files (in reverse order) if they are locked
 // 
 // locker::lock_guard_t my_lock = locker::lock_guard("a.lock");             //locks a file and automatically unlocks it before leaving current scope
-// locker::lock_guard_t my_lock = locker::lock_guard("a.lock", "b.lock");   //locks multiple files and automatically unlocks them before leaving current scope
-// locker::lock_guard_t my_lock = locker::lock_guard({"a.lock", "b.lock"}); //same as above
+// locker::lock_guard_t my_lock = locker::lock_guard({"a.lock", "b.lock"}); //locks multiple files and automatically unlocks them before leaving current scope
 // 
 // std::string my_data = locker::xread("a.txt");                            //exclusively reads a file and returns its content as a string
+// std::string my_data = locker::xread<true>("a.txt");                      //same, but does not unlocks the file after the read (use this if the file was already lock before the call)
 // 
 // locker::xwrite("a.txt", my_data);                                        //exclusively writes data to a file (data type must be insertable to std::fstream)
+// locker::xwrite<true>("a.txt", my_data);                                  //same, but does not unlocks the file after the write (use this if the file was already lock before the call)
 // locker::xwrite("a.txt", "value", ':', 42);                               //exclusively writes multiple data to a file
 // 
 // locker::xappend("a.txt", my_data);                                       //exclusively appends data to a file (data type must be insertable to std::fstream)
+// locker::xappend<true>("a.txt", my_data);                                 //same, but does not unlocks the file after the append (use this if the file was already lock before the call)
 // locker::xappend("a.txt", "value", ':', 42);                              //exclusively appends multiple data to a file
 // 
 // locker::memory_map_t my_map = locker::xmap("a.txt");                     //exclusively maps a file to memory and returns a structure with a pointer to an array of unsigned chars
-// unsigned char my_var = my_map.at(n);                                     //gets the n-th byte as an unsigned char, throws file's content is smaller than n bytes
-// unsigned char my_var = my_map[n];                                        //same, but does not check range
-// my_map.at(10) = m;                                                       //assigns the value m to the n-th byte, throws if file's content is smaller than n bytes
-// my_map[10] = m;                                                          //same, but does not check range
-// std::size_t my_size = my_map.size();                                     //gets size of file's content (which is one byte less than the size of the file)
-// unsigned char * my_array = my_map.data();                                //gets raw pointer to file's content, represented as an array of unsigned chars
+// locker::memory_map_t my_map = locker::xmap<true>("a.txt");               //same but does not unlock the file at destruction (use this if the file was already lock before the call)
+// unsigned char my_var = my_map.at(N);                                     //gets the N-th byte as an unsigned char, throws file's content is smaller than N bytes
+// unsigned char my_var = my_map[N];                                        //same, but does not check range
+// my_map.at(N) = M;                                                        //assigns the value M to the N-th byte, throws if file's content is smaller than N bytes
+// my_map[N] = M;                                                           //same, but does not check range
+// std::size_t my_size = my_map.get_size();                                 //gets size of file's data
+// unsigned char * my_array = my_map.get_data();                            //gets raw pointer to file's data, represented as an array of unsigned chars
 // my_map.flush();                                                          //flushes data to file (unnecessary, since OS handles it automatically)
 // 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -120,13 +119,13 @@ class locker
 		}
 	};
 	
+	template <bool should_not_unlock = false>
 	class [[nodiscard]] memory_map_t
 	{
-		bool should_lock = false;
-		int file_descriptor = -1;
-		std::size_t file_size = 0;
-		unsigned char * file_pointer = nullptr;
 		std::string filename;
+		int descriptor;
+		std::size_t size;
+		unsigned char * pointer;
 		
 		public:
 		
@@ -135,80 +134,78 @@ class locker
 		auto & operator=(memory_map_t) = delete;
 		auto operator&() = delete;
 		
-		explicit memory_map_t(std::string const & f) : filename(f)
+		explicit memory_map_t(std::string const & raw_filename) : filename(""), descriptor(-1), size(0), pointer(nullptr)
 		{
-			should_lock = !is_locked(filename);
-			lock(filename);
+			lock(raw_filename, filename, descriptor);
 			try
 			{
-				file_descriptor = get_file_descriptor(filename);
-				if(file_descriptor < 0)
-				{
-					throw std::runtime_error("could not get file descriptor of \"" + filename + "\"");
-				}
 				struct stat file_status;
-				if(fstat(file_descriptor, &file_status) < 0)
+				if(fstat(descriptor, &file_status) < 0)
 				{
 					throw std::runtime_error("could not get size of \"" + filename + "\"");
 				}
-				if(file_status.st_size < 1)
+				size = static_cast<std::size_t>(file_status.st_size);
+				pointer = static_cast<unsigned char *>(mmap(nullptr, size, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_POPULATE, descriptor, 0));
+				if(!pointer)
 				{
-					throw std::runtime_error(quote(filename) + " is an empty file");
-				}
-				file_size = static_cast<std::size_t>(file_status.st_size) - 1;
-				file_pointer = static_cast<unsigned char *>(mmap(nullptr, file_size + 1, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_POPULATE, file_descriptor, 0));
-				if(!file_pointer)
-				{
-					throw std::runtime_error("could not map file " + quote(filename) + " to memory");
+					throw std::runtime_error("could not map file \"" + filename + "\" to memory");
 				}
 			}
 			catch(...)
 			{
-				if(should_lock)
+				if constexpr(!should_not_unlock)
 				{
 					unlock(filename);
 				}
+				filename = "";
+				descriptor = -1;
+				size = 0;
+				pointer = nullptr;
 				throw;
 			}
 		}
 		
 		~memory_map_t()
 		{
-			msync(file_pointer, file_size + 1, MS_SYNC);
-			munmap(file_pointer, file_size + 1);
-			if(should_lock)
+			msync(pointer, size, MS_SYNC);
+			munmap(pointer, size);
+			if constexpr(!should_not_unlock)
 			{
 				unlock(filename);
 			}
+			filename = "";
+			descriptor = -1;
+			size = 0;
+			pointer = nullptr;
 		}
 		
 		auto & operator[](std::size_t index)
 		{
-			return file_pointer[index];
+			return pointer[index];
 		}
 		
 		auto & at(std::size_t index)
 		{
-			if(index >= file_size)
+			if(index >= size)
 			{
-				throw std::runtime_error("index " + std::to_string(index) + " out of content range [0, " + std::to_string(file_size) + ")");
+				throw std::runtime_error("index " + std::to_string(index) + " out of \"" + filename + "\" content range [0, " + std::to_string(size) + "[");
 			}
-			return file_pointer[index];
+			return pointer[index];
 		}
 		
-		auto data() const
+		auto get_data() const
 		{
-			return file_pointer;
+			return pointer;
 		}
 		
-		auto size() const
+		auto get_size() const
 		{
-			return file_size;
+			return size;
 		}
 		
 		auto flush()
 		{
-			if(msync(file_pointer, file_size + 1, MS_SYNC) < 0)
+			if(msync(pointer, size, MS_SYNC) < 0)
 			{
 				return false;
 			}
@@ -223,15 +220,6 @@ class locker
 	{
 		static auto singleton = locker();
 		return singleton;
-	}
-	
-	template <typename T = std::chrono::milliseconds>
-	static inline void sleep(long timespan)
-	{
-		if(timespan)
-		{
-			std::this_thread::sleep_for(T(std::abs(timespan)));
-		}
 	}
 	
 	static inline bool has_permissions(std::string const & filename)
@@ -299,25 +287,6 @@ class locker
 		}
 	}
 	
-	static inline int get_file_descriptor(std::string const & raw_filename)
-	{
-		auto const filename = get_filename<true>(raw_filename);
-		auto const guard = std::scoped_lock<std::mutex>(get_singleton().descriptors_mutex);
-		auto const & descriptors = get_singleton().descriptors;
-		if(descriptors.contains(filename))
-		{
-			return descriptors.at(filename);
-		}
-		return -1;
-	}
-	
-	static inline bool is_locked(std::string const & raw_filename)
-	{
-		auto const filename = get_filename<true>(raw_filename);
-		auto const guard = std::scoped_lock<std::mutex>(get_singleton().descriptors_mutex);
-		return get_singleton().descriptors.contains(filename);
-	}
-	
 	locker() = default;
 	
 	public:
@@ -335,56 +304,51 @@ class locker
 	locker(locker &&) = delete;
 	auto & operator=(locker) = delete;
 	
-	static bool try_lock(std::string const & raw_filename)
+	static bool try_lock(std::string const & raw_filename, std::string & filename, int & descriptor)
 	{
 		auto const guard = std::scoped_lock<std::mutex>(get_singleton().descriptors_mutex);
 		auto & descriptors = get_singleton().descriptors;
-		auto filename = get_filename(raw_filename);
+		filename = get_filename(raw_filename);
 		if(descriptors.contains(filename))
 		{
+			descriptor = descriptors.at(filename);
 			return true;
 		}
 		mode_t mask = umask(0);
-		int descriptor = open(filename.c_str(), O_RDWR | O_CREAT, 0666);
+		descriptor = open(filename.c_str(), O_RDWR | O_CREAT, 0666);
 		umask(mask);
 		if(descriptor < 0)
 		{
+			filename = "";
+			descriptor = -1;
 			return false;
 		}
 		if(flock(descriptor, LOCK_EX | LOCK_NB) < 0)
 		{
 			close(descriptor);
+			filename = "";
+			descriptor = -1;
 			return false;
 		}
 		try
 		{
-			auto success = descriptors.emplace(filename, descriptor);
-			if(!success.second)
-			{
-				throw std::runtime_error("could not store descriptor of lockfile \"" + filename + "\"");
-			}
+			descriptors.emplace(filename, descriptor);
 		}
 		catch(...)
 		{
 			close(descriptor);
+			filename = "";
+			descriptor = -1;
 			throw;
 		}
 		return true;
 	}
 	
-	template <typename ... TS>
-	static bool try_lock(std::string const & filename, TS && ... filenames)
+	static bool try_lock(std::string const & raw_filename)
 	{
-		if(!try_lock(filename))
-		{
-			return false;
-		}
-		if(!try_lock(std::forward<TS>(filenames) ...))
-		{
-			unlock(filename);
-			return false;
-		}
-		return true;
+		std::string filename = "";
+		int descriptor = -1;
+		return try_lock(raw_filename, filename, descriptor);
 	}
 	
 	static bool try_lock(std::vector<std::string> const & filenames)
@@ -403,19 +367,19 @@ class locker
 		return true;
 	}
 	
-	static void lock(std::string const & filename)
+	static void lock(std::string const & raw_filename, std::string & filename, int & descriptor)
 	{
-		while(!try_lock(filename))
+		while(!try_lock(raw_filename, filename, descriptor))
 		{
 		}
 	}
 	
-	template <typename ... TS>
-	static void lock(std::string const & filename, TS && ... filenames)
+	static void lock(std::string const & raw_filename)
 	{
-		while(!try_lock(filename, std::forward<TS>(filenames) ...))
-		{
-		}
+		
+		std::string filename = "";
+		int descriptor = -1;
+		lock(raw_filename, filename, descriptor);
 	}
 	
 	static void lock(std::vector<std::string> const & filenames)
@@ -431,28 +395,10 @@ class locker
 	{
 		while(!try_lock(filename))
 		{
-			sleep<T>(timespan);
-		}
-	}
-	
-	template <typename T = std::chrono::milliseconds, typename ... TS>
-	static void lock(long timespan, std::string const & filename, TS && ... filenames)
-	{
-		while(!try_lock(filename, std::forward<TS>(filenames) ...))
-		{
 			if(timespan)
 			{
-				sleep<T>(timespan);
+				std::this_thread::sleep_for(T(std::abs(timespan)));
 			}
-		}
-	}
-	
-	template <typename T = std::chrono::milliseconds>
-	static void lock(long timespan, std::vector<std::string> const & filenames)
-	{
-		for(auto it = filenames.begin(); it != filenames.end(); ++it)
-		{
-			lock<T>(timespan, *it);
 		}
 	}
 	
@@ -464,26 +410,28 @@ class locker
 		if(descriptors.contains(filename))
 		{
 			auto const & descriptor = descriptors.at(filename);
-			if((fsync(descriptor) < 0) or (close(descriptor) < 0))
+			if((fsync(descriptor) < 0) or (close(descriptor) < 0) or !descriptors.erase(filename))
 			{
-				throw std::runtime_error("could not close lockfile \"" + filename + "\"");
+				throw std::runtime_error("could not unlock \"" + raw_filename + "\"");
 			}
-			descriptors.erase(filename);
 		}
-	}
-	
-	template <typename ... TS>
-	static void unlock(std::string const & filename, TS && ... filenames)
-	{
-		unlock(std::forward<TS>(filenames) ...);
-		unlock(filename);
 	}
 	
 	static void unlock(std::vector<std::string> const & filenames)
 	{
+		auto const guard = std::scoped_lock<std::mutex>(get_singleton().descriptors_mutex);
+		auto & descriptors = get_singleton().descriptors;
 		for(auto it = filenames.rbegin(); it != filenames.rend(); ++it)
 		{
-			unlock(*it);
+			auto const filename = get_filename<true>(*it);
+			if(descriptors.contains(filename))
+			{
+				auto const & descriptor = descriptors.at(filename);
+				if((fsync(descriptor) < 0) or (close(descriptor) < 0) or !descriptors.erase(filename))
+				{
+					throw std::runtime_error("could not unlock \"" + *it + "\"");
+				}
+			}
 		}
 	}
 	
@@ -498,9 +446,9 @@ class locker
 		return lock_guard_t(filenames);
 	}
 	
+	template <bool should_not_unlock = false>
 	static auto xread(std::string const & filename)
 	{
-		auto should_lock = !is_locked(filename);
 		lock(filename);
 		try
 		{
@@ -516,7 +464,7 @@ class locker
 			{
 				data.pop_back();
 			}
-			if(should_lock)
+			if constexpr(!should_not_unlock)
 			{
 				unlock(filename);
 			}
@@ -524,7 +472,7 @@ class locker
 		}
 		catch(...)
 		{
-			if(should_lock)
+			if constexpr(!should_not_unlock)
 			{
 				unlock(filename);
 			}
@@ -532,10 +480,9 @@ class locker
 		}
 	}
 	
-	template <typename ... TS>
+	template <bool should_not_unlock = false, typename ... TS>
 	static auto xwrite(std::string const & filename, TS && ... data)
 	{
-		auto should_lock = !is_locked(filename);
 		lock(filename);
 		try
 		{
@@ -545,14 +492,14 @@ class locker
 				throw std::runtime_error("could not open file \"" + filename + "\" for output");
 			}
 			(output << ... << std::forward<TS>(data)) << std::flush;
-			if(should_lock)
+			if constexpr(!should_not_unlock)
 			{
 				unlock(filename);
 			}
 		}	
 		catch(...)
 		{
-			if(should_lock)
+			if constexpr(!should_not_unlock)
 			{
 				unlock(filename);
 			}
@@ -560,10 +507,9 @@ class locker
 		}
 	}
 	
-	template <typename ... TS>
+	template <bool should_not_unlock = false, typename ... TS>
 	static auto xappend(std::string const & filename, TS && ... data)
 	{
-		auto should_lock = !is_locked(filename);
 		lock(filename);
 		try
 		{
@@ -573,14 +519,14 @@ class locker
 				throw std::runtime_error("could not open file \"" + filename + "\" for append");
 			}
 			(output << ... << std::forward<TS>(data)) << std::flush;
-			if(should_lock)
+			if constexpr(!should_not_unlock)
 			{
 				unlock(filename);
 			}
 		}	
 		catch(...)
 		{
-			if(should_lock)
+			if constexpr(!should_not_unlock)
 			{
 				unlock(filename);
 			}
@@ -588,8 +534,9 @@ class locker
 		}
 	}
 	
+	template <bool should_not_unlock = false>
 	static auto xmap(std::string const & filename)
 	{
-		return memory_map_t(filename);
+		return memory_map_t<should_not_unlock>(filename);
 	}
 };
