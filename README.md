@@ -22,9 +22,6 @@ Finally, **a process will loose the lock if the lockfile is deleted**. So it may
 	locker::lock("a.lock");                                                  //keeps trying to lock a file, only returns when file is locked
 	locker::lock({"a.lock", "b.lock"});                                      //keeps trying to lock multiple files, only returns when files are locked
 
-	locker::lock(1, "a.lock");                                               //keeps trying to lock in intervals of approximately 1 millisecond
-	locker::lock<std::chrono::nanoseconds>(1000, "a.lock");                  //use template argument to change the unit of measurement
-
 	locker::unlock("a.lock");                                                //unlocks a file if it is locked
 	locker::unlock({"a.lock", "b.lock"});                                    //unlocks multiple files (in reverse order) if they are locked
 
