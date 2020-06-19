@@ -24,10 +24,6 @@ Finally, **a process will loose the lock if the lockfile is deleted**. So it may
 	locker::lock("a.lock", "b.lock");                                  //keeps trying to lock multiple files, only returns when files are locked
 	locker::lock({"a.lock", "b.lock"});                                //same as above
 	
-	locker::lock(1, "a.lock");                                         //keeps trying to lock in intervals of approximately 1 millisecond
-	locker::lock<std::chrono::nanoseconds>(1000, "a.lock");            //use template argument to change the unit of measurement
-	locker::lock(20, "a.lock", "b.lock");                              //also works for the variadic versions
-	
 	locker::unlock("a.lock");                                          //unlocks a file if it is locked
 	locker::unlock("a.lock", "b.lock");                                //unlocks multiple files (in reverse order) if they are locked
 	locker::unlock({"a.lock", "b.lock"});                              //same as above
@@ -43,9 +39,5 @@ Finally, **a process will loose the lock if the lockfile is deleted**. So it may
 	
 	locker::xappend("a.txt", my_data);                                 //exclusive-appends data to a file (data type must be insertable to std::fstream)
 	locker::xappend("a.txt", "value", ':', 42);                        //exclusive-appends multiple data to a file
-	
-	bool success = locker::is_locked("a.lock");                        //asserts if a file is already locked by current process
-	std::vector<std::string> my_locked = locker::get_locked();         //returns the canonical names of all files locked by current process
-	locker::clear();                                                   //unlocks all locked files (do not call this if some lockfile is open)
 
 *Copyright 2020 Jean Diogo ([Jango](mailto:jeandiogo@gmail.com))*
