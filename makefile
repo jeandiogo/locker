@@ -18,3 +18,21 @@ all:
 	@sudo chown `whoami`:`whoami` $(BIN)
 	@sudo chmod u=rwX,go=rX $(BIN)
 #
+test: all
+	@echo 0 > test.txt
+	@echo "old content of test.txt (should be zero):"
+	@more test.txt
+	@./$(BIN) &
+	@./$(BIN) &
+	@./$(BIN) &
+	@./$(BIN) &
+	@./$(BIN) &
+	@./$(BIN) &
+	@./$(BIN) &
+	@./$(BIN) &
+	@./$(BIN) &
+	@./$(BIN) &
+	@sleep 1
+	@echo "new content of test.txt (should be ten):"
+	@more test.txt
+#
