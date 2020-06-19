@@ -46,17 +46,21 @@
 // auto my_lock = locker::lock_guard({"a.lock", "b.lock"});           //same as above
 // 
 // std::string my_data = locker::xread("a.txt");                      //exclusive-reads a file and returns its content as a string
+// std::string my_data = locker::xread<true>("a.txt");                //same but does not unlock the file (use this if the file was already lock before the call)
 // 
 // locker::xwrite("a.txt", my_data);                                  //exclusive-writes data to a file (data type must be insertable to std::fstream)
 // locker::xwrite("a.txt", "value", ':', 42);                         //exclusive-writes multiple data to a file
+// locker::xwrite<true>("a.txt", my_data);                            //same but does not unlock the file (use this if the file was already lock before the call)
 // 
 // locker::xappend("a.txt", my_data);                                 //exclusive-appends data to a file (data type must be insertable to std::fstream)
 // locker::xappend("a.txt", "value", ':', 42);                        //exclusive-appends multiple data to a file
+// locker::xappend<true>("a.txt", my_data);                           //same but does not unlock the file (use this if the file was already lock before the call)
 // 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #include <chrono>
 #include <cerrno>
+#include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <filesystem>
@@ -69,6 +73,7 @@
 #include <utility>
 #include <vector>
 
+#include <sys/mman.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/file.h>
