@@ -6,7 +6,7 @@ The locking policy works only among programs using this library, so locking a fi
 
 An exception will be throw if an empty filename is given, if a directory name is given, or if the program does not have permission to read from and write to the file and its directory. **If the file to be locked does not exist, it will be created**. All locking and unlocking functions are variadic, accepting a single filename, multiple filenames, a list of filenames, or a vector of filenames. If you have manually locked a file, do not forget to unlock it. Nevertheless, prefer using the lock guard, which will automatically unlock the file before leaving its scope of declaration.
 
-Be aware that **lock and unlock operations are independent from open and close operations**. If you want to open a lockfile, you need to use file handlers like "fstream" or "fopen", and close the file before unlocking it. It is also your responsability to handle race conditions among threads that have opened a file locked by their parent. Instead of manually locking and opening a file, we suggest using the functions this library provides to perform exclusive read, write or append, which are all process-safe (although still not thread-safe) and will not interfere with your current locks.
+Be aware that **lock and unlock operations are independent from open and close operations**. If you want to open a lockfile, you need to use file handlers like "fstream" or "fopen", and close the file before unlocking it. It is also your responsability to handle race conditions among threads that have opened a file locked by their parent. Instead of manually locking and opening a file, we suggest using the functions this library provides to perform exclusive read, write or append, which are all process-safe, although still not thread-safe. If a file is already lock when you call such functions, use the template argument to prevent them from unlocking the file (see examples below).
 
 Finally, **a process will loose the lock if the lockfile is deleted**. So it may be a good practice to create separate lockfiles for each file you intend to use (e.g. to exclusively open "a.txt", lock the file "a.txt.lock"). This will prevent you from losing the lock in case you need to erase and recreate the file without losing the lock to other processes. Do not forget to be consistent with the name of lockfiles throughout your programs.
 
@@ -33,11 +33,14 @@ Finally, **a process will loose the lock if the lockfile is deleted**. So it may
 	auto my_lock = locker::lock_guard({"a.lock", "b.lock"});           //same as above
 	
 	std::string my_data = locker::xread("a.txt");                      //exclusive-reads a file and returns its content as a string
+	std::string my_data = locker::xread<true>("a.txt");                //same but does not unlock the file (use this if the file was already lock before the call)
 	
 	locker::xwrite("a.txt", my_data);                                  //exclusive-writes data to a file (data type must be insertable to std::fstream)
 	locker::xwrite("a.txt", "value", ':', 42);                         //exclusive-writes multiple data to a file
+	locker::xwrite<true>("a.txt", my_data);                            //same but does not unlock the file (use this if the file was already lock before the call)
 	
 	locker::xappend("a.txt", my_data);                                 //exclusive-appends data to a file (data type must be insertable to std::fstream)
 	locker::xappend("a.txt", "value", ':', 42);                        //exclusive-appends multiple data to a file
+	locker::xappend<true>("a.txt", my_data);                           //same but does not unlock the file (use this if the file was already lock before the call)
 
 *Copyright 2020 Jean Diogo ([Jango](mailto:jeandiogo@gmail.com))*
