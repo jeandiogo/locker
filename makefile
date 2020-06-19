@@ -16,5 +16,5 @@ all:
 	@time -f "[ %es ]" g++ $(SRC) -o $(BIN) $(FLG)
 	@sudo rm -f *~ *.o
 	@sudo chown `whoami`:`whoami` $(BIN)
-	@sudo chmod -R u=rwX,go=rX $(BIN)
+	@sudo chmod u=rwX,go=rX $(BIN)
 #
