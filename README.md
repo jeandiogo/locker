@@ -44,12 +44,12 @@ Finally, **a process will loose the lock if the lockfile is deleted**. So it may
 
 	locker::memory_map_t my_map = locker::xmap("a.txt");                     //exclusively maps a file to memory and returns a structure with a pointer to an array of unsigned chars
 	locker::memory_map_t my_map = locker::xmap<true>("a.txt");               //same but does not unlock the file at destruction (use this if the file was already lock before the call)
-	unsigned char my_var = my_map.at(N);                                     //gets the N-th byte as an unsigned char, throws file's content is smaller than N bytes
+	unsigned char my_var = my_map.at(N);                                     //gets the N-th byte as an unsigned char, throws if file is smaller than N bytes
 	unsigned char my_var = my_map[N];                                        //same, but does not check range
-	my_map.at(N) = M;                                                        //assigns the value M to the N-th byte, throws if file's content is smaller than N bytes
+	my_map.at(N) = M;                                                        //assigns the value M to the N-th byte, throws if file is smaller than N bytes
 	my_map[N] = M;                                                           //same, but does not check range
-	std::size_t my_size = my_map.get_size();                                 //gets size of file's data
-	unsigned char * my_array = my_map.get_data();                            //gets raw pointer to file's data, represented as an array of unsigned chars
+	std::size_t my_size = my_map.get_size();                                 //gets the size of the file
+	unsigned char * my_data = my_map.get_data();                             //gets a raw pointer to file's data, represented as an array of unsigned chars
 	my_map.flush();                                                          //flushes data to file (unnecessary, since OS handles it automatically)
 
 *Copyright 2020 Jean Diogo ([Jango](mailto:jeandiogo@gmail.com))*
