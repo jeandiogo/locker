@@ -62,13 +62,13 @@
 // 
 // locker::memory_map_t my_map = locker::xmap("a.txt");               //exclusively maps a file to memory and returns a structure with a pointer to an array of unsigned chars
 // locker::memory_map_t my_map = locker::xmap<true>("a.txt");         //same but does not unlock the file at destruction (use this if the file was already lock before the call)
-// unsigned char my_var = my_map.at(n);                               //gets n-th byte of the file as an unsigned char, throws if the file is smaller than n bytes
+// unsigned char my_var = my_map.at(n);                               //gets the n-th byte as an unsigned char, throws file's content is smaller than n bytes
 // unsigned char my_var = my_map[n];                                  //same, but does not check range
-// my_map.at(10) = m;                                                 //assigns the n-th byte of the file with value m, throws if file's content is smaller than n bytes
+// my_map.at(10) = m;                                                 //assigns the value m to the n-th byte, throws if file's content is smaller than n bytes
 // my_map[10] = m;                                                    //same, but does not check range
-// std::size_t my_size = my_map.size();                               //gets size of file's content (which is one byte less than file size)
+// std::size_t my_size = my_map.size();                               //gets size of file's content (which is one byte less than the size of the file)
 // unsigned char * my_array = my_map.data();                          //gets raw pointer to file's content, represented as an array of unsigned chars
-// my_map.flush();                                                    //forces data to be written to file (unnecessary, since OS handles it automatically)
+// my_map.flush();                                                    //flushes data to file (unnecessary, since OS handles it automatically)
 // 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
