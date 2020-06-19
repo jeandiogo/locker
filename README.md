@@ -24,6 +24,10 @@ Finally, **a process will loose the lock if the lockfile is deleted**. So it may
 	locker::lock("a.lock", "b.lock");                                  //keeps trying to lock multiple files, only returns when files are locked
 	locker::lock({"a.lock", "b.lock"});                                //same as above
 	
+	locker::lock(1, "a.lock");                                         //keeps trying to lock in intervals of approximately 1 millisecond
+	locker::lock<std::chrono::nanoseconds>(1000, "a.lock");            //use template argument to change the unit of measurement
+	locker::lock(20, "a.lock", "b.lock");                              //also works for the variadic versions
+	
 	locker::unlock("a.lock");                                          //unlocks a file if it is locked
 	locker::unlock("a.lock", "b.lock");                                //unlocks multiple files (in reverse order) if they are locked
 	locker::unlock({"a.lock", "b.lock"});                              //same as above
@@ -42,5 +46,15 @@ Finally, **a process will loose the lock if the lockfile is deleted**. So it may
 	locker::xappend("a.txt", my_data);                                 //exclusive-appends data to a file (data type must be insertable to std::fstream)
 	locker::xappend("a.txt", "value", ':', 42);                        //exclusive-appends multiple data to a file
 	locker::xappend<true>("a.txt", my_data);                           //same but does not unlock the file at destruction (use this if the file was already lock before the call)
+	
+	locker::memory_map_t my_map = locker::xmap("a.txt");               //exclusively maps a file to memory and returns a structure with a pointer to an array of unsigned char
+	locker::memory_map_t my_map = locker::xmap<true>("a.txt");         //same but does not unlock the file at destruction (use this if the file was already lock before the call)
+	unsigned char my_var = my_map.at(n);                               //gets n-th byte of the file as an unsigned char, throws if the file is smaller than n bytes
+	unsigned char my_var = my_map[n];                                  //same, but does not check range
+	my_map.at(10) = m;                                                 //assigns the n-th byte of the file with value m, throws if file's content is smaller than n bytes
+	my_map[10] = m;                                                    //same, but does not check range
+	std::size_t my_size = my_map.size();                               //gets size of file's content (which is one byte less than file size)
+	unsigned char * my_array = my_map.data();                          //gets raw pointer to file's content, represented as an array of unsigned chars
+	my_map.flush();                                                    //forces data to be written to file (unnecessary, since OS handles it automatically)
 
 *Copyright 2020 Jean Diogo ([Jango](mailto:jeandiogo@gmail.com))*
