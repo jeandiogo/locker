@@ -458,12 +458,16 @@ class locker
 	
 	static void unlock(std::string const & raw_filename)
 	{
-		auto filename = get_filename<true>(raw_filename);
+		auto const filename = get_filename<true>(raw_filename);
 		auto const guard = std::scoped_lock<std::mutex>(get_singleton().descriptors_mutex);
 		auto & descriptors = get_singleton().descriptors;
 		if(descriptors.contains(filename))
 		{
-			close(descriptors.at(filename));
+			auto const & descriptor = descriptors.at(filename);
+			if((fsync(descriptor) < 0) or (close(descriptor) < 0))
+			{
+				throw std::runtime_error("could not close lockfile \"" + filename + "\"");
+			}
 			descriptors.erase(filename);
 		}
 	}
