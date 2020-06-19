@@ -1,15 +1,14 @@
 #include "locker.hpp"
 
 #include <chrono>
-#include <cstdlib>
-#include <iostream>
+#include <string>
 #include <thread>
 
 int main()
 {
 	auto const filename = "test.txt";
 	
-	auto my_guard = locker::lock_guard(filename);
+	auto const my_guard = locker::lock_guard(filename);
 	
 	auto data = std::stoi(locker::xread<true>(filename));
 	
