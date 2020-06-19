@@ -37,6 +37,10 @@
 // locker::lock("a.lock", "b.lock");                                  //keeps trying to lock multiple files, only returns when files are locked
 // locker::lock({"a.lock", "b.lock"});                                //same as above
 // 
+// locker::lock(1, "a.lock");                                         //keeps trying to lock in intervals of approximately 1 millisecond
+// locker::lock<std::chrono::nanoseconds>(1000, "a.lock");            //use template argument to change the unit of measurement
+// locker::lock(20, "a.lock", "b.lock");                              //also works for the variadic versions
+// 
 // locker::unlock("a.lock");                                          //unlocks a file if it is locked
 // locker::unlock("a.lock", "b.lock");                                //unlocks multiple files (in reverse order) if they are locked
 // locker::unlock({"a.lock", "b.lock"});                              //same as above
@@ -55,6 +59,16 @@
 // locker::xappend("a.txt", my_data);                                 //exclusive-appends data to a file (data type must be insertable to std::fstream)
 // locker::xappend("a.txt", "value", ':', 42);                        //exclusive-appends multiple data to a file
 // locker::xappend<true>("a.txt", my_data);                           //same but does not unlock the file at destruction (use this if the file was already lock before the call)
+// 
+// locker::memory_map_t my_map = locker::xmap("a.txt");               //exclusively maps a file to memory and returns a structure with a pointer to an array of unsigned char
+// locker::memory_map_t my_map = locker::xmap<true>("a.txt");         //same but does not unlock the file at destruction (use this if the file was already lock before the call)
+// unsigned char my_var = my_map.at(n);                               //gets n-th byte of the file as an unsigned char, throws if the file is smaller than n bytes
+// unsigned char my_var = my_map[n];                                  //same, but does not check range
+// my_map.at(10) = m;                                                 //assigns the n-th byte of the file with value m, throws if file's content is smaller than n bytes
+// my_map[10] = m;                                                    //same, but does not check range
+// std::size_t my_size = my_map.size();                               //gets size of file's content (which is one byte less than file size)
+// unsigned char * my_array = my_map.data();                          //gets raw pointer to file's content, represented as an array of unsigned chars
+// my_map.flush();                                                    //forces data to be written to file (unnecessary, since OS handles it automatically)
 // 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -110,6 +124,101 @@ class locker
 		}
 	};
 	
+	template <bool should_not_unlock = false>
+	class [[nodiscard]] memory_map_t
+	{
+		int file_descriptor = -1;
+		std::size_t file_size = 0;
+		unsigned char * file_pointer = nullptr;
+		std::string filename;
+		
+		public:
+		
+		memory_map_t(memory_map_t &) = delete;
+		memory_map_t(memory_map_t &&) = delete;
+		auto & operator=(memory_map_t) = delete;
+		auto operator&() = delete;
+		
+		explicit memory_map_t(std::string const & f) : filename(f)
+		{
+			lock(filename);
+			try
+			{
+				file_descriptor = get_file_descriptor(filename);
+				if(file_descriptor < 0)
+				{
+					throw std::runtime_error("could not get file descriptor of \"" + filename + "\"");
+				}
+				struct stat file_status;
+				if(fstat(file_descriptor, &file_status) < 0)
+				{
+					throw std::runtime_error("could not get size of \"" + filename + "\"");
+				}
+				if(file_status.st_size <= 1)
+				{
+					throw std::runtime_error(quote(filename) + " is an empty file");
+				}
+				file_size = static_cast<std::size_t>(file_status.st_size) - 1;
+				file_pointer = static_cast<unsigned char *>(mmap(nullptr, file_size + 1, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_POPULATE, file_descriptor, 0));
+				if(!file_pointer)
+				{
+					throw std::runtime_error("could not map file " + quote(filename) + " to memory");
+				}
+			}
+			catch(...)
+			{
+				if constexpr(!should_not_unlock)
+				{
+					unlock(filename);
+				}
+				throw;
+			}
+		}
+		
+		~memory_map_t()
+		{
+			msync(file_pointer, file_size + 1, MS_SYNC);
+			munmap(file_pointer, file_size + 1);
+			if constexpr(!should_not_unlock)
+			{
+				unlock(filename);
+			}
+		}
+		
+		auto & operator[](std::size_t index)
+		{
+			return file_pointer[index];
+		}
+		
+		auto & at(std::size_t index)
+		{
+			if(index >= file_size)
+			{
+				throw std::runtime_error("index " + std::to_string(index) + " out of content range [0, " + std::to_string(file_size) + ")");
+			}
+			return file_pointer[index];
+		}
+		
+		auto data() const
+		{
+			return file_pointer;
+		}
+		
+		auto size() const
+		{
+			return file_size;
+		}
+		
+		auto flush()
+		{
+			if(msync(file_pointer, file_size + 1, MS_SYNC) < 0)
+			{
+				return false;
+			}
+			return true;
+		}
+	};
+	
 	std::mutex descriptors_mutex;
 	std::map<std::string, int> descriptors;
 	
@@ -153,12 +262,14 @@ class locker
 		}
 		else
 		{
-			std::string path = "./";
+			std::string path = ".";
+			std::string file = filename;
 			for(std::size_t i = filename.size() - 1; static_cast<long>(i) >= 0; --i)
 			{
 				if(filename[i] == '/')
 				{
-					path = std::string(filename, 0, i + 1);
+					path = std::string(filename, 0, i);
+					file = std::string(filename, i + 1, filename.size());
 					break;
 				}
 			}
@@ -170,8 +281,24 @@ class locker
 			{
 				throw std::runtime_error("does not have permission to write in directory of lockfile \"" + filename + "\"");
 			}
-			return std::filesystem::canonical(path) / filename;
+			return std::filesystem::canonical(path) / file;
 		}
+	}
+	
+	static inline int get_file_descriptor(std::string const & raw_filename)
+	{
+		if(raw_filename.empty() or (raw_filename.back() == '/') or !std::filesystem::exists(raw_filename))
+		{
+			throw std::runtime_error("\"" + raw_filename + "\" is not a valid lockfile");
+		}
+		std::string filename = std::filesystem::canonical(raw_filename);
+		auto const guard = std::scoped_lock<std::mutex>(get_singleton().descriptors_mutex);
+		auto & descriptors = get_singleton().descriptors;
+		if(descriptors.contains(filename))
+		{
+			return descriptors.at(filename);
+		}
+		return -1;
 	}
 	
 	locker() = default;
@@ -191,7 +318,7 @@ class locker
 	locker(locker &&) = delete;
 	auto & operator=(locker) = delete;
 	
-	static auto try_lock(std::string const & raw_filename)
+	static bool try_lock(std::string const & raw_filename)
 	{
 		auto const guard = std::scoped_lock<std::mutex>(get_singleton().descriptors_mutex);
 		auto & descriptors = get_singleton().descriptors;
@@ -207,23 +334,29 @@ class locker
 		{
 			return false;
 		}
+		if(flock(descriptor, LOCK_EX | LOCK_NB) < 0)
+		{
+			close(descriptor);
+			return false;
+		}
 		try
 		{
-			if((flock(descriptor, LOCK_EX | LOCK_NB) < 0) or !descriptors.emplace(filename, descriptor).second)
+			auto success = descriptors.emplace(filename, descriptor);
+			if(!success.second)
 			{
-				throw;
+				throw std::runtime_error("could not store descriptor of lockfile \"" + filename + "\"");
 			}
 		}
 		catch(...)
 		{
 			close(descriptor);
-			return false;
+			throw;
 		}
 		return true;
 	}
 	
 	template <typename ... TS>
-	static auto try_lock(std::string const & filename, TS && ... filenames)
+	static bool try_lock(std::string const & filename, TS && ... filenames)
 	{
 		if(!try_lock(filename))
 		{
@@ -237,7 +370,7 @@ class locker
 		return true;
 	}
 	
-	static void try_lock(std::vector<std::string> const & filenames)
+	static bool try_lock(std::vector<std::string> const & filenames)
 	{
 		for(std::size_t i = 0; i < filenames.size(); ++i)
 		{
@@ -247,8 +380,10 @@ class locker
 				{
 					unlock(filenames[j]);
 				}
+				return false;
 			}
 		}
+		return true;
 	}
 	
 	static void lock(std::string const & filename)
@@ -311,7 +446,7 @@ class locker
 	{
 		if(raw_filename.empty() or (raw_filename.back() == '/') or !std::filesystem::exists(raw_filename))
 		{
-			throw std::runtime_error("\"" + raw_filename + "\" is not a valid lockfile to be unlocked");
+			throw std::runtime_error("\"" + raw_filename + "\" is not a valid lockfile");
 		}
 		std::string filename = std::filesystem::canonical(raw_filename);
 		auto const guard = std::scoped_lock<std::mutex>(get_singleton().descriptors_mutex);
@@ -435,5 +570,11 @@ class locker
 			}
 			throw;
 		}
+	}
+	
+	template <bool should_not_unlock = false>
+	static auto xmap(std::string const & filename)
+	{
+		return memory_map_t<should_not_unlock>(filename);
 	}
 };
