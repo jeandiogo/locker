@@ -62,7 +62,7 @@
 // my_map.at(N) = M;                                                        //assigns the value M to the N-th byte, throws if file's content is smaller than N bytes
 // my_map[N] = M;                                                           //same, but does not check range
 // std::size_t my_size = my_map.get_size();                                 //gets size of file's data
-// unsigned char * my_array = my_map.get_data();                            //gets raw pointer to file's data, represented as an array of unsigned chars
+// unsigned char * my_data = my_map.get_data();                             //gets a raw pointer to file's data, represented as an array of unsigned chars
 // my_map.flush();                                                          //flushes data to file (unnecessary, since OS handles it automatically)
 // 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -125,7 +125,7 @@ class locker
 		std::string filename;
 		int descriptor;
 		std::size_t size;
-		unsigned char * pointer;
+		unsigned char * data;
 		
 		public:
 		
@@ -134,7 +134,7 @@ class locker
 		auto & operator=(memory_map_t) = delete;
 		auto operator&() = delete;
 		
-		explicit memory_map_t(std::string const & raw_filename) : filename(""), descriptor(-1), size(0), pointer(nullptr)
+		explicit memory_map_t(std::string const & raw_filename) : filename(""), descriptor(-1), size(0), data(nullptr)
 		{
 			lock(raw_filename, filename, descriptor);
 			try
@@ -145,8 +145,8 @@ class locker
 					throw std::runtime_error("could not get size of \"" + filename + "\"");
 				}
 				size = static_cast<std::size_t>(file_status.st_size);
-				pointer = static_cast<unsigned char *>(mmap(nullptr, size, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_POPULATE, descriptor, 0));
-				if(!pointer)
+				data = static_cast<unsigned char *>(mmap(nullptr, size, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_POPULATE, descriptor, 0));
+				if(!data)
 				{
 					throw std::runtime_error("could not map file \"" + filename + "\" to memory");
 				}
@@ -157,31 +157,31 @@ class locker
 				{
 					unlock(filename);
 				}
-				filename = "";
 				descriptor = -1;
 				size = 0;
-				pointer = nullptr;
+				data = nullptr;
+				filename = "";
 				throw;
 			}
 		}
 		
 		~memory_map_t()
 		{
-			msync(pointer, size, MS_SYNC);
-			munmap(pointer, size);
+			msync(data, size, MS_SYNC);
+			munmap(data, size);
 			if constexpr(!should_not_unlock)
 			{
 				unlock(filename);
 			}
-			filename = "";
 			descriptor = -1;
 			size = 0;
-			pointer = nullptr;
+			data = nullptr;
+			filename = "";
 		}
 		
 		auto & operator[](std::size_t index)
 		{
-			return pointer[index];
+			return data[index];
 		}
 		
 		auto & at(std::size_t index)
@@ -190,12 +190,12 @@ class locker
 			{
 				throw std::runtime_error("index " + std::to_string(index) + " out of \"" + filename + "\" content range [0, " + std::to_string(size) + "[");
 			}
-			return pointer[index];
+			return data[index];
 		}
 		
 		auto get_data() const
 		{
-			return pointer;
+			return data;
 		}
 		
 		auto get_size() const
@@ -205,7 +205,7 @@ class locker
 		
 		auto flush()
 		{
-			if(msync(pointer, size, MS_SYNC) < 0)
+			if(msync(data, size, MS_SYNC) < 0)
 			{
 				return false;
 			}
