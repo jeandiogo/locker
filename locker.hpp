@@ -60,7 +60,7 @@
 // locker::xappend("a.txt", "value", ':', 42);                        //exclusive-appends multiple data to a file
 // locker::xappend<true>("a.txt", my_data);                           //same but does not unlock the file at destruction (use this if the file was already lock before the call)
 // 
-// locker::memory_map_t my_map = locker::xmap("a.txt");               //exclusively maps a file to memory and returns a structure with a pointer to an array of unsigned char
+// locker::memory_map_t my_map = locker::xmap("a.txt");               //exclusively maps a file to memory and returns a structure with a pointer to an array of unsigned chars
 // locker::memory_map_t my_map = locker::xmap<true>("a.txt");         //same but does not unlock the file at destruction (use this if the file was already lock before the call)
 // unsigned char my_var = my_map.at(n);                               //gets n-th byte of the file as an unsigned char, throws if the file is smaller than n bytes
 // unsigned char my_var = my_map[n];                                  //same, but does not check range
