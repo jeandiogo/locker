@@ -228,6 +228,15 @@ class locker
 		return singleton;
 	}
 	
+	template <typename T = std::chrono::milliseconds>
+	static inline void sleep(long timespan)
+	{
+		if(timespan)
+		{
+			std::this_thread::sleep_for(T(std::abs(timespan)));
+		}
+	}
+	
 	static inline bool has_permissions(std::string const & filename)
 	{
 		struct stat file_info;
@@ -414,10 +423,7 @@ class locker
 	{
 		while(!try_lock(filename))
 		{
-			if(timespan)
-			{
-				std::this_thread::sleep_for(T(std::abs(timespan)));
-			}
+			sleep<T>(timespan);
 		}
 	}
 	
@@ -428,7 +434,7 @@ class locker
 		{
 			if(timespan)
 			{
-				std::this_thread::sleep_for(T(std::abs(timespan)));
+				sleep<T>(timespan);
 			}
 		}
 	}
@@ -438,7 +444,7 @@ class locker
 	{
 		for(auto it = filenames.begin(); it != filenames.end(); ++it)
 		{
-			lock(timespan, *it);
+			lock<T>(timespan, *it);
 		}
 	}
 	
