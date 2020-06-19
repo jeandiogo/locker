@@ -20,7 +20,7 @@
 // 
 // The locking policy works only among programs using this library, so locking a file does not prevent other processes from opening it, but it ensures that only one program will get the lock at a time. Moreover, the locker does not provide thread-safety. Once a process has acquired the lock, neither its threads and future forks will be stopped by it, nor they will be able to mutually exclude each other by using the filelock. Therefore, avoid forking a program while it has some file locked, and use ordinary mutexes to synchronize its inner threads.
 // An exception will be throw if an empty filename is given, if a directory name is given, or if the program does not have permission to read from and write to the file and its directory. If the file to be locked does not exist, it will be created. All locking and unlocking functions are variadic, accepting a single filename, multiple filenames, a list of filenames, or a vector of filenames. If you have manually locked a file, do not forget to unlock it. Nevertheless, prefer using the lock guard, which will automatically unlock the file before leaving its scope of declaration.
-// Be aware that lock and unlock operations are independent from open and close operations. If you want to open a lockfile, you need to use file handlers like "fstream" or "fopen", and close the file before unlocking it. It is also your responsability to handle race conditions among threads that have opened a file locked by their parent. Instead of manually locking and opening a file, we suggest using the functions this library provides to perform exclusive read, write, append, and memory-map, which are all process-safe, although still not thread-safe. If a file is already lock when you call such functions, use the template argument to prevent them from unlocking the file (see examples below).
+// Be aware that lock and unlock operations are independent from open and close operations. If you want to open a lockfile, you need to use file handlers like "fstream" or "fopen", and close the file before unlocking it. It is also your responsability to handle race conditions among threads that have opened a file locked by their parent. Instead of manually locking and opening a file, we suggest using the functions this library provides to perform exclusive read, write, append, and memory-map, which are all process-safe (although still not thread-safe) and will not interfere with your lockings.
 // Finally, a process will loose the lock if the lockfile is deleted. So it may be a good practice to create separate lockfiles for each file you intend to use (e.g. to exclusively open "a.txt", lock the file "a.txt.lock"). This will prevent you from losing the lock in case you need to erase and recreate the file without losing the lock to other processes. Do not forget to be consistent with the name of lockfiles throughout your programs.
 // 
 // (When compiling with g++ use the flag "-std=c++2a", available in GCC 7.0 or later.)
@@ -50,18 +50,14 @@
 // locker::lock_guard_t my_lock = locker::lock_guard({"a.lock", "b.lock"}); //same as above
 // 
 // std::string my_data = locker::xread("a.txt");                            //exclusively reads a file and returns its content as a string
-// std::string my_data = locker::xread<true>("a.txt");                      //same but does not unlock the file at destruction (use this if the file was already lock before the call)
 // 
 // locker::xwrite("a.txt", my_data);                                        //exclusively writes data to a file (data type must be insertable to std::fstream)
 // locker::xwrite("a.txt", "value", ':', 42);                               //exclusively writes multiple data to a file
-// locker::xwrite<true>("a.txt", my_data);                                  //same but does not unlock the file at destruction (use this if the file was already lock before the call)
 // 
 // locker::xappend("a.txt", my_data);                                       //exclusively appends data to a file (data type must be insertable to std::fstream)
 // locker::xappend("a.txt", "value", ':', 42);                              //exclusively appends multiple data to a file
-// locker::xappend<true>("a.txt", my_data);                                 //same but does not unlock the file at destruction (use this if the file was already lock before the call)
 // 
 // locker::memory_map_t my_map = locker::xmap("a.txt");                     //exclusively maps a file to memory and returns a structure with a pointer to an array of unsigned chars
-// locker::memory_map_t my_map = locker::xmap<true>("a.txt");               //same but does not unlock the file at destruction (use this if the file was already lock before the call)
 // unsigned char my_var = my_map.at(n);                                     //gets the n-th byte as an unsigned char, throws file's content is smaller than n bytes
 // unsigned char my_var = my_map[n];                                        //same, but does not check range
 // my_map.at(10) = m;                                                       //assigns the value m to the n-th byte, throws if file's content is smaller than n bytes
@@ -124,9 +120,9 @@ class locker
 		}
 	};
 	
-	template <bool should_not_unlock = false>
 	class [[nodiscard]] memory_map_t
 	{
+		bool should_lock = false;
 		int file_descriptor = -1;
 		std::size_t file_size = 0;
 		unsigned char * file_pointer = nullptr;
@@ -141,6 +137,7 @@ class locker
 		
 		explicit memory_map_t(std::string const & f) : filename(f)
 		{
+			should_lock = !is_locked(filename);
 			lock(filename);
 			try
 			{
@@ -154,7 +151,7 @@ class locker
 				{
 					throw std::runtime_error("could not get size of \"" + filename + "\"");
 				}
-				if(file_status.st_size <= 1)
+				if(file_status.st_size < 1)
 				{
 					throw std::runtime_error(quote(filename) + " is an empty file");
 				}
@@ -167,7 +164,7 @@ class locker
 			}
 			catch(...)
 			{
-				if constexpr(!should_not_unlock)
+				if(should_lock)
 				{
 					unlock(filename);
 				}
@@ -179,7 +176,7 @@ class locker
 		{
 			msync(file_pointer, file_size + 1, MS_SYNC);
 			munmap(file_pointer, file_size + 1);
-			if constexpr(!should_not_unlock)
+			if(should_lock)
 			{
 				unlock(filename);
 			}
@@ -251,6 +248,7 @@ class locker
 		return has_owner_permissions or has_group_permissions or has_other_permissions;
 	}
 	
+	template <bool should_not_create_path = false>
 	static inline std::string get_filename(std::string const & filename)
 	{
 		if(filename.empty() or filename.back() == '/')
@@ -271,43 +269,53 @@ class locker
 		}
 		else
 		{
-			std::string path = ".";
-			std::string file = filename;
-			for(std::size_t i = filename.size() - 1; static_cast<long>(i) >= 0; --i)
+			if constexpr(should_not_create_path)
 			{
-				if(filename[i] == '/')
+				throw std::runtime_error("lockfile \"" + filename + "\" does not exist");
+			}
+			else
+			{
+				std::string path = ".";
+				std::string file = filename;
+				for(std::size_t i = filename.size() - 1; static_cast<long>(i) >= 0; --i)
 				{
-					path = std::string(filename, 0, i);
-					file = std::string(filename, i + 1, filename.size());
-					break;
+					if(filename[i] == '/')
+					{
+						path = std::string(filename, 0, i);
+						file = std::string(filename, i + 1, filename.size());
+						break;
+					}
 				}
+				if(!std::filesystem::exists(path) and !std::filesystem::create_directories(path))
+				{
+					throw std::runtime_error("could not create path to lockfile \"" + filename + "\"");
+				}
+				if(!has_permissions(path))
+				{
+					throw std::runtime_error("does not have permission to write in directory of lockfile \"" + filename + "\"");
+				}
+				return std::filesystem::canonical(path) / file;
 			}
-			if(!std::filesystem::exists(path) and !std::filesystem::create_directories(path))
-			{
-				throw std::runtime_error("could not create path to lockfile \"" + filename + "\"");
-			}
-			if(!has_permissions(path))
-			{
-				throw std::runtime_error("does not have permission to write in directory of lockfile \"" + filename + "\"");
-			}
-			return std::filesystem::canonical(path) / file;
 		}
 	}
 	
 	static inline int get_file_descriptor(std::string const & raw_filename)
 	{
-		if(raw_filename.empty() or (raw_filename.back() == '/') or !std::filesystem::exists(raw_filename))
-		{
-			throw std::runtime_error("\"" + raw_filename + "\" is not a valid lockfile");
-		}
-		std::string filename = std::filesystem::canonical(raw_filename);
+		auto const filename = get_filename<true>(raw_filename);
 		auto const guard = std::scoped_lock<std::mutex>(get_singleton().descriptors_mutex);
-		auto & descriptors = get_singleton().descriptors;
+		auto const & descriptors = get_singleton().descriptors;
 		if(descriptors.contains(filename))
 		{
 			return descriptors.at(filename);
 		}
 		return -1;
+	}
+	
+	static inline bool is_locked(std::string const & raw_filename)
+	{
+		auto const filename = get_filename<true>(raw_filename);
+		auto const guard = std::scoped_lock<std::mutex>(get_singleton().descriptors_mutex);
+		return get_singleton().descriptors.contains(filename);
 	}
 	
 	locker() = default;
@@ -450,11 +458,7 @@ class locker
 	
 	static void unlock(std::string const & raw_filename)
 	{
-		if(raw_filename.empty() or (raw_filename.back() == '/') or !std::filesystem::exists(raw_filename))
-		{
-			throw std::runtime_error("\"" + raw_filename + "\" is not a valid lockfile");
-		}
-		std::string filename = std::filesystem::canonical(raw_filename);
+		auto filename = get_filename<true>(raw_filename);
 		auto const guard = std::scoped_lock<std::mutex>(get_singleton().descriptors_mutex);
 		auto & descriptors = get_singleton().descriptors;
 		if(descriptors.contains(filename))
@@ -490,9 +494,9 @@ class locker
 		return lock_guard_t(filenames);
 	}
 	
-	template <bool should_not_unlock = false>
 	static auto xread(std::string const & filename)
 	{
+		auto should_lock = !is_locked(filename);
 		lock(filename);
 		try
 		{
@@ -508,7 +512,7 @@ class locker
 			{
 				data.pop_back();
 			}
-			if constexpr(!should_not_unlock)
+			if(should_lock)
 			{
 				unlock(filename);
 			}
@@ -516,7 +520,7 @@ class locker
 		}
 		catch(...)
 		{
-			if constexpr(!should_not_unlock)
+			if(should_lock)
 			{
 				unlock(filename);
 			}
@@ -524,9 +528,10 @@ class locker
 		}
 	}
 	
-	template <bool should_not_unlock = false, typename ... TS>
+	template <typename ... TS>
 	static auto xwrite(std::string const & filename, TS && ... data)
 	{
+		auto should_lock = !is_locked(filename);
 		lock(filename);
 		try
 		{
@@ -536,14 +541,14 @@ class locker
 				throw std::runtime_error("could not open file \"" + filename + "\" for output");
 			}
 			(output << ... << std::forward<TS>(data)) << std::flush;
-			if constexpr(!should_not_unlock)
+			if(should_lock)
 			{
 				unlock(filename);
 			}
 		}	
 		catch(...)
 		{
-			if constexpr(!should_not_unlock)
+			if(should_lock)
 			{
 				unlock(filename);
 			}
@@ -551,9 +556,10 @@ class locker
 		}
 	}
 	
-	template <bool should_not_unlock = false, typename ... TS>
+	template <typename ... TS>
 	static auto xappend(std::string const & filename, TS && ... data)
 	{
+		auto should_lock = !is_locked(filename);
 		lock(filename);
 		try
 		{
@@ -563,14 +569,14 @@ class locker
 				throw std::runtime_error("could not open file \"" + filename + "\" for append");
 			}
 			(output << ... << std::forward<TS>(data)) << std::flush;
-			if constexpr(!should_not_unlock)
+			if(should_lock)
 			{
 				unlock(filename);
 			}
 		}	
 		catch(...)
 		{
-			if constexpr(!should_not_unlock)
+			if(should_lock)
 			{
 				unlock(filename);
 			}
@@ -578,9 +584,8 @@ class locker
 		}
 	}
 	
-	template <bool should_not_unlock = false>
 	static auto xmap(std::string const & filename)
 	{
-		return memory_map_t<should_not_unlock>(filename);
+		return memory_map_t(filename);
 	}
 };
