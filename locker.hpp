@@ -175,7 +175,7 @@ class locker
 		{
 			if(index >= size)
 			{
-				throw std::runtime_error("index " + std::to_string(index) + " out of \"" + filename + "\" content range [0, " + std::to_string(size) + "[");
+				throw std::runtime_error("index " + std::to_string(index) + " is out of the range [0, " + std::to_string(size) + "[ of \"" + filename + "\"");
 			}
 			return data[index];
 		}
