@@ -19,7 +19,7 @@
 // [Notice]
 // 
 // The locking policy works only among programs using this library, so locking a file does not prevent other processes from opening it, but it ensures that only one program will get the lock at a time. Moreover, the locker does not provide thread-safety. Once a process has acquired the lock, neither its threads and future forks will be stopped by it, nor they will be able to mutually exclude each other by using the filelock. Therefore, avoid forking a program while it has some file locked, and use ordinary mutexes to synchronize its inner threads.
-// An exception will be throw if an empty filename is given, if a directory name is given, or if the program does not have permission to read and write the file and its directory. If the file to be locked does not exist, it will be created. All locking and unlocking functions accept a single filename or a vector of filenames. If you have manually locked a file, do not forget to unlock it. Nevertheless, prefer using the lock guard, which will automatically unlock the file before leaving its scope of declaration.
+// An exception will be throw if an empty filename is given, if a directory name is given, or if the program does not have permission to read and write the file and its directory. If the file to be locked does not exist, it will be created. All locking and unlocking functions accept a single filename, a list of filenames, or a vector of filenames. If you have manually locked a file, do not forget to unlock it. Nevertheless, prefer using the lock guard, which will automatically unlock the file before leaving its scope of declaration.
 // Be aware that lock and unlock operations are independent from open and close operations. If you want to open a lockfile, you need to use file handlers like "fstream" or "fopen", and close it before unlocking it. It is also your responsability to handle race conditions among threads that have opened a file locked by their parent. Instead of manually locking and opening a file, we suggest using the functions this library provides to perform exclusive read, write, append, and memory-map, which are all process-safe (although still not thread-safe) and will not interfere with your current locks.
 // Finally, a process will loose the lock if the lockfile is deleted. So it may be a good practice to create separate (and hidden) lockfiles for each file you intend to use (e.g. to exclusively open "a.txt", lock the file ".lock.a.txt"). This will prevent you from losing the lock in case you need to erase and recreate the file without letting other processes get a lock to it. Do not forget to be consistent with the name of lockfiles throughout your programs.
 // 
@@ -30,16 +30,16 @@
 // #include "locker.hpp"
 // 
 // bool success = locker::try_lock("a.lock");                               //tries to lock a file once, returns immediately
-// bool success = locker::try_lock({"a.lock", "b.lock"});                   //tries to lock multiple files once, returns immediately
+// bool success = locker::try_lock({"a.lock", "b.lock"});                   //tries to lock a list or a vector of files once, returns immediately
 // 
 // locker::lock("a.lock");                                                  //keeps trying to lock a file, only returns when file is locked
 // locker::lock({"a.lock", "b.lock"});                                      //keeps trying to lock multiple files, only returns when files are locked
 // 
 // locker::unlock("a.lock");                                                //unlocks a file if it is locked
-// locker::unlock({"a.lock", "b.lock"});                                    //unlocks multiple files (in reverse order) if they are locked
+// locker::unlock({"a.lock", "b.lock"});                                    //unlocks a list or a vector of files (in reverse order) if they are locked
 // 
 // locker::lock_guard_t my_lock = locker::lock_guard("a.lock");             //locks a file and automatically unlocks it before leaving current scope
-// locker::lock_guard_t my_lock = locker::lock_guard({"a.lock", "b.lock"}); //locks multiple files and automatically unlocks them before leaving current scope
+// locker::lock_guard_t my_lock = locker::lock_guard({"a.lock", "b.lock"}); //locks a list or a vector of files and automatically unlocks them before leaving current scope
 // 
 // std::string my_data = locker::xread("a.txt");                            //exclusively reads a file and returns its content as a string
 // 
@@ -70,6 +70,7 @@
 #include <cstring>
 #include <filesystem>
 #include <fstream>
+#include <initializer_list>
 #include <map>
 #include <mutex>
 #include <stdexcept>
@@ -98,13 +99,17 @@ class locker
 		auto & operator=(lock_guard_t) = delete;
 		auto operator&() = delete;
 		
-		explicit lock_guard_t(std::vector<std::string> && fs) : filenames(fs)
+		explicit lock_guard_t(std::vector<std::string> && fs) : filenames(std::forward<std::vector<std::string>>(fs))
 		{
 			lock(filenames);
 		}
 		
-		template <typename ... TS>
-		explicit lock_guard_t(TS && ... fs) : filenames({std::forward<TS>(fs) ...})
+		explicit lock_guard_t(std::initializer_list<std::string> && fs) : filenames(std::forward<std::initializer_list<std::string>>(fs))
+		{
+			lock(filenames);
+		}
+		
+		explicit lock_guard_t(std::string const & f) : filenames({f})
 		{
 			lock(filenames);
 		}
@@ -298,23 +303,6 @@ class locker
 		}
 	}
 	
-	locker() = default;
-	
-	public:
-	
-	~locker()
-	{
-		for(auto & descriptor : descriptors)
-		{
-			close(descriptor.second.second);
-		}
-		descriptors.clear();
-	}
-	
-	locker(locker const &) = delete;
-	locker(locker &&) = delete;
-	auto & operator=(locker) = delete;
-	
 	static bool try_lock(std::string const & raw_filename, std::string & filename, int & descriptor)
 	{
 		auto const guard = std::scoped_lock<std::mutex>(get_singleton().descriptors_mutex);
@@ -356,6 +344,30 @@ class locker
 		return true;
 	}
 	
+	static void lock(std::string const & raw_filename, std::string & filename, int & descriptor)
+	{
+		while(!try_lock(raw_filename, filename, descriptor))
+		{
+		}
+	}
+	
+	locker() = default;
+	
+	public:
+	
+	~locker()
+	{
+		for(auto & descriptor : descriptors)
+		{
+			close(descriptor.second.second);
+		}
+		descriptors.clear();
+	}
+	
+	locker(locker const &) = delete;
+	locker(locker &&) = delete;
+	auto & operator=(locker) = delete;
+	
 	static bool try_lock(std::string const & raw_filename)
 	{
 		std::string filename = "";
@@ -379,16 +391,8 @@ class locker
 		return true;
 	}
 	
-	static void lock(std::string const & raw_filename, std::string & filename, int & descriptor)
-	{
-		while(!try_lock(raw_filename, filename, descriptor))
-		{
-		}
-	}
-	
 	static void lock(std::string const & raw_filename)
 	{
-		
 		std::string filename = "";
 		int descriptor = -1;
 		lock(raw_filename, filename, descriptor);
@@ -400,6 +404,11 @@ class locker
 		{
 			lock(*it);
 		}
+	}
+	
+	static void lock(std::initializer_list<std::string> && filenames)
+	{
+		lock(std::vector<std::string>(std::forward<std::initializer_list<std::string>>(filenames)));
 	}
 	
 	static void unlock(std::string const & raw_filename)
@@ -449,15 +458,24 @@ class locker
 		}
 	}
 	
-	template <typename ... TS>
-	static auto lock_guard(TS && ... filenames)
+	static void unlock(std::initializer_list<std::string> && filenames)
 	{
-		return lock_guard_t(std::forward<TS>(filenames) ...);
+		unlock(std::vector<std::string>(std::forward<std::initializer_list<std::string>>(filenames)));
 	}
 	
-	static auto lock_guard(std::vector<std::string> const & filenames)
+	static auto lock_guard(std::string const & filename)
 	{
-		return lock_guard_t(filenames);
+		return lock_guard_t(filename);
+	}
+	
+	static auto lock_guard(std::vector<std::string> && filenames)
+	{
+		return lock_guard_t(std::forward<std::vector<std::string>>(filenames));
+	}
+	
+	static auto lock_guard(std::initializer_list<std::string> && filenames)
+	{
+		return lock_guard_t(std::forward<std::initializer_list<std::string>>(filenames));
 	}
 	
 	static auto xread(std::string const & filename)
