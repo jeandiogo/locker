@@ -33,7 +33,7 @@
 // bool success = locker::try_lock({"a.lock", "b.lock"});                   //tries to lock a list or a vector of files once, returns immediately
 // 
 // locker::lock("a.lock");                                                  //keeps trying to lock a file, only returns when file is locked
-// locker::lock({"a.lock", "b.lock"});                                      //keeps trying to lock multiple files, only returns when files are locked
+// locker::lock({"a.lock", "b.lock"});                                      //keeps trying to lock a list or a vector of files, only returns when files are locked
 // 
 // locker::unlock("a.lock");                                                //unlocks a file if it is locked
 // locker::unlock({"a.lock", "b.lock"});                                    //unlocks a list or a vector of files (in reverse order) if they are locked
