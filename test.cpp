@@ -8,7 +8,7 @@ int main()
 {
 	auto const filename = "test.txt";
 	
-	auto const my_guard = locker::lock_guard(filename);
+	auto const guard = locker::lock_guard(filename);
 	
 	auto data = std::stoi(locker::xread<true>(filename));
 	
