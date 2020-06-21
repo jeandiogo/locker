@@ -32,7 +32,7 @@ Finally, **a process will loose the lock if the lockfile is deleted**. So it may
 
 	std::string my_data = locker::xread("a.txt");                            //exclusively reads a file and returns its content as a string
 	
-	locker::xwrite("a.txt", my_data);                                        //exclusively writes data to a file (data type must be insertable to std::fstream)
+	locker::xwrite("a.txt", my_data);                                        //exclusively writes formatted data to a file (data type must be insertable to std::fstream)
 	locker::xwrite("a.txt", "value", ':', 42);                               //exclusively writes multiple data to a file
 
 	locker::xappend("a.txt", my_data);                                       //exclusively appends data to a file (data type must be insertable to std::fstream)
