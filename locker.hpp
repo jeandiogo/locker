@@ -41,15 +41,15 @@
 // locker::lock_guard_t my_lock = locker::lock_guard("a.lock");             //locks a file and automatically unlocks it before leaving current scope
 // locker::lock_guard_t my_lock = locker::lock_guard({"a.lock", "b.lock"}); //locks a list or a vector of files and automatically unlocks them before leaving current scope
 // 
-// std::string my_data = locker::xread("a.txt");                            //exclusively reads a file and returns its content as a string
+// std::string my_data = locker::xread("a.txt");                            //exclusively-reads a file and returns its content as a string
 // 
-// locker::xwrite("a.txt", my_data);                                        //exclusively writes formatted data to a file (data type must be insertable to std::fstream)
-// locker::xwrite("a.txt", "value", ':', 42);                               //exclusively writes multiple data to a file
+// locker::xwrite("a.txt", my_data);                                        //exclusively-writes formatted data to a file (data type must be insertable to std::fstream)
+// locker::xwrite("a.txt", "value", ':', 42);                               //exclusively-writes multiple data to a file
 // 
-// locker::xappend("a.txt", my_data);                                       //exclusively appends data to a file (data type must be insertable to std::fstream)
-// locker::xappend("a.txt", "value", ':', 42);                              //exclusively appends multiple data to a file
+// locker::xappend("a.txt", my_data);                                       //exclusively-appends data to a file (data type must be insertable to std::fstream)
+// locker::xappend("a.txt", "value", ':', 42);                              //exclusively-appends multiple data to a file
 // 
-// locker::memory_map_t my_map = locker::xmap("a.txt");                     //exclusively maps a file to memory and returns a structure similar to an array of unsigned chars
+// locker::memory_map_t my_map = locker::xmap("a.txt");                     //exclusively-maps a file to memory and returns a structure similar to an array of unsigned chars
 // locker::memory_map_t my_map = locker::xmap<char>("a.txt");               //the type underlying the array can be chosen at instantiation via template argument
 // unsigned char my_var = my_map.at(N);                                     //gets the N-th byte as an unsigned char, throws if file is smaller than or equal to N bytes
 // unsigned char my_var = my_map[N];                                        //same, but does not check range
@@ -377,17 +377,23 @@ class locker
 	
 	static bool try_lock(std::vector<std::string> const & filenames)
 	{
+		std::string filename = "";
+		int descriptor = -1;
 		for(std::size_t i = 0; i < filenames.size(); ++i)
 		{
-			if(!try_lock(filenames[i]))
+			if(!try_lock(filenames[i], filename, descriptor))
 			{
 				for(std::size_t j = i - 1; static_cast<long>(j) >= 0; --j)
 				{
 					unlock(filenames[j]);
 				}
+				descriptor = -1;
+				filename = "";
 				return false;
 			}
 		}
+		descriptor = -1;
+		filename = "";
 		return true;
 	}
 	
@@ -400,10 +406,14 @@ class locker
 	
 	static void lock(std::vector<std::string> const & filenames)
 	{
+		std::string filename = "";
+		int descriptor = -1;
 		for(auto it = filenames.begin(); it != filenames.end(); ++it)
 		{
-			lock(*it);
+			lock(*it, filename, descriptor);
 		}
+		descriptor = -1;
+		filename = "";
 	}
 	
 	static void lock(std::initializer_list<std::string> && filenames)
@@ -496,6 +506,7 @@ class locker
 				data.pop_back();
 			}
 			unlock(filename);
+			return data;
 		}
 		catch(...)
 		{
