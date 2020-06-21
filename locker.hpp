@@ -57,7 +57,7 @@
 // my_map[N] = M;                                                           //same, but does not check range
 // std::size_t my_size = my_map.get_size();                                 //gets the size of the file
 // std::size_t my_size = my_map.size();                                     //same as above, for STL compatibility
-// unsigned char * my_data = my_map.get_data();                             //gets a raw pointer to file's data, represented as an array of unsigned chars
+// unsigned char * my_data = my_map.get_data();                             //gets a raw pointer to file's data (whose type is designated at instantiation)
 // unsigned char * my_data = my_map.data();                                 //same as above, for STL compatibility
 // my_map.flush();                                                          //flushes data to file (unnecessary, since OS handles it automatically)
 // 
