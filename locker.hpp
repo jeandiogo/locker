@@ -49,17 +49,16 @@
 // locker::xappend("a.txt", my_data);                                       //exclusively appends data to a file (data type must be insertable to std::fstream)
 // locker::xappend("a.txt", "value", ':', 42);                              //exclusively appends multiple data to a file
 // 
-// locker::memory_map_t my_map = locker::xmap("a.txt");                     //exclusively maps a file to memory and returns a structure with a pointer to an array of unsigned chars
-// locker::memory_map_t my_map = locker::xmap<true>("a.txt");               //same, but does not unlock the file at destruction (use this if the file was already lock before the call)
-// unsigned char my_var = my_map.at(N);                                     //gets the N-th byte as an unsigned char, throws if file is smaller than N bytes
+// locker::memory_map_t my_map = locker::xmap("a.txt");                     //exclusively maps a file to memory and returns a structure similar to an array of unsigned chars
+// locker::memory_map_t my_map = locker::xmap<char>("a.txt");               //the type underlying the array can be chosen at instantiation via template argument
+// unsigned char my_var = my_map.at(N);                                     //gets the N-th byte as an unsigned char, throws if file is smaller than or equal to N bytes
 // unsigned char my_var = my_map[N];                                        //same, but does not check range
-// my_map.at(N) = M;                                                        //assigns the value M to the N-th byte, throws if file is smaller than N bytes
+// my_map.at(N) = M;                                                        //assigns the value M to the N-th byte, throws if file is smaller than or equal to N bytes
 // my_map[N] = M;                                                           //same, but does not check range
 // std::size_t my_size = my_map.get_size();                                 //gets the size of the file
 // std::size_t my_size = my_map.size();                                     //same as above, for STL compatibility
 // unsigned char * my_data = my_map.get_data();                             //gets a raw pointer to file's data, represented as an array of unsigned chars
 // unsigned char * my_data = my_map.data();                                 //same as above, for STL compatibility
-// unsigned char * my_data = my_map.get_data<char>();                       //the type underlying the raw pointer can be changed via template argument
 // my_map.flush();                                                          //flushes data to file (unnecessary, since OS handles it automatically)
 // 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -116,12 +115,13 @@ class locker
 		}
 	};
 	
+	template <typename data_t>
 	class [[nodiscard]] memory_map_t
 	{
 		std::string filename;
 		int file_descriptor;
 		std::size_t file_size;
-		void * file_data;
+		data_t * file_data;
 		
 		public:
 		
@@ -141,7 +141,7 @@ class locker
 					throw std::runtime_error("could not get size of \"" + filename + "\"");
 				}
 				file_size = static_cast<std::size_t>(file_status.st_size);
-				file_data = mmap(nullptr, file_size, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_POPULATE, file_descriptor, 0);
+				file_data = static_cast<data_t *>(mmap(nullptr, file_size, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_POPULATE, file_descriptor, 0));
 				if(!file_data)
 				{
 					throw std::runtime_error("could not map file \"" + filename + "\" to memory");
@@ -183,16 +183,14 @@ class locker
 			return file_data[index];
 		}
 		
-		template <typename T = unsigned char>
 		auto get_data() const
 		{
-			return static_cast<T *>(file_data);
+			return file_data;
 		}
 		
-		template <typename T = unsigned char>
 		auto data() const
 		{
-			return static_cast<T *>(file_data);
+			return file_data;
 		}
 		
 		auto get_size() const
@@ -530,8 +528,9 @@ class locker
 		}
 	}
 	
+	template <typename data_t = unsigned char>
 	static auto xmap(std::string const & filename)
 	{
-		return memory_map_t(filename);
+		return memory_map_t<data_t>(filename);
 	}
 };
