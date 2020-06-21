@@ -15,7 +15,7 @@ int main()
 {
 	auto const filename = "test.txt";
 	std::ofstream(filename) << 0;
-	std::cout << "\"" << filename << "\" initialized with 0 and should be incremented to " << NUM_FORKS << std::endl;
+	std::cout << "\"" << filename << "\" initialized with 0 and should be incremented by " << NUM_FORKS << std::endl;
 	
 	int pid;
 	for(auto i : std::views::iota(0, NUM_FORKS))
@@ -41,7 +41,7 @@ int main()
 	
 	int data;
 	std::ifstream(filename) >> data;
-	std::cout << "\nPID " << getpid() << " read " << data << ", incremented it, and wrote ";
+	std::cout << "\nPID " << getpid() << " read " << data << ", wrote ";
 	++data;
 	std::ofstream(filename) << data << std::flush;
 	std::cout << data << std::flush;
