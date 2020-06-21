@@ -38,8 +38,8 @@ Finally, **a process will loose the lock if the lockfile is deleted**. So it may
 	locker::xappend("a.txt", my_data);                                       //exclusively appends data to a file (data type must be insertable to std::fstream)
 	locker::xappend("a.txt", "value", ':', 42);                              //exclusively appends multiple data to a file
 	
-	locker::memory_map_t my_map = locker::xmap("a.txt");                     //exclusively maps a file to memory and returns a structure with a pointer to an array of unsigned chars
-	locker::memory_map_t my_map = locker::xmap<true>("a.txt");               //same, but does not unlock the file at destruction (use this if the file was already lock before the call)
+	locker::memory_map_t my_map = locker::xmap("a.txt");                     //exclusively maps a file to memory and returns a structure similar to an array of unsigned chars
+	locker::memory_map_t my_map = locker::xmap<char>("a.txt");               //the type underlying the array can be chosen at instantiation via template argument
 	unsigned char my_var = my_map.at(N);                                     //gets the N-th byte as an unsigned char, throws if file is smaller than N bytes
 	unsigned char my_var = my_map[N];                                        //same, but does not check range
 	my_map.at(N) = M;                                                        //assigns the value M to the N-th byte, throws if file is smaller than N bytes
@@ -48,7 +48,6 @@ Finally, **a process will loose the lock if the lockfile is deleted**. So it may
 	std::size_t my_size = my_map.size();                                     //same as above, for STL compatibility
 	unsigned char * my_data = my_map.get_data();                             //gets a raw pointer to file's data, represented as an array of unsigned chars
 	unsigned char * my_data = my_map.data();                                 //same as above, for STL compatibility
-	unsigned char * my_data = my_map.get_data<char>();                       //the type underlying the raw pointer can be changed via template argument
 	my_map.flush();                                                          //flushes data to file (unnecessary, since OS handles it automatically)
 
 *Copyright 2020 Jean Diogo ([Jango](mailto:jeandiogo@gmail.com))*
