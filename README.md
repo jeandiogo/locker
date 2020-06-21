@@ -30,15 +30,15 @@ Finally, **a process will loose the lock if the lockfile is deleted**. So it may
 	locker::lock_guard_t my_lock = locker::lock_guard("a.lock");             //locks a file and automatically unlocks it before leaving current scope
 	locker::lock_guard_t my_lock = locker::lock_guard({"a.lock", "b.lock"}); //locks a list or a vector of files and automatically unlocks them before leaving current scope
 
-	std::string my_data = locker::xread("a.txt");                            //exclusively reads a file and returns its content as a string
+	std::string my_data = locker::xread("a.txt");                            //exclusively-reads a file and returns its content as a string
 
-	locker::xwrite("a.txt", my_data);                                        //exclusively writes formatted data to a file (data type must be insertable to std::fstream)
-	locker::xwrite("a.txt", "value", ':', 42);                               //exclusively writes multiple data to a file
+	locker::xwrite("a.txt", my_data);                                        //exclusively-writes formatted data to a file (data type must be insertable to std::fstream)
+	locker::xwrite("a.txt", "value", ':', 42);                               //exclusively-writes multiple data to a file
 
-	locker::xappend("a.txt", my_data);                                       //exclusively appends data to a file (data type must be insertable to std::fstream)
-	locker::xappend("a.txt", "value", ':', 42);                              //exclusively appends multiple data to a file
+	locker::xappend("a.txt", my_data);                                       //exclusively-appends data to a file (data type must be insertable to std::fstream)
+	locker::xappend("a.txt", "value", ':', 42);                              //exclusively-appends multiple data to a file
 
-	locker::memory_map_t my_map = locker::xmap("a.txt");                     //exclusively maps a file to memory and returns a structure similar to an array of unsigned chars
+	locker::memory_map_t my_map = locker::xmap("a.txt");                     //exclusively-maps a file to memory and returns a structure similar to an array of unsigned chars
 	locker::memory_map_t my_map = locker::xmap<char>("a.txt");               //the type underlying the array can be chosen at instantiation via template argument
 	unsigned char my_var = my_map.at(N);                                     //gets the N-th byte as an unsigned char, throws if file is smaller than or equal to N bytes
 	unsigned char my_var = my_map[N];                                        //same, but does not check range
