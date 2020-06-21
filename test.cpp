@@ -9,13 +9,16 @@
 #include <string>
 #include <thread>
 
+#define NUM_FORKS 10
+
 int main()
 {
 	auto const filename = "test.txt";
 	std::ofstream(filename) << 0;
+	std::cout << "initialized \"" << filename << "\" with 0\ntest should increment it to " << NUM_FORKS<< std::endl;
 	
 	int pid;
-	for(auto i : std::views::iota(1, 11))
+	for(auto i : std::views::iota(0, NUM_FORKS))
 	{
 		pid = fork();
 		if(pid < 0)
@@ -38,11 +41,17 @@ int main()
 	
 	int data;
 	std::ifstream(filename) >> data;
-	std::cout << "\nPID " << getpid() << ":\ndata read: " << data << "\nincrementing...";
-	std::ofstream(filename) << ++data;
-	std::cout << "\ndata written: " << data << std::endl;
+	std::cout << "\nPID " << getpid() << " read " << data << ", incremented it, and wrote ";
+	++data;
+	std::ofstream(filename) << data << std::flush;
+	std::cout << data << std::flush;
 	
 	std::this_thread::sleep_for(std::chrono::milliseconds(200));
+	
+	if(data == NUM_FORKS)
+	{
+		std::cout << "\nThe test was successful!" << std::endl;
+	}
 	
 	return EXIT_SUCCESS;
 }
