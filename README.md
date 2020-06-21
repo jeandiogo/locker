@@ -11,6 +11,7 @@ Be aware that **lock and unlock operations are independent from open and close o
 Finally, **a process will loose the lock if the lockfile is deleted**. So it may be a good practice to create separate (and hidden) lockfiles for each file you intend to use (e.g. to exclusively open "a.txt", lock the file ".lock.a.txt"). This will prevent you from losing the lock in case you need to erase and recreate the file without letting other processes get a lock to it. Do not forget to be consistent with the name of lockfiles throughout your programs.
 
 *When compiling with g++ use the flag "-std=c++2a" (available in GCC 7.0 or later).*
+
 *To run the test, enter "make" in the terminal.*
 
 ## Usage:
