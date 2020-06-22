@@ -32,7 +32,7 @@
 // Once a process has acquired the lock, neither its threads and future forks will be stopped by it, nor they will be able to mutually exclude each other by using the filelock.
 // Therefore, avoid forking a program while it has some file locked, and use ordinary mutexes to synchronize its inner threads.
 // Also, lock and unlock operations are independent from open and close operations.
-// So if you want to open a lockfile, you need to use file handlers like "fstream" and close the file before unlocking it.
+// So if you want to open a lockfile, you need to use file handlers like "fstream", and close the file before unlocking it.
 // To circumvent that, this library provides functions to perform exclusive read, write, append, and memory-map, which are all process-safe (although still not thread-safe) and will not interfere with your current locks.
 // It is still your responsability to handle race conditions among threads trying to open, read, or write files locked by their parent.
 // 
