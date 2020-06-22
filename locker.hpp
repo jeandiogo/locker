@@ -68,6 +68,10 @@
 // unsigned char * my_data = my_map.data();                                 //same as above, for STL compatibility
 // my_map.flush();                                                          //flushes data to file (unnecessary, since OS handles it automatically)
 // 
+// bool success = locker::is_locked("a.txt");                               //returns true if a file is currently locked, false otherwise
+// std::vector<std::string> my_locked = get_locked();                       //returns a vector with the filenames of all currently locked files
+// locker::clear();                                                         //unlocks all currently locked files (do not call this function if a lockfile is open)
+// 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #include <chrono>
@@ -364,16 +368,43 @@ class locker
 	
 	~locker()
 	{
+		clear();
+	}
+	
+	locker(locker const &) = delete;
+	locker(locker &&) = delete;
+	auto & operator=(locker) = delete;
+	
+	static void clear()
+	{
+		auto const guard = std::scoped_lock<std::mutex>(get_singleton().descriptors_mutex);
+		auto & descriptors = get_singleton().descriptors;
 		for(auto & descriptor : descriptors)
 		{
 			close(descriptor.second.second);
 		}
 		descriptors.clear();
 	}
-	
-	locker(locker const &) = delete;
-	locker(locker &&) = delete;
-	auto & operator=(locker) = delete;
+
+	static auto get_locked()
+	{
+		auto const guard = std::scoped_lock<std::mutex>(get_singleton().descriptors_mutex);
+		auto const & descriptors = get_singleton().descriptors;
+		std::vector<std::string> locked_files;
+		for(auto && descriptor : descriptors)
+		{
+			locked_files.emplace_back(descriptor.first);
+		}
+		return locked_files;
+	}
+
+	static bool is_locked(std::string const & raw_filename)
+	{
+		auto const guard = std::scoped_lock<std::mutex>(get_singleton().descriptors_mutex);
+		auto const & descriptors = get_singleton().descriptors;
+		auto const filename = get_filename(raw_filename);
+		return descriptors.contains(filename);
+	}
 	
 	static bool try_lock(std::string const & raw_filename)
 	{
@@ -402,6 +433,11 @@ class locker
 		descriptor = -1;
 		filename = "";
 		return true;
+	}
+	
+	static bool try_lock(std::initializer_list<std::string> && filenames)
+	{
+		return try_lock(std::vector<std::string>(std::forward<std::initializer_list<std::string>>(filenames)));
 	}
 	
 	static void lock(std::string const & raw_filename)
