@@ -9,7 +9,7 @@
 #include <string>
 #include <thread>
 
-#define NUM_FORKS 10
+#define NUM_FORKS 50
 
 int main()
 {
@@ -35,7 +35,7 @@ int main()
 		return EXIT_SUCCESS;
 	}
 	
-	std::this_thread::sleep_for(std::chrono::milliseconds(200));
+	std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 	
 	auto guard = locker::lock_guard(filename);
 	
@@ -45,8 +45,6 @@ int main()
 	++data;
 	std::ofstream(filename) << data << std::flush;
 	std::cout << data << std::flush;
-	
-	std::this_thread::sleep_for(std::chrono::milliseconds(200));
 	
 	if(data == NUM_FORKS)
 	{
