@@ -24,7 +24,7 @@
 // A process will loose the lock if the lockfile is deleted. For this reason, if a file to be unlocked does not exist, an exception will be throw to indicate that a lock may have been lost during the execution, at some point after the lock.
 // If you have manually locked a file, do not forget to unlock it. If for some reason you have locked a file twice, you have to unlock it twice too.
 // Therefore, always prefer using the lock guard, which will automatically unlock the file before leaving its scope of declaration.
-// The locker does provide process-safety, but not thread-safety. Once a process has acquired the lock, neither its threads and future forks will be stopped by it, nor they will be able to mutually exclude each other by using the filelock.
+// The locker provides process-safety, but not thread-safety. Once a process has acquired the lock, neither its threads and future forks will be stopped by it, nor they will be able to mutually exclude each other by using the filelock.
 // Therefore, avoid forking a program while it has some file locked, and use ordinary mutexes to synchronize its inner threads.
 // Also, lock and unlock operations are independent from open and close operations. So if you want to open a lockfile, you need to use file handlers like "fstream", and close the file before unlocking it.
 // To circumvent that, this library provides functions to perform exclusive read, write, append, and memory-map, which are all process-safe (although still not thread-safe) and will not interfere with your current locks.
