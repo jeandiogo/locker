@@ -68,7 +68,7 @@
 // unsigned char * my_data = my_map.data();                                 //same as above, for STL compatibility
 // my_map.flush();                                                          //flushes data to file (unnecessary, since OS handles it automatically)
 // 
-// bool success = locker::is_locked("a.txt");                               //returns true if a file is currently locked, false otherwise
+// bool success = locker::is_locked("a.txt");                               //returns true if a file is currently locked, false otherwise (throws if file does not exists)
 // std::vector<std::string> my_locked = get_locked();                       //returns a vector with the filenames of all currently locked files
 // locker::clear();                                                         //unlocks all currently locked files (do not call this function if a lockfile is open)
 // 
