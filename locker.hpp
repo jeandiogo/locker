@@ -190,7 +190,21 @@ class locker
 			return file_data[index];
 		}
 		
+		auto & operator[](std::size_t index) const
+		{
+			return file_data[index];
+		}
+		
 		auto & at(std::size_t index)
+		{
+			if(index >= file_size)
+			{
+				throw std::runtime_error("index " + std::to_string(index) + " is out of the range [0, " + std::to_string(file_size) + "[ of \"" + filename + "\"");
+			}
+			return file_data[index];
+		}
+		
+		auto & at(std::size_t index) const
 		{
 			if(index >= file_size)
 			{
