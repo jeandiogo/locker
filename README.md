@@ -50,4 +50,4 @@ Locker is a header-only C++20 class with static member functions to lock files i
 	std::vector<std::string> my_locked = get_locked();                       //returns a vector with the canonical filenames of all currently locked files
 	locker::clear();                                                         //unlocks all currently locked files (do not call this function if a lockfile is open)
 
-*Copyright 2020 Jean Diogo ([Jango](mailto:jeandiogo@gmail.com))*
+*Copyright (C) 2020 Jean Diogo ([Jango](mailto:jeandiogo@gmail.com))*
