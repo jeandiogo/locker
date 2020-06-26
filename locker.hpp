@@ -54,7 +54,7 @@
 // locker::xappend("a.txt", my_data);                                       //exclusively-appends data to a file (data type must be insertable to std::fstream)
 // locker::xappend("a.txt", "value", ':', 42);                              //exclusively-appends multiple data to a file
 // 
-// locker::memory_map_t my_map = locker::xmap("a.txt");                     //exclusively-maps a file to memory and returns a structure similar to an array of unsigned chars
+// locker::memory_map_t my_map = locker::xmap("a.txt");                     //exclusively-maps a file to memory and returns a container that behaves like an array of unsigned chars
 // locker::memory_map_t my_map = locker::xmap<char>("a.txt");               //the type underlying the array can be chosen at instantiation via template argument
 // unsigned char my_var = my_map.at(N);                                     //gets the N-th byte as an unsigned char, throws if file is smaller than or equal to N bytes
 // unsigned char my_var = my_map[N];                                        //same, but does not check range
@@ -62,12 +62,12 @@
 // my_map[N] = M;                                                           //same, but does not check range
 // std::size_t my_size = my_map.get_size();                                 //gets the size of the file
 // std::size_t my_size = my_map.size();                                     //same as above, for STL compatibility
-// unsigned char * my_data = my_map.get_data();                             //gets a raw pointer to file's data (whose type is designated at instantiation)
+// unsigned char * my_data = my_map.get_data();                             //gets a raw pointer to file's data (whose underlying type is designated at instantiation)
 // unsigned char * my_data = my_map.data();                                 //same as above, for STL compatibility
 // my_map.flush();                                                          //flushes data to file (unnecessary, since OS handles it automatically)
 // 
-// bool success = locker::is_locked("a.txt");                               //returns true if a file is currently locked, false otherwise (throws if file does not exists)
-// std::vector<std::string> my_locked = get_locked();                       //returns a vector with the canonical filenames of all currently locked files
+// bool success = locker::is_locked("a.txt");                               //returns true if file is currently locked, false otherwise (throws if file does not exists)
+// std::vector<std::string> my_locked = locker::get_locked();               //returns a vector with the canonical filenames of all currently locked files
 // locker::clear();                                                         //unlocks all currently locked files (do not call this function if a lockfile is open)
 // 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
