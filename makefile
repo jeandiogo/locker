@@ -2,10 +2,10 @@
 #
 BIN = test.out
 SRC = test.cpp #$(wildcard *.cpp)
-LIB = -lcurl -lssl -lcrypto -lfcgi
+LIB = #
 OPT = -std=c++2a -O3 -march=native -pthread -fopenmp -fopenacc -pipe #-fwhole-program
 ERR = -Wall -Wextra -pedantic -Werror -pedantic-errors -Wfatal-errors -Wno-unused
-WRN = -Wnull-dereference -Wsign-conversion -Wconversion -Wshadow -Wcast-align -Wuseless-cast
+WRN = -Wnull-dereference -Wsign-conversion -Wconversion -Wshadow -Wcast-align #-Wuseless-cast
 FLG = $(OPT) $(LIB) $(ERR) $(WRN)
 #
 .PHONY: all
