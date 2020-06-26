@@ -28,7 +28,7 @@
 // To circumvent that this library provides functions to perform exclusive read, write, append and memory-map, which are all process-safe (although still not thread-safe) and will not interfere with your current locks.
 // It is still your responsability to handle race conditions among threads trying to open, read and write to files locked by their parent.
 // 
-// (When compiling with g++ use the flag "-std=c++2a", available in GCC 7.0 or later.)
+// (When compiling with g++ use the flag "-std=c++2a" available in GCC 7.0 or later.)
 // 
 // [Usage]
 // 
