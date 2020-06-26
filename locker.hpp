@@ -18,7 +18,7 @@
 // 
 // [Notice]
 // 
-// The locking policy is guaranteed only among programs using this library. Thus, locking a file does not prevent other processes from opening it, but it ensures that only one program will get the lock at a time.
+// The locking policy is guaranteed only among programs using this library. Thus, locking a file does not prevent other processes from opening it, but it ensures that only one at a time program will get the lock.
 // All locking and unlocking functions accept a single filename, a list of filenames, or a vector of filenames. If the file to be locked does not exist, it will be created.
 // An exception will be throw if an empty filename is given, if a directory name is given, or if the program does not have permission to read and write the file and its directory.
 // A process will loose the lock if the lockfile is deleted. For this reason, if a file to be unlocked does not exist, an exception will be throw to indicate that a lock may have been lost during the execution, at some point after the lock.
