@@ -15,16 +15,16 @@ Locker is a header-only C++20 class with static member functions to lock files i
 	#include "locker.hpp"
 	
 	bool success = locker::try_lock("a.lock");                               //tries to lock a file once, returns immediately
-	bool success = locker::try_lock({"a.lock", "b.lock"});                   //tries to lock a list or a vector of files once, returns immediately
+	bool success = locker::try_lock({"a.lock", "b.lock"});                   //tries to lock a initializer list or a vector of files once, returns immediately
 
 	locker::lock("a.lock");                                                  //keeps trying to lock a file, only returns when file is locked
-	locker::lock({"a.lock", "b.lock"});                                      //keeps trying to lock a list or a vector of files, only returns when all files are locked
+	locker::lock({"a.lock", "b.lock"});                                      //keeps trying to lock a initializer list or a vector of files, only returns when all files are locked
 
 	locker::unlock("a.lock");                                                //unlocks a file if it is locked
-	locker::unlock({"a.lock", "b.lock"});                                    //unlocks a list or a vector of files (in reverse order) if they are locked
+	locker::unlock({"a.lock", "b.lock"});                                    //unlocks a initializer list or a vector of files (in reverse order) if they are locked
 
 	locker::lock_guard_t my_lock = locker::lock_guard("a.lock");             //locks a file and automatically unlocks it before leaving current scope
-	locker::lock_guard_t my_lock = locker::lock_guard({"a.lock", "b.lock"}); //locks a list or a vector of files and automatically unlocks them before leaving current scope
+	locker::lock_guard_t my_lock = locker::lock_guard({"a.lock", "b.lock"}); //locks a initializer list or a vector of files and automatically unlocks them before leaving current scope
 
 	std::string my_data = locker::xread("a.txt");                            //exclusively-reads a file and returns its content as a string
 
