@@ -17,5 +17,4 @@ all:
 	@sudo rm -f *~ *.o
 	@sudo chown `whoami`:`whoami` $(BIN)
 	@sudo chmod u=rwX,go=rX $(BIN)
-	@time -f "[ %es ]" ./$(BIN)
 #
