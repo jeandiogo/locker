@@ -8,7 +8,7 @@ ERR = -Wall -Wextra -pedantic -Werror -pedantic-errors -Wfatal-errors -Wno-unuse
 WRN = -Wnull-dereference -Wsign-conversion -Wconversion -Wshadow -Wcast-align #-Wuseless-cast
 FLG = $(OPT) $(LIB) $(ERR) $(WRN)
 #
-.PHONY: all
+.PHONY: all test
 #
 all:
 	@clear
@@ -17,4 +17,7 @@ all:
 	@sudo rm -f *~ *.o
 	@sudo chown `whoami`:`whoami` $(BIN)
 	@sudo chmod u=rwX,go=rX $(BIN)
+#
+test: all
+	@time -f "[ %es ]" ./$(BIN)
 #
