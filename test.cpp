@@ -1,6 +1,7 @@
 #include "locker.hpp"
 
 #include <sys/types.h>
+#include <sys/wait.h>
 #include <unistd.h>
 
 #include <chrono>
@@ -32,6 +33,10 @@ int main()
 	}
 	if(pid > 0)
 	{
+		int status;
+		while((pid= waitpid(-1, &status, 0)) != -1)
+		{
+		}
 		return EXIT_SUCCESS;
 	}
 	
@@ -41,14 +46,14 @@ int main()
 	
 	int data;
 	std::ifstream(filename) >> data;
-	std::cout << "\nPID " << getpid() << " read " << data << ", wrote ";
+	std::cout << "PID " << getpid() << " read " << data << ", wrote ";
 	++data;
 	std::ofstream(filename) << data << std::flush;
-	std::cout << data << std::flush;
+	std::cout << data << std::endl;
 	
 	if(data == NUM_FORKS)
 	{
-		std::cout << "\nThe test was successful!" << std::endl;
+		std::cout << "The test was successful!" << std::endl;
 	}
 	
 	return EXIT_SUCCESS;
