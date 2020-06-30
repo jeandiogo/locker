@@ -8,7 +8,7 @@ Locker is a header-only C++20 class with static member functions to lock files i
 
 *When compiling with g++ use the flag "-std=c++2a" (available in GCC 7.0 or later).*
 
-*To run the test, enter "make && ./test.out" in the terminal.*
+*To run the test, enter "make test" in the terminal.*
 
 ## Usage:
 
