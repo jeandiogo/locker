@@ -34,7 +34,7 @@ int main()
 	if(pid > 0)
 	{
 		int status;
-		while((pid= waitpid(-1, &status, 0)) != -1)
+		while((pid = wait(&status)) > 0)
 		{
 		}
 		return EXIT_SUCCESS;
