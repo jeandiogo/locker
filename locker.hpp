@@ -100,35 +100,35 @@ class locker
 	class [[nodiscard]] lock_guard_t
 	{
 		std::vector<std::string> filenames;
-
+		
 		public:
-
+		
 		lock_guard_t(lock_guard_t const &) = delete;
 		lock_guard_t(lock_guard_t &&) = delete;
 		auto & operator=(lock_guard_t) = delete;
 		auto operator&() = delete;
-
+		
 		explicit lock_guard_t(std::vector<std::string> && fs) : filenames(std::forward<std::vector<std::string>>(fs))
 		{
 			lock(filenames);
 		}
-
+		
 		explicit lock_guard_t(std::initializer_list<std::string> && fs) : filenames(std::forward<std::initializer_list<std::string>>(fs))
 		{
 			lock(filenames);
 		}
-
+		
 		explicit lock_guard_t(std::string const & f) : filenames({f})
 		{
 			lock(filenames);
 		}
-
+		
 		~lock_guard_t()
 		{
 			unlock(filenames);
 		}
 	};
-
+	
 	template <typename data_t>
 	class [[nodiscard]] memory_map_t
 	{
@@ -136,17 +136,18 @@ class locker
 		int file_descriptor;
 		std::size_t file_size;
 		data_t * file_data;
-
+		
 		public:
-
+		
 		memory_map_t(memory_map_t &) = delete;
 		memory_map_t(memory_map_t &&) = delete;
 		auto & operator=(memory_map_t) = delete;
 		auto operator&() = delete;
-
-		explicit memory_map_t(std::string const & raw_filename) : filename(""), file_descriptor(-1), file_size(0), file_data(nullptr)
+		
+		explicit memory_map_t(std::string const & f)
 		{
-			lock(raw_filename, filename, file_descriptor);
+			lock(filename);
+			file_descriptor = get_descriptor(filename);
 			try
 			{
 				struct stat file_status;
@@ -164,35 +165,27 @@ class locker
 			catch(...)
 			{
 				unlock(filename);
-				file_data = nullptr;
-				file_size = 0;
-				file_descriptor = -1;
-				filename = "";
 				throw;
 			}
 		}
-
+		
 		~memory_map_t()
 		{
 			msync(file_data, file_size, MS_SYNC);
 			munmap(file_data, file_size);
 			unlock(filename);
-			file_data = nullptr;
-			file_size = 0;
-			file_descriptor = -1;
-			filename = "";
 		}
-
+		
 		auto & operator[](std::size_t index)
 		{
 			return file_data[index];
 		}
-
+		
 		auto & operator[](std::size_t index) const
 		{
 			return file_data[index];
 		}
-
+		
 		auto & at(std::size_t index)
 		{
 			if(index >= file_size)
@@ -201,7 +194,7 @@ class locker
 			}
 			return file_data[index];
 		}
-
+		
 		auto & at(std::size_t index) const
 		{
 			if(index >= file_size)
@@ -210,27 +203,27 @@ class locker
 			}
 			return file_data[index];
 		}
-
+		
 		auto get_data() const
 		{
 			return file_data;
 		}
-
+		
 		auto data() const
 		{
 			return file_data;
 		}
-
+		
 		auto get_size() const
 		{
 			return file_size;
 		}
-
+		
 		auto size() const
 		{
 			return file_size;
 		}
-
+		
 		auto flush()
 		{
 			if(msync(file_data, file_size, MS_SYNC) < 0)
@@ -240,23 +233,86 @@ class locker
 			return true;
 		}
 	};
-
+	
 	std::mutex descriptors_mutex;
 	std::map<std::string, std::pair<int, int>> descriptors;
-
+	
 	static auto & get_singleton()
 	{
 		static auto singleton = locker();
 		return singleton;
 	}
-
+	
+	static int get_descriptor(std::string const & raw_filename)
+	{
+		auto const guard = std::scoped_lock<std::mutex>(get_singleton().descriptors_mutex);
+		auto & descriptors = get_singleton().descriptors;
+		if(std::filesystem::exists(raw_filename))
+		{
+			auto filename = std::filesystem::canonical(raw_filename);
+			if(descriptors.contains(filename))
+			{
+				return descriptors.at(filename).second;
+			}
+		}
+		return -1;
+	}
+	
+	locker() = default;
+	
+	public:
+	
+	~locker()
+	{
+		clear();
+	}
+	
+	locker(locker const &) = delete;
+	locker(locker &&) = delete;
+	auto & operator=(locker) = delete;
+	
+	static void clear()
+	{
+		auto const guard = std::scoped_lock<std::mutex>(get_singleton().descriptors_mutex);
+		auto & descriptors = get_singleton().descriptors;
+		for(auto & descriptor : descriptors)
+		{
+			close(descriptor.second.second);
+		}
+		descriptors.clear();
+	}
+	
+	static auto get_locked()
+	{
+		auto const guard = std::scoped_lock<std::mutex>(get_singleton().descriptors_mutex);
+		auto const & descriptors = get_singleton().descriptors;
+		std::vector<std::string> locked_files;
+		for(auto && descriptor : descriptors)
+		{
+			locked_files.emplace_back(descriptor.first);
+		}
+		return locked_files;
+	}
+	
+	static bool is_locked(std::string const & raw_filename)
+	{
+		auto const guard = std::scoped_lock<std::mutex>(get_singleton().descriptors_mutex);
+		auto const & descriptors = get_singleton().descriptors;
+		if(std::filesystem::exists(raw_filename))
+		{
+			auto filename = std::filesystem::canonical(raw_filename);
+			return descriptors.contains(filename);
+		}
+		return false;
+	}
+	
 	template <bool should_block = false>
-	static bool try_lock(std::string const & raw_filename, std::string & filename, int & descriptor)
+	static bool try_lock(std::string const & raw_filename)
 	{
 		auto const guard = std::scoped_lock<std::mutex>(get_singleton().descriptors_mutex);
 		auto & descriptors = get_singleton().descriptors;
 		mode_t mask = umask(0);
-		descriptor = open(raw_filename.c_str(), O_RDWR | O_CREAT, 0666);
+		int descriptor = open(raw_filename.c_str(), O_RDWR | O_CREAT, 0666);
 		umask(mask);
 		if(descriptor < 0)
 		{
@@ -264,7 +320,7 @@ class locker
 		}
 		try
 		{
-			filename = std::filesystem::canonical(raw_filename);
+			std::string filename = std::filesystem::canonical(raw_filename);
 			if(descriptors.contains(filename))
 			{
 				descriptors.at(filename).first += 1;
@@ -290,67 +346,7 @@ class locker
 			throw;
 		}
 	}
-
-	static void lock(std::string const & raw_filename, std::string & filename, int & descriptor)
-	{
-		try_lock<true>(raw_filename, filename, descriptor);
-	}
-
-	locker() = default;
-
-	public:
-
-	~locker()
-	{
-		clear();
-	}
-
-	locker(locker const &) = delete;
-	locker(locker &&) = delete;
-	auto & operator=(locker) = delete;
-
-	static void clear()
-	{
-		auto const guard = std::scoped_lock<std::mutex>(get_singleton().descriptors_mutex);
-		auto & descriptors = get_singleton().descriptors;
-		for(auto & descriptor : descriptors)
-		{
-			close(descriptor.second.second);
-		}
-		descriptors.clear();
-	}
-
-	static auto get_locked()
-	{
-		auto const guard = std::scoped_lock<std::mutex>(get_singleton().descriptors_mutex);
-		auto const & descriptors = get_singleton().descriptors;
-		std::vector<std::string> locked_files;
-		for(auto && descriptor : descriptors)
-		{
-			locked_files.emplace_back(descriptor.first);
-		}
-		return locked_files;
-	}
-
-	static bool is_locked(std::string const & raw_filename)
-	{
-		auto const guard = std::scoped_lock<std::mutex>(get_singleton().descriptors_mutex);
-		auto const & descriptors = get_singleton().descriptors;
-		if(std::filesystem::exists(raw_filename))
-		{
-			auto filename = std::filesystem::canonical(raw_filename);
-			return descriptors.contains(filename);
-		}
-		return false;
-	}
-
-	static bool try_lock(std::string const & raw_filename)
-	{
-		static std::string filename;
-		static int descriptor;
-		return try_lock(raw_filename, filename, descriptor);
-	}
-
+	
 	static bool try_lock(std::vector<std::string> const & filenames)
 	{
 		for(std::size_t i = 0; i < filenames.size(); ++i)
@@ -366,32 +362,33 @@ class locker
 		}
 		return true;
 	}
-
+	
 	static bool try_lock(std::initializer_list<std::string> && filenames)
 	{
 		return try_lock(std::vector<std::string>(std::forward<std::initializer_list<std::string>>(filenames)));
 	}
-
-	static void lock(std::string const & raw_filename)
+	
+	static void lock(std::string const & filename)
 	{
-		std::string filename;
-		int descriptor;
-		lock(raw_filename, filename, descriptor);
+		try_lock<true>(filename);
 	}
-
+	
 	static void lock(std::vector<std::string> const & filenames)
 	{
-		for(auto it = filenames.begin(); it != filenames.end(); ++it)
+		for(auto filename : filenames)
 		{
-			lock(*it);
+			try_lock<true>(filename);
 		}
 	}
-
-	static void lock(std::initializer_list<std::string> && filenames)
+	
+	static void lock(std::initializer_list<std::string> filenames)
 	{
-		lock(std::vector<std::string>(std::forward<std::initializer_list<std::string>>(filenames)));
+		for(auto filename : filenames)
+		{
+			try_lock<true>(filename);
+		}
 	}
-
+	
 	static void unlock(std::string const & raw_filename)
 	{
 		auto const guard = std::scoped_lock<std::mutex>(get_singleton().descriptors_mutex);
@@ -417,7 +414,7 @@ class locker
 			}
 		}
 	}
-
+	
 	static void unlock(std::vector<std::string> const & filenames)
 	{
 		auto const guard = std::scoped_lock<std::mutex>(get_singleton().descriptors_mutex);
@@ -449,27 +446,27 @@ class locker
 			}
 		}
 	}
-
+	
 	static void unlock(std::initializer_list<std::string> && filenames)
 	{
 		unlock(std::vector<std::string>(std::forward<std::initializer_list<std::string>>(filenames)));
 	}
-
+	
 	static auto lock_guard(std::string const & filename)
 	{
 		return lock_guard_t(filename);
 	}
-
+	
 	static auto lock_guard(std::vector<std::string> && filenames)
 	{
 		return lock_guard_t(std::forward<std::vector<std::string>>(filenames));
 	}
-
+	
 	static auto lock_guard(std::initializer_list<std::string> && filenames)
 	{
 		return lock_guard_t(std::forward<std::initializer_list<std::string>>(filenames));
 	}
-
+	
 	static auto xread(std::string const & filename)
 	{
 		lock(filename);
@@ -496,7 +493,7 @@ class locker
 			throw;
 		}
 	}
-
+	
 	template <typename ... TS>
 	static auto xwrite(std::string const & filename, TS && ... data)
 	{
@@ -517,7 +514,7 @@ class locker
 			throw;
 		}
 	}
-
+	
 	template <typename ... TS>
 	static auto xappend(std::string const & filename, TS && ... data)
 	{
@@ -538,7 +535,7 @@ class locker
 			throw;
 		}
 	}
-
+	
 	template <typename data_t = unsigned char>
 	static auto xmap(std::string const & filename)
 	{
