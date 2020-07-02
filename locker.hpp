@@ -19,7 +19,7 @@
 // [Notice]
 // 
 // The locking policy is guaranteed only among programs using this library. Thus, locking a file does not prevent other processes from opening it, but it ensures that only one program at a time will get the lock.
-// All locking and unlocking functions accept a single filename, a list of filenames or a vector of filenames. If the file to be locked does not exist it will be created.
+// All locking and unlocking functions accept a single filename, multiple filenames, a list of filenames or a vector of filenames. If the file to be locked does not exist it will be created.
 // An exception will be throw if an empty filename is given, if a directory name is given or if the program does not have permission to read and write to the file or to the directory the file is in.
 // A process will loose the lock if the lockfile is deleted. For this reason, if a file is not found when the unlock function is called, an exception will be throw to indicate that a lock may have been lost during the execution at some point after the lock.
 // If you have manually locked a file, do not forget to unlock it. The lockings are reentrant, so if for some reason you have locked a file twice, you have to unlock it twice too. Therefore, always prefer using the lock guard, which will automatically unlock the file before leaving its scope of declaration.
@@ -35,15 +35,19 @@
 // #include "locker.hpp"
 // 
 // bool success = locker::try_lock("a.lock");                               //tries to lock a file once, returns immediately
+// bool success = locker::try_lock("a.lock", "b.lock");                     //tries to lock multiple files once, returns immediately
 // bool success = locker::try_lock({"a.lock", "b.lock"});                   //tries to lock a initializer list or a vector of files once, returns immediately
 // 
 // locker::lock("a.lock");                                                  //keeps trying to lock a file, only returns when file is locked
+// locker::lock("a.lock", "b.lock");                                        //keeps trying to lock multiple files, only returns when all file are locked
 // locker::lock({"a.lock", "b.lock"});                                      //keeps trying to lock a initializer list or a vector of files, only returns when all files are locked
 // 
 // locker::unlock("a.lock");                                                //unlocks a file if it is locked
+// locker::unlock("a.lock", "b.lock");                                      //unlocks a multiple files (in reverse order) if they are locked
 // locker::unlock({"a.lock", "b.lock"});                                    //unlocks a initializer list or a vector of files (in reverse order) if they are locked
 // 
 // locker::lock_guard_t my_lock = locker::lock_guard("a.lock");             //locks a file and automatically unlocks it before leaving current scope
+// locker::lock_guard_t my_lock = locker::lock_guard("a.lock", "b.lock");   //locks multiple files and automatically unlocks them before leaving current scope
 // locker::lock_guard_t my_lock = locker::lock_guard({"a.lock", "b.lock"}); //locks a initializer list or a vector of files and automatically unlocks them before leaving current scope
 // 
 // std::string my_data = locker::xread("a.txt");                            //exclusively-reads a file and returns its content as a string
@@ -119,6 +123,12 @@ class locker
 		}
 		
 		explicit lock_guard_t(std::string const & f) : filenames({f})
+		{
+			lock(filenames);
+		}
+		
+		template <typename ... TS>
+		explicit lock_guard_t(TS && ... f) : filenames({std::forward<TS>(f) ...})
 		{
 			lock(filenames);
 		}
@@ -363,9 +373,19 @@ class locker
 		return true;
 	}
 	
-	static bool try_lock(std::initializer_list<std::string> && filenames)
+	static bool try_lock(std::initializer_list<std::string> && fs)
 	{
-		return try_lock(std::vector<std::string>(std::forward<std::initializer_list<std::string>>(filenames)));
+		auto const filenames = std::vector<std::string>(std::forward<std::initializer_list<std::string>>(fs));
+		return try_lock(filenames);
+	}
+	
+	template <typename ... TS>
+	static bool try_lock(std::string const & filename, TS && ... fs)
+	{
+		auto filenames = std::vector<std::string>({filename});
+		filenames.reserve(sizeof...(fs));
+		filenames.emplace_back(std::forward<TS>(fs) ...);
+		return try_lock(filenames);
 	}
 	
 	static void lock(std::string const & filename)
@@ -375,7 +395,7 @@ class locker
 	
 	static void lock(std::vector<std::string> const & filenames)
 	{
-		for(auto filename : filenames)
+		for(auto const & filename : filenames)
 		{
 			try_lock<true>(filename);
 		}
@@ -383,36 +403,17 @@ class locker
 	
 	static void lock(std::initializer_list<std::string> filenames)
 	{
-		for(auto filename : filenames)
+		for(auto const & filename : filenames)
 		{
 			try_lock<true>(filename);
 		}
 	}
 	
-	static void unlock(std::string const & raw_filename)
+	template <typename ... TS>
+	static void lock(std::string const & filename, TS && ... filenames)
 	{
-		auto const guard = std::scoped_lock<std::mutex>(get_singleton().descriptors_mutex);
-		auto & descriptors = get_singleton().descriptors;
-		if(!std::filesystem::exists(raw_filename))
-		{
-			throw std::runtime_error("lockfile \"" + raw_filename + "\" does not exist");
-		}
-		auto const filename = std::filesystem::canonical(raw_filename);
-		if(descriptors.contains(filename))
-		{
-			auto & descriptor = descriptors.at(filename);
-			if(descriptor.first > 0)
-			{
-				--descriptor.first;
-			}
-			else
-			{
-				if((fsync(descriptor.second) < 0) or (close(descriptor.second) < 0) or !descriptors.erase(filename))
-				{
-					throw std::runtime_error("could not unlock file \"" + raw_filename + "\"");
-				}
-			}
-		}
+		lock(filename);
+		lock(std::forward<TS>(filenames) ...);
 	}
 	
 	static void unlock(std::vector<std::string> const & filenames)
@@ -447,24 +448,23 @@ class locker
 		}
 	}
 	
-	static void unlock(std::initializer_list<std::string> && filenames)
+	static void unlock(std::initializer_list<std::string> && fs)
 	{
-		unlock(std::vector<std::string>(std::forward<std::initializer_list<std::string>>(filenames)));
+		auto const filenames = std::vector<std::string>(std::forward<std::initializer_list<std::string>>(fs));
+		unlock(filenames);
 	}
 	
-	static auto lock_guard(std::string const & filename)
+	template <typename ... TS>
+	static void unlock(TS && ... fs)
 	{
-		return lock_guard_t(filename);
+		auto const filenames = std::vector<std::string>({std::forward<TS>(fs) ...});
+		unlock(filenames);
 	}
 	
-	static auto lock_guard(std::vector<std::string> && filenames)
+	template <typename ... TS>
+	static auto lock_guard(TS && ... filenames)
 	{
-		return lock_guard_t(std::forward<std::vector<std::string>>(filenames));
-	}
-	
-	static auto lock_guard(std::initializer_list<std::string> && filenames)
-	{
-		return lock_guard_t(std::forward<std::initializer_list<std::string>>(filenames));
+		return lock_guard_t(std::forward<TS>(filenames) ...);
 	}
 	
 	static auto xread(std::string const & filename)
