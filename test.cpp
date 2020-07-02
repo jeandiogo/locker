@@ -40,9 +40,9 @@ int main()
 		return EXIT_SUCCESS;
 	}
 	
-	std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+	std::this_thread::sleep_for(std::chrono::milliseconds(50));
 	
-	auto guard = locker::lock_guard(filename);
+	auto guard = use::locker::lock_guard(filename);
 	
 	int data;
 	std::ifstream(filename) >> data;
@@ -55,6 +55,8 @@ int main()
 	{
 		std::cout << "The test was successful!" << std::endl;
 	}
+	
+	std::this_thread::sleep_for(std::chrono::milliseconds(100));
 	
 	return EXIT_SUCCESS;
 }
