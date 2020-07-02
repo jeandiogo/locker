@@ -250,7 +250,7 @@ class locker
 	static int get_descriptor(std::string const & raw_filename)
 	{
 		auto const guard = std::scoped_lock<std::mutex>(get_singleton().descriptors_mutex);
-		auto & descriptors = get_singleton().descriptors;
+		auto const & descriptors = get_singleton().descriptors;
 		if(std::filesystem::exists(raw_filename))
 		{
 			auto filename = std::filesystem::canonical(raw_filename);
