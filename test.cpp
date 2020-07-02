@@ -42,7 +42,7 @@ int main()
 	
 	std::this_thread::sleep_for(std::chrono::milliseconds(50));
 	
-	auto guard = use::locker::lock_guard(filename);
+	auto guard = locker::lock_guard(filename);
 	
 	int data;
 	std::ifstream(filename) >> data;
