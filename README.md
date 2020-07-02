@@ -2,7 +2,7 @@
 
 Locker is a single header C++20 class with static member functions to lock files on Linux systems, so they can be accessed exclusively or used as (slow) inter-process mutexes.
 
-**The locking policy is guaranteed only among programs using this library.** Thus, locking a file does not prevent other processes from opening it, but it ensures that only one program at a time will get the lock. All locking and unlocking functions accept a single filename, a list of filenames or a vector of filenames. If the file to be locked does not exist it will be created. An exception will be throw if an empty filename is given, if a directory name is given or if the program does not have permission to read and write to the file or to the directory the file is in. A process will loose the lock if the lockfile is deleted. For this reason, if a file is not found when the unlock function is called, an exception will be throw to indicate that a lock may have been lost during the execution at some point after the lock. If you have manually locked a file, do not forget to unlock it. The lockings are reentrant, so if for some reason you have locked a file twice, you have to unlock it twice too. Therefore, always prefer using the lock guard, which will automatically unlock the file before leaving its scope of declaration.
+**The locking policy is guaranteed only among programs using this library.** Thus, locking a file does not prevent other processes from opening it, but it ensures that only one program at a time will get the lock. All locking and unlocking functions accept a single filename, multiple filenames, a list of filenames or a vector of filenames. If the file to be locked does not exist it will be created. An exception will be throw if an empty filename is given, if a directory name is given or if the program does not have permission to read and write to the file or to the directory the file is in. A process will loose the lock if the lockfile is deleted. For this reason, if a file is not found when the unlock function is called, an exception will be throw to indicate that a lock may have been lost during the execution at some point after the lock. If you have manually locked a file, do not forget to unlock it. The lockings are reentrant, so if for some reason you have locked a file twice, you have to unlock it twice too. Therefore, always prefer using the lock guard, which will automatically unlock the file before leaving its scope of declaration.
 
 **The locker provides process-safety, but not thread-safety.** Once a process has acquired the lock, neither its threads and future forks will be stopped by it nor they will be able to mutually exclude each other by using the filelock. Therefore, avoid forking a program while it has some file locked and use ordinary mutexes to synchronize its inner threads. Also, lock and unlock operations are independent from open and close operations. If you want to open a lockfile you need to use file handlers like "fstream" and close the file before unlocking it. To circumvent that this library provides functions to perform exclusive read, write, append and memory-map, which are all process-safe (although still not thread-safe) and will not interfere with your current locks. It is still your responsability to handle race conditions among threads trying to open, read and write to files locked by their parent.
 
@@ -15,15 +15,19 @@ Locker is a single header C++20 class with static member functions to lock files
 	#include "locker.hpp"
 	
 	bool success = locker::try_lock("a.lock");                               //tries to lock a file once, returns immediately
+	bool success = locker::try_lock("a.lock", "b.lock");                     //tries to lock multiple files once, returns immediately
 	bool success = locker::try_lock({"a.lock", "b.lock"});                   //tries to lock a initializer list or a vector of files once, returns immediately
 
 	locker::lock("a.lock");                                                  //keeps trying to lock a file, only returns when file is locked
+	locker::lock("a.lock", "b.lock");                                        //keeps trying to lock multiple files, only returns when all file are locked
 	locker::lock({"a.lock", "b.lock"});                                      //keeps trying to lock a initializer list or a vector of files, only returns when all files are locked
 
 	locker::unlock("a.lock");                                                //unlocks a file if it is locked
+	locker::unlock("a.lock", "b.lock");                                      //unlocks a multiple files (in reverse order) if they are locked
 	locker::unlock({"a.lock", "b.lock"});                                    //unlocks a initializer list or a vector of files (in reverse order) if they are locked
 
 	locker::lock_guard_t my_lock = locker::lock_guard("a.lock");             //locks a file and automatically unlocks it before leaving current scope
+	locker::lock_guard_t my_lock = locker::lock_guard("a.lock", "b.lock");   //locks multiple files and automatically unlocks them before leaving current scope
 	locker::lock_guard_t my_lock = locker::lock_guard({"a.lock", "b.lock"}); //locks a initializer list or a vector of files and automatically unlocks them before leaving current scope
 
 	std::string my_data = locker::xread("a.txt");                            //exclusively-reads a file and returns its content as a string
@@ -44,7 +48,7 @@ Locker is a single header C++20 class with static member functions to lock files
 	std::size_t my_size = my_map.size();                                     //same as above, for STL compatibility
 	unsigned char * my_data = my_map.get_data();                             //gets a raw pointer to file's data (whose underlying type is designated at instantiation)
 	unsigned char * my_data = my_map.data();                                 //same as above, for STL compatibility
-	my_map.flush();                                                          //flushes data to file (unnecessary, since OS handles it automatically)
+	my_map.flush();                                                          //flushes data to file (unnecessary, since current process will be the only one accessing the file)
 
 	bool success = locker::is_locked("a.txt");                               //returns true if file is currently locked, false otherwise (throws if file does not exists)
 	std::vector<std::string> my_locked = locker::get_locked();               //returns a vector with the canonical filenames of all currently locked files
