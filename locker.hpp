@@ -253,7 +253,7 @@ class locker
 	}
 	
 	template <bool should_block = false>
-	static int unsafe_try_lock(std::string const & raw_filename)
+	static inline int unsafe_try_lock(std::string const & raw_filename)
 	{
 		mode_t mask = umask(0);
 		int descriptor = open(raw_filename.c_str(), O_RDWR | O_CREAT, 0666);
@@ -287,7 +287,7 @@ class locker
 					return -1;
 				}
 			}
-			descriptors.emplace(filename, std::make_pair(0, descriptor));
+			descriptors.emplace(filename, std::make_pair(1, descriptor));
 			return descriptor;
 		}
 		catch(...)
@@ -298,43 +298,35 @@ class locker
 	}
 	
 	template <bool should_block = false>
-	static bool unsafe_try_lock(std::vector<std::string> const & filenames)
+	static inline bool unsafe_try_lock(std::vector<std::string> const & filenames)
 	{
 		for(std::size_t i = 0; i < filenames.size(); ++i)
 		{
-			auto success = false;
 			try
 			{
-				success = (unsafe_try_lock<should_block>(filenames[i]) >= 0);
+				if(unsafe_try_lock<should_block>(filenames[i]) < 0)
+				{
+					unsafe_unlock(std::vector<std::string>(filenames.begin(), std::next(filenames.begin(), static_cast<long>(i))));
+					return false;
+				}
 			}
 			catch(...)
 			{
 				unsafe_unlock(std::vector<std::string>(filenames.begin(), std::next(filenames.begin(), static_cast<long>(i))));
 				throw;
 			}
-			if(!success)
-			{
-				unsafe_unlock(std::vector<std::string>(filenames.begin(), std::next(filenames.begin(), static_cast<long>(i))));
-				return false;
-			}
 		}
 		return true;
 	}
 	
-	static void unsafe_unlock(std::vector<std::string> const & filenames)
+	static inline void unsafe_unlock(std::vector<std::string> const & filenames)
 	{
-		std::string missing = "";
 		for(auto const & filename : filenames)
 		{
 			if(!std::filesystem::exists(filename))
 			{
-				missing += " \"" + filename + "\",";
+				throw std::runtime_error("could not find lockfile " + filename);
 			}
-		}
-		if(missing.size())
-		{
-			missing.pop_back();
-			throw std::runtime_error("could not find lockfile(s)" + missing);
 		}
 		for(auto it = filenames.rbegin(); it != filenames.rend(); ++it)
 		{
@@ -343,16 +335,9 @@ class locker
 			if(descriptors.contains(filename))
 			{
 				auto & descriptor = descriptors.at(filename);
-				if(descriptor.first > 0)
+				if((--descriptor.first == 0) and ((fsync(descriptor.second) < 0) or (close(descriptor.second) < 0) or !descriptors.erase(filename)))
 				{
-					--descriptor.first;
-				}
-				else
-				{
-					if((fsync(descriptor.second) < 0) or (close(descriptor.second) < 0) or !descriptors.erase(filename))
-					{
-						throw std::runtime_error("could not unlock files \"" + filenames.front() + "\" to \"" + *it + "\"");
-					}
+					throw std::runtime_error("could not unlock files \"" + filenames.front() + "\" to \"" + *it + "\"");
 				}
 			}
 		}
@@ -413,16 +398,14 @@ class locker
 	template <typename ... TS>
 	static bool try_lock(std::string const & filename, TS && ... fs)
 	{
-		auto const filenames = std::vector<std::string>({filename, std::forward<TS>(fs) ...});
 		auto const guard = std::scoped_lock<std::mutex>(get_singleton().descriptors_mutex);
-		return unsafe_try_lock(filenames);
+		return unsafe_try_lock(std::vector<std::string>({filename, std::forward<TS>(fs) ...}));
 	}
 	
 	static bool try_lock(std::initializer_list<std::string> && fs)
 	{
-		auto const filenames = std::vector<std::string>(std::forward<std::initializer_list<std::string>>(fs));
 		auto const guard = std::scoped_lock<std::mutex>(get_singleton().descriptors_mutex);
-		return unsafe_try_lock(filenames);
+		return unsafe_try_lock(std::vector<std::string>(std::forward<std::initializer_list<std::string>>(fs)));
 	}
 	
 	static bool try_lock(std::vector<std::string> const & filenames)
@@ -440,16 +423,14 @@ class locker
 	template <typename ... TS>
 	static void lock(std::string const & filename, TS && ... fs)
 	{
-		auto const filenames = std::vector<std::string>({filename, std::forward<TS>(fs) ...});
 		auto const guard = std::scoped_lock<std::mutex>(get_singleton().descriptors_mutex);
-		unsafe_try_lock<true>(filenames);
+		unsafe_try_lock<true>(std::vector<std::string>({filename, std::forward<TS>(fs) ...}));
 	}
 	
 	static void lock(std::initializer_list<std::string> fs)
 	{
-		auto const filenames = std::vector<std::string>(std::forward<std::initializer_list<std::string>>(fs));
 		auto const guard = std::scoped_lock<std::mutex>(get_singleton().descriptors_mutex);
-		unsafe_try_lock<true>(filenames);
+		unsafe_try_lock<true>(std::vector<std::string>(std::forward<std::initializer_list<std::string>>(fs)));
 	}
 	
 	static void lock(std::vector<std::string> const & filenames)
@@ -458,27 +439,23 @@ class locker
 		unsafe_try_lock<true>(filenames);
 	}
 	
-	template <typename ... TS>
 	static void unlock(std::string const & filename)
 	{
-		auto const filenames = std::vector<std::string>({filename});
 		auto const guard = std::scoped_lock<std::mutex>(get_singleton().descriptors_mutex);
-		unsafe_unlock(filenames);
+		unsafe_unlock(std::vector<std::string>({filename}));
 	}
 	
 	template <typename ... TS>
 	static void unlock(std::string const & filename, TS && ... fs)
 	{
-		auto const filenames = std::vector<std::string>({filename, std::forward<TS>(fs) ...});
 		auto const guard = std::scoped_lock<std::mutex>(get_singleton().descriptors_mutex);
-		unsafe_unlock(filenames);
+		unsafe_unlock(std::vector<std::string>({filename, std::forward<TS>(fs) ...}));
 	}
 	
 	static void unlock(std::initializer_list<std::string> && fs)
 	{
-		auto const filenames = std::vector<std::string>(std::forward<std::initializer_list<std::string>>(fs));
 		auto const guard = std::scoped_lock<std::mutex>(get_singleton().descriptors_mutex);
-		unsafe_unlock(filenames);
+		unsafe_unlock(std::vector<std::string>(std::forward<std::initializer_list<std::string>>(fs)));
 	}
 	
 	static void unlock(std::vector<std::string> const & filenames)
@@ -491,6 +468,12 @@ class locker
 	static auto lock_guard(TS && ... filenames)
 	{
 		return lock_guard_t(std::forward<TS>(filenames) ...);
+	}
+	
+	template <typename data_t = unsigned char>
+	static auto xmap(std::string const & filename)
+	{
+		return memory_map_t<data_t>(filename);
 	}
 	
 	static auto xread(std::string const & filename)
@@ -571,11 +554,5 @@ class locker
 			unlock(filename);
 			throw;
 		}
-	}
-	
-	template <typename data_t = unsigned char>
-	static auto xmap(std::string const & filename)
-	{
-		return memory_map_t<data_t>(filename);
 	}
 };
