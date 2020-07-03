@@ -79,6 +79,7 @@
 #include <filesystem>
 #include <fstream>
 #include <initializer_list>
+#include <iterator>
 #include <map>
 #include <mutex>
 #include <stdexcept>
