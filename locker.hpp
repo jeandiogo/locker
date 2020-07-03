@@ -53,6 +53,7 @@
 // 
 // locker::xflush("a.txt", my_vector);                                      //exclusively-writes binary data to a file (data must be an std::vector of any type)
 // locker::xflush<true>("a.txt", my_vector);                                //use template argument to append data instead of overwrite
+// locker::xflush("a.txt", my_data_pointer, my_data_size);                  //you can also send a raw pointer (void *) to a length (in bytes) of the data to be written
 // 
 // locker::memory_map_t my_map = locker::xmap("a.txt");                     //exclusively-maps a file to memory and returns a container that behaves like an array of unsigned chars
 // locker::memory_map_t my_map = locker::xmap<char>("a.txt");               //the type underlying the array can be chosen at instantiation via template argument
@@ -511,14 +512,14 @@ class locker
 			{
 				throw std::runtime_error("could not open file \"" + filename + "\" for input");
 			}
-			auto data = std::string(static_cast<std::size_t>(input.tellg()), '\0');
+			auto data = std::string(static_cast<std::size_t>(input.tellg()), '\n');
 			input.seekg(0);
-			input.read(&data[0], static_cast<long>(data.size()));
+			input.read(data.data(), static_cast<long>(data.size()));
+			unlock(filename);
 			while(data.size() and data.back() == '\n')
 			{
 				data.pop_back();
 			}
-			unlock(filename);
 			return data;
 		}
 		catch(...)
@@ -543,6 +544,10 @@ class locker
 			input.seekg(0);
 			input.read(reinterpret_cast<char *>(data.data()), static_cast<long>(data.size() * sizeof(T)));
 			unlock(filename);
+			while(data.size() and data.back() == '\n')
+			{
+				data.pop_back();
+			}
 			return data;
 		}
 		catch(...)
@@ -595,6 +600,33 @@ class locker
 				throw std::runtime_error("could not open file \"" + filename + "\" for binary output");
 			}
 			output.write(reinterpret_cast<char const *>(data.data()), static_cast<std::streamsize>(data.size() * sizeof(T)));
+			output.flush();
+			unlock(filename);
+		}	
+		catch(...)
+		{
+			unlock(filename);
+			throw;
+		}
+	}
+	
+	template <bool should_append = false>
+	static auto xflush(std::string const & filename, void * data, std::size_t size)
+	{
+		lock(filename);
+		try
+		{
+			auto flag = std::fstream::binary;
+			if constexpr(should_append)
+			{
+				flag |= std::fstream::app;
+			}
+			auto output = std::ofstream(filename, flag);
+			if(!output.good())
+			{
+				throw std::runtime_error("could not open file \"" + filename + "\" for binary output");
+			}
+			output.write(static_cast<char *>(data), static_cast<std::streamsize>(size));
 			output.flush();
 			unlock(filename);
 		}	
