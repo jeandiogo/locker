@@ -45,6 +45,7 @@
 // locker::lock_guard_t my_lock = locker::lock_guard({"a.lock", "b.lock"}); //locks a initializer list or a vector of files and automatically unlocks them before leaving current scope
 // 
 // std::string my_data = locker::xread("a.txt");                            //exclusively-reads a file and returns its content as a string
+// std::vector<char> my_data = locker::xread<char>("a.txt");                //same, but returns content as a vector of char (or another user specified type)
 // 
 // locker::xwrite("a.txt", my_data);                                        //exclusively-writes formatted data to a file (data type must be insertable to std::fstream)
 // locker::xwrite("a.txt", "value", ':', 42);                               //exclusively-writes multiple data to a file
@@ -517,6 +518,30 @@ class locker
 			{
 				data.pop_back();
 			}
+			unlock(filename);
+			return data;
+		}
+		catch(...)
+		{
+			unlock(filename);
+			throw;
+		}
+	}
+	
+	template <typename T>
+	static auto xread(std::string const & filename)
+	{
+		lock(filename);
+		try
+		{
+			auto input = std::fstream(filename, std::fstream::in | std::fstream::ate | std::fstream::binary);
+			if(!input.good())
+			{
+				throw std::runtime_error("could not open file \"" + filename + "\" for binary input");
+			}
+			auto data = std::vector<T>(static_cast<std::size_t>(input.tellg()));
+			input.seekg(0);
+			input.read(reinterpret_cast<char *>(data.data()), static_cast<long>(data.size() * sizeof(T)));
 			unlock(filename);
 			return data;
 		}
