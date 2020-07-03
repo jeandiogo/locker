@@ -22,7 +22,7 @@ Locker is a single header C++20 class with static member functions to lock files
 	locker::lock("a.lock", "b.lock");                                        //keeps trying to lock multiple files, only returns when all file are locked
 	locker::lock({"a.lock", "b.lock"});                                      //keeps trying to lock a initializer list or a vector of files, only returns when all files are locked
 
-	locker::unlock("a.lock");                                                //unlocks a file if it is locked
+	locker::unlock("a.lock");                                                //unlocks a file if it is locked (throws if file does not exist)
 	locker::unlock("a.lock", "b.lock");                                      //unlocks a multiple files (in reverse order) if they are locked
 	locker::unlock({"a.lock", "b.lock"});                                    //unlocks a initializer list or a vector of files (in reverse order) if they are locked
 
@@ -34,9 +34,10 @@ Locker is a single header C++20 class with static member functions to lock files
 
 	locker::xwrite("a.txt", my_data);                                        //exclusively-writes formatted data to a file (data type must be insertable to std::fstream)
 	locker::xwrite("a.txt", "value", ':', 42);                               //exclusively-writes multiple data to a file
+	locker::xwrite<true>("a.txt", "order", ':', 66);                         //use template argument to append data instead of overwrite
 
-	locker::xappend("a.txt", my_data);                                       //exclusively-appends data to a file (data type must be insertable to std::fstream)
-	locker::xappend("a.txt", "value", ':', 42);                              //exclusively-appends multiple data to a file
+	locker::xflush("a.txt", my_vector);                                      //exclusively-writes binary data to a file (data must be an std::vector of any type)
+	locker::xflush<true>("a.txt", my_vector);                                //use template argument to append data instead of overwrite
 
 	locker::memory_map_t my_map = locker::xmap("a.txt");                     //exclusively-maps a file to memory and returns a container that behaves like an array of unsigned chars
 	locker::memory_map_t my_map = locker::xmap<char>("a.txt");               //the type underlying the array can be chosen at instantiation via template argument
