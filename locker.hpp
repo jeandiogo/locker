@@ -377,9 +377,7 @@ class locker
 	template <typename ... TS>
 	static bool try_lock(std::string const & filename, TS && ... fs)
 	{
-		auto filenames = std::vector<std::string>({filename});
-		filenames.reserve(sizeof...(fs));
-		filenames.emplace_back(std::forward<TS>(fs) ...);
+		auto const filenames = std::vector<std::string>({filename, std::forward<TS>(fs) ...});
 		return try_lock(filenames);
 	}
 
