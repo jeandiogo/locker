@@ -48,9 +48,10 @@
 // 
 // locker::xwrite("a.txt", my_data);                                        //exclusively-writes formatted data to a file (data type must be insertable to std::fstream)
 // locker::xwrite("a.txt", "value", ':', 42);                               //exclusively-writes multiple data to a file
+// locker::xwrite<true>("a.txt", "order", ':', 66);                         //use template argument to append data instead of overwrite
 // 
-// locker::xappend("a.txt", my_data);                                       //exclusively-appends data to a file (data type must be insertable to std::fstream)
-// locker::xappend("a.txt", "value", ':', 42);                              //exclusively-appends multiple data to a file
+// locker::xflush("a.txt", my_vector);                                      //exclusively-writes binary data to a file (data must be an std::vector of any type)
+// locker::xflush<true>("a.txt", my_vector);                                //use template argument to append data instead of overwrite
 // 
 // locker::memory_map_t my_map = locker::xmap("a.txt");                     //exclusively-maps a file to memory and returns a container that behaves like an array of unsigned chars
 // locker::memory_map_t my_map = locker::xmap<char>("a.txt");               //the type underlying the array can be chosen at instantiation via template argument
@@ -98,41 +99,41 @@ class locker
 	class [[nodiscard]] lock_guard_t
 	{
 		std::vector<std::string> filenames;
-		
+
 		public:
-		
+
 		lock_guard_t(lock_guard_t const &) = delete;
 		lock_guard_t(lock_guard_t &&) = delete;
 		auto & operator=(lock_guard_t) = delete;
 		auto operator&() = delete;
-		
+
 		explicit lock_guard_t(std::vector<std::string> && fs) : filenames(std::forward<std::vector<std::string>>(fs))
 		{
 			lock(filenames);
 		}
-		
+
 		explicit lock_guard_t(std::initializer_list<std::string> && fs) : filenames(std::forward<std::initializer_list<std::string>>(fs))
 		{
 			lock(filenames);
 		}
-		
+
 		explicit lock_guard_t(std::string const & f) : filenames({f})
 		{
 			lock(filenames);
 		}
-		
+
 		template <typename ... TS>
 		explicit lock_guard_t(TS && ... f) : filenames({std::forward<TS>(f) ...})
 		{
 			lock(filenames);
 		}
-		
+
 		~lock_guard_t()
 		{
 			unlock(filenames);
 		}
 	};
-	
+
 	template <typename data_t>
 	class [[nodiscard]] memory_map_t
 	{
@@ -140,14 +141,14 @@ class locker
 		int file_descriptor;
 		std::size_t file_size;
 		data_t * file_data;
-		
+
 		public:
-		
+
 		memory_map_t(memory_map_t &) = delete;
 		memory_map_t(memory_map_t &&) = delete;
 		auto & operator=(memory_map_t) = delete;
 		auto operator&() = delete;
-		
+
 		explicit memory_map_t(std::string const & f)
 		{
 			lock(filename);
@@ -172,24 +173,24 @@ class locker
 				throw;
 			}
 		}
-		
+
 		~memory_map_t()
 		{
 			msync(file_data, file_size, MS_SYNC);
 			munmap(file_data, file_size);
 			unlock(filename);
 		}
-		
+
 		auto & operator[](std::size_t index)
 		{
 			return file_data[index];
 		}
-		
+
 		auto & operator[](std::size_t index) const
 		{
 			return file_data[index];
 		}
-		
+
 		auto & at(std::size_t index)
 		{
 			if(index >= file_size)
@@ -198,7 +199,7 @@ class locker
 			}
 			return file_data[index];
 		}
-		
+
 		auto & at(std::size_t index) const
 		{
 			if(index >= file_size)
@@ -207,27 +208,27 @@ class locker
 			}
 			return file_data[index];
 		}
-		
+
 		auto get_data() const
 		{
 			return file_data;
 		}
-		
+
 		auto data() const
 		{
 			return file_data;
 		}
-		
+
 		auto get_size() const
 		{
 			return file_size;
 		}
-		
+
 		auto size() const
 		{
 			return file_size;
 		}
-		
+
 		auto flush()
 		{
 			if(msync(file_data, file_size, MS_SYNC) < 0)
@@ -237,16 +238,16 @@ class locker
 			return true;
 		}
 	};
-	
+
 	std::mutex descriptors_mutex;
 	std::map<std::string, std::pair<int, int>> descriptors;
-	
+
 	static auto & get_singleton()
 	{
 		static auto singleton = locker();
 		return singleton;
 	}
-	
+
 	static int get_descriptor(std::string const & raw_filename)
 	{
 		auto const guard = std::scoped_lock<std::mutex>(get_singleton().descriptors_mutex);
@@ -261,20 +262,20 @@ class locker
 		}
 		return -1;
 	}
-	
+
 	locker() = default;
-	
+
 	public:
-	
+
 	~locker()
 	{
 		clear();
 	}
-	
+
 	locker(locker const &) = delete;
 	locker(locker &&) = delete;
 	auto & operator=(locker) = delete;
-	
+
 	static void clear()
 	{
 		auto const guard = std::scoped_lock<std::mutex>(get_singleton().descriptors_mutex);
@@ -285,7 +286,7 @@ class locker
 		}
 		descriptors.clear();
 	}
-	
+
 	static auto get_locked()
 	{
 		auto const guard = std::scoped_lock<std::mutex>(get_singleton().descriptors_mutex);
@@ -297,7 +298,7 @@ class locker
 		}
 		return locked_files;
 	}
-	
+
 	static bool is_locked(std::string const & raw_filename)
 	{
 		auto const guard = std::scoped_lock<std::mutex>(get_singleton().descriptors_mutex);
@@ -309,7 +310,7 @@ class locker
 		}
 		throw std::runtime_error("lockfile \"" + raw_filename + "\" does not exist");
 	}
-	
+
 	template <bool should_block = false>
 	static bool try_lock(std::string const & raw_filename)
 	{
@@ -350,7 +351,7 @@ class locker
 			throw;
 		}
 	}
-	
+
 	static bool try_lock(std::vector<std::string> const & filenames)
 	{
 		for(std::size_t i = 0; i < filenames.size(); ++i)
@@ -366,13 +367,13 @@ class locker
 		}
 		return true;
 	}
-	
+
 	static bool try_lock(std::initializer_list<std::string> && fs)
 	{
 		auto const filenames = std::vector<std::string>(std::forward<std::initializer_list<std::string>>(fs));
 		return try_lock(filenames);
 	}
-	
+
 	template <typename ... TS>
 	static bool try_lock(std::string const & filename, TS && ... fs)
 	{
@@ -381,12 +382,12 @@ class locker
 		filenames.emplace_back(std::forward<TS>(fs) ...);
 		return try_lock(filenames);
 	}
-	
+
 	static void lock(std::string const & filename)
 	{
 		try_lock<true>(filename);
 	}
-	
+
 	static void lock(std::vector<std::string> const & filenames)
 	{
 		for(auto const & filename : filenames)
@@ -394,7 +395,7 @@ class locker
 			try_lock<true>(filename);
 		}
 	}
-	
+
 	static void lock(std::initializer_list<std::string> filenames)
 	{
 		for(auto const & filename : filenames)
@@ -402,14 +403,14 @@ class locker
 			try_lock<true>(filename);
 		}
 	}
-	
+
 	template <typename ... TS>
 	static void lock(std::string const & filename, TS && ... filenames)
 	{
 		lock(filename);
 		lock(std::forward<TS>(filenames) ...);
 	}
-	
+
 	static void unlock(std::vector<std::string> const & filenames)
 	{
 		auto const guard = std::scoped_lock<std::mutex>(get_singleton().descriptors_mutex);
@@ -441,26 +442,26 @@ class locker
 			}
 		}
 	}
-	
+
 	static void unlock(std::initializer_list<std::string> && fs)
 	{
 		auto const filenames = std::vector<std::string>(std::forward<std::initializer_list<std::string>>(fs));
 		unlock(filenames);
 	}
-	
+
 	template <typename ... TS>
 	static void unlock(TS && ... fs)
 	{
 		auto const filenames = std::vector<std::string>({std::forward<TS>(fs) ...});
 		unlock(filenames);
 	}
-	
+
 	template <typename ... TS>
 	static auto lock_guard(TS && ... filenames)
 	{
 		return lock_guard_t(std::forward<TS>(filenames) ...);
 	}
-	
+
 	static auto xread(std::string const & filename)
 	{
 		lock(filename);
@@ -487,14 +488,19 @@ class locker
 			throw;
 		}
 	}
-	
-	template <typename ... TS>
+
+	template <bool should_append = false, typename ... TS>
 	static auto xwrite(std::string const & filename, TS && ... data)
 	{
 		lock(filename);
 		try
 		{
-			auto output = std::ofstream(filename);
+			auto flag = std::fstream::out;
+			if constexpr(should_append)
+			{
+				flag |= std::fstream::app;
+			}
+			auto output = std::fstream(filename, flag);
 			if(!output.good())
 			{
 				throw std::runtime_error("could not open file \"" + filename + "\" for output");
@@ -508,19 +514,25 @@ class locker
 			throw;
 		}
 	}
-	
-	template <typename ... TS>
-	static auto xappend(std::string const & filename, TS && ... data)
+
+	template <bool should_append = false, typename T>
+	static auto xflush(std::string const & filename, std::vector<T> const & data)
 	{
 		lock(filename);
 		try
 		{
-			auto output = std::fstream(filename, std::fstream::app);
+			auto flag = std::fstream::binary;
+			if constexpr(should_append)
+			{
+				flag |= std::fstream::app;
+			}
+			auto output = std::ofstream(filename, flag);
 			if(!output.good())
 			{
-				throw std::runtime_error("could not open file \"" + filename + "\" for append");
+				throw std::runtime_error("could not open file \"" + filename + "\" for binary output");
 			}
-			(output << ... << std::forward<TS>(data)) << std::flush;
+			output.write(reinterpret_cast<char const *>(data.data()), static_cast<std::streamsize>(data.size() * sizeof(T)));
+			output.flush();
 			unlock(filename);
 		}	
 		catch(...)
@@ -529,7 +541,7 @@ class locker
 			throw;
 		}
 	}
-	
+
 	template <typename data_t = unsigned char>
 	static auto xmap(std::string const & filename)
 	{
