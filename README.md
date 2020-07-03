@@ -23,12 +23,12 @@ Locker is a single header C++20 class with static member functions to lock files
 	bool success = locker::try_lock({"a.lock", "b.lock"});                   //tries to lock a initializer list or a vector of files once, returns immediately
 
 	locker::lock("a.lock");                                                  //keeps trying to lock a file, only returns when file is locked
-	locker::lock("a.lock", "b.lock");                                        //keeps trying to lock multiple files, only returns when all file are locked
+	locker::lock("a.lock", "b.lock", "c.lock", "d.lock");                    //keeps trying to lock multiple files, only returns when all file are locked
 	locker::lock({"a.lock", "b.lock"});                                      //keeps trying to lock a initializer list or a vector of files, only returns when all files are locked
 
 	locker::unlock("a.lock");                                                //unlocks a file if it is locked (throws if file does not exist)
 	locker::unlock("a.lock", "b.lock");                                      //unlocks a multiple files (in reverse order) if they are locked
-	locker::unlock({"a.lock", "b.lock"});                                    //unlocks a initializer list or a vector of files (in reverse order) if they are locked
+	locker::unlock({"a.lock", "b.lock", "c.lock"});                          //unlocks a initializer list or a vector of files (in reverse order) if they are locked
 
 	locker::lock_guard_t my_lock = locker::lock_guard("a.lock");             //locks a file and automatically unlocks it before leaving current scope
 	locker::lock_guard_t my_lock = locker::lock_guard("a.lock", "b.lock");   //locks multiple files and automatically unlocks them before leaving current scope
