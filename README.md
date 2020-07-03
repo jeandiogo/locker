@@ -19,7 +19,7 @@ Locker is a single header C++20 class with static member functions to lock files
 	#include "locker.hpp"
 	
 	bool success = locker::try_lock("a.lock");                               //tries to lock a file once, returns immediately
-	bool success = locker::try_lock("a.lock", "b.lock");                     //tries to lock multiple files once, returns immediately
+	bool success = locker::try_lock("a.lock", "b.lock", "c.lock");           //tries to lock multiple files once, returns immediately
 	bool success = locker::try_lock({"a.lock", "b.lock"});                   //tries to lock a initializer list or a vector of files once, returns immediately
 
 	locker::lock("a.lock");                                                  //keeps trying to lock a file, only returns when file is locked
