@@ -1,23 +1,27 @@
 # makefile
 #
+SRC = test.cpp
 BIN = test.out
-SRC = test.cpp #$(wildcard *.cpp)
-LIB = #
-OPT = -std=c++2a -O3 -march=native -pthread -fopenmp -fopenacc -pipe #-fwhole-program
+LIB = # link your libs here
+OPT = -pipe -std=c++2a -O3 -march=native -pthread -fopenmp -fopenacc
 ERR = -Wall -Wextra -pedantic -Werror -pedantic-errors -Wfatal-errors -Wno-unused
-WRN = -Wnull-dereference -Wsign-conversion -Wconversion -Wshadow -Wcast-align #-Wuseless-cast
+WRN = -Wnull-dereference -Wsign-conversion -Wconversion -Wshadow -Wcast-align -Wuseless-cast
 FLG = $(OPT) $(LIB) $(ERR) $(WRN)
 #
-.PHONY: all test
+.PHONY: all setup clear test
 #
 all:
 	@clear
 	@clear
 	@time -f "[ %es ]" g++ $(SRC) -o $(BIN) $(FLG)
-	@sudo rm -f *~ *.o
+#
+setup:
 	@sudo chown `whoami`:`whoami` $(BIN)
 	@sudo chmod u=rwX,go=rX $(BIN)
 #
-test: all
+clear:
+	@sudo rm -f *~ *.o
+#
+test: all setup clear
 	@time -f "[ %es ]" ./$(BIN)
 #
