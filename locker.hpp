@@ -291,12 +291,12 @@ class locker
 	{
 		auto const guard = std::scoped_lock<std::mutex>(get_singleton().descriptors_mutex);
 		auto const & descriptors = get_singleton().descriptors;
-		std::vector<std::string> locked_files;
+		std::vector<std::string> filenames;
 		for(auto && descriptor : descriptors)
 		{
-			locked_files.emplace_back(descriptor.first);
+			filenames.emplace_back(descriptor.first);
 		}
-		return locked_files;
+		return filenames;
 	}
 
 	static bool is_locked(std::string const & raw_filename)
@@ -413,12 +413,18 @@ class locker
 	{
 		auto const guard = std::scoped_lock<std::mutex>(get_singleton().descriptors_mutex);
 		auto & descriptors = get_singleton().descriptors;
+		std::string missing = "";
 		for(auto const & filename : filenames)
 		{
 			if(!std::filesystem::exists(filename))
 			{
-				throw std::runtime_error("lockfile \"" + filename + "\" does not exist");
+				missing += " \"" + filename + "\",";
 			}
+		}
+		if(missing.size())
+		{
+			missing.pop_back();
+			throw std::runtime_error("lockfile(s) " + missing + " do not exist");
 		}
 		for(auto it = filenames.rbegin(); it != filenames.rend(); ++it)
 		{
