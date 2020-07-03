@@ -149,7 +149,7 @@ class locker
 		auto & operator=(memory_map_t) = delete;
 		auto operator&() = delete;
 
-		explicit memory_map_t(std::string const & f)
+		explicit memory_map_t(std::string const & f) : filename(f)
 		{
 			lock(filename);
 			file_descriptor = get_descriptor(filename);
