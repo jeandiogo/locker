@@ -424,7 +424,7 @@ class locker
 		if(missing.size())
 		{
 			missing.pop_back();
-			throw std::runtime_error("lockfile(s)" + missing + " do(es) not exist");
+			throw std::runtime_error("could not find lockfile(s)" + missing);
 		}
 		for(auto it = filenames.rbegin(); it != filenames.rend(); ++it)
 		{
