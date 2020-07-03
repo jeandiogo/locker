@@ -53,6 +53,8 @@ Locker is a single header C++20 class with static member functions to lock files
 	my_map[N] = M;                                                           //same, but does not check range
 	std::size_t my_size = my_map.get_size();                                 //gets the size of the file
 	std::size_t my_size = my_map.size();                                     //same as above, for STL compatibility
+	bool is_empty = my_map.is_empty();                                       //returns true if map is ampty
+	bool is_empty = my_map.empty();                                          //same as above, for STL compatibility
 	unsigned char * my_data = my_map.get_data();                             //gets a raw pointer to file's data (whose underlying type is designated at instantiation)
 	unsigned char * my_data = my_map.data();                                 //same as above, for STL compatibility
 	my_map.flush();                                                          //flushes data to file (unnecessary, since current process will be the only one accessing the file)
