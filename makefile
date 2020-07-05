@@ -8,20 +8,20 @@ ERR = -Wall -Wextra -pedantic -Werror -pedantic-errors -Wfatal-errors -Wno-unuse
 WRN = -Wnull-dereference -Wsign-conversion -Wconversion -Wshadow -Wcast-align -Wuseless-cast
 FLG = $(OPT) $(LIB) $(ERR) $(WRN)
 #
-.PHONY: all setup clear test
+.PHONY: all clear conf test
 #
 all:
 	@clear
 	@clear
 	@time -f "[ %es ]" g++ $(SRC) -o $(BIN) $(FLG)
 #
-setup:
-	@sudo chown `whoami`:`whoami` $(BIN)
-	@sudo chmod u=rwX,go=rX $(BIN)
-#
 clear:
 	@sudo rm -f *~ *.o
 #
-test: all setup clear
+conf:
+	@sudo chown `whoami`:`whoami` $(BIN)
+	@sudo chmod u=rwX,go=rX $(BIN)
+#
+test: all clear conf
 	@time -f "[ %es ]" ./$(BIN)
 #
