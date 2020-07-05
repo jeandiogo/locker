@@ -16,9 +16,7 @@
 // 
 // locker.hpp
 // 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// 
-// Locker is a single header C++20 class with static member functions to lock files in Linux systems, so they can be accessed exclusively or used as inter-process mutexes.	
+// "Locker" is a single header C++20 class with static member functions to lock files in Linux systems, so they can be accessed exclusively or used as inter-process mutexes.	
 // 
 // [Notice]
 // 
