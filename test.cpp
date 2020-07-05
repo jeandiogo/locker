@@ -24,7 +24,6 @@
 
 #include <chrono>
 #include <iostream>
-#include <ranges>
 #include <string>
 #include <thread>
 
@@ -41,7 +40,7 @@ int main()
 	std::cout << "\"" << filename << "\" was initialized with 0 and should be incremented up until " << NUM_FORKS << std::endl;
 	
 	int pid;
-	for(auto i : std::views::iota(0, NUM_FORKS))
+	for(std::size_t i = 0; i < NUM_FORKS; ++i)
 	{
 		pid = fork();
 		if(pid < 0)
