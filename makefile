@@ -24,7 +24,8 @@ LIB = #link your libs here
 OPT = -pipe -std=c++2a -O3 -march=native -pthread -fopenmp -fopenacc
 ERR = -Wall -Wextra -pedantic -Werror -pedantic-errors -Wfatal-errors -Wno-unused
 WRN = -Wnull-dereference -Wsign-conversion -Wconversion -Wshadow -Wcast-align -Wuseless-cast
-FLG = $(OPT) $(LIB) $(ERR) $(WRN)
+DBG = -fsanitize=address -fsanitize=undefined -D_GLIBCXX_DEBUG
+FLG = $(OPT) $(LIB) $(ERR) $(WRN) #$(DBG)
 #
 .PHONY: all clear conf test
 #
