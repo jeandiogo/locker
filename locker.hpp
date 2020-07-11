@@ -247,11 +247,7 @@ class locker
 		
 		auto flush()
 		{
-			if(msync(file_data, file_size, MS_SYNC) < 0)
-			{
-				return false;
-			}
-			return true;
+			return (msync(file_data, file_size, MS_SYNC) >= 0);
 		}
 	};
 	
