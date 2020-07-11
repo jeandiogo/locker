@@ -338,7 +338,7 @@ class locker
 		if(descriptors.contains(filename))
 		{
 			auto & descriptor = descriptors.at(filename);
-			if((--descriptor.first == 0) and ((fsync(descriptor.second) < 0) or (close(descriptor.second) < 0) or !descriptors.erase(filename)))
+			if((--descriptor.first <= 0) and ((fsync(descriptor.second) < 0) or (close(descriptor.second) < 0) or !descriptors.erase(filename)))
 			{
 				throw std::runtime_error("could not unlock file \"" + raw_filename + "\"");
 			}
@@ -367,7 +367,7 @@ class locker
 			if(descriptors.contains(filename))
 			{
 				auto & descriptor = descriptors.at(filename);
-				if((--descriptor.first == 0) and ((fsync(descriptor.second) < 0) or (close(descriptor.second) < 0) or !descriptors.erase(filename)))
+				if((--descriptor.first <= 0) and ((fsync(descriptor.second) < 0) or (close(descriptor.second) < 0) or !descriptors.erase(filename)))
 				{
 					throw std::runtime_error("could not unlock files \"" + filenames.front() + "\" to \"" + *it + "\"");
 				}
