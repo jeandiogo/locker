@@ -2,9 +2,13 @@
 
 Locker is a single header C++20 class with static member functions to lock files on Linux systems, so they can be accessed exclusively or used as (slow) inter-process mutexes.
 
-**The locking policy is guaranteed only among programs using this library.** Thus, locking a file does not prevent other processes from opening it, but it ensures that only one program will get the lock at a time. All locking and unlocking functions accept a single filename, multiple filenames, a list of filenames, or a vector of filenames. If the file to be locked does not exist it will be created. An exception will be throw if an empty filename is given, if a directory name is given, or if the program does not have permission to read and write to the file and its directory.
+**The locking policy is guaranteed only among programs using this library.** Thus, locking a file does not prevent other processes from opening it, but it ensures that only one program will get the lock at a time. All locking and unlocking functions accept a single filename, multiple filenames, a list of filenames, or a vector of filenames.
 
-**A process will loose the lock if the lockfile is deleted.** For that reason, if a file is not found when the unlock function is called, an exception will be throw to indicate that a lock may have been lost during the execution at some point after the lock. The lockings are reentrant, so if for some reason you have locked a file twice, you have to unlock it twice too. Therefore, always prefer using the lock guard, which will automatically release a lockfile before leaving its scope of declaration.
+**If the file to be locked does not exist it will be created.** An exception will be throw if an empty filename is given, if a directory name is given, or if the program does not have permission to read and write to the file and its directory.
+
+**A process will loose the lock if the lockfile is deleted.** For that reason, if a file is not found when the unlock function is called, an exception will be throw to indicate that a lock may have been lost during the execution at some point after the lock.
+
+**The lockings are reentrant.** So if for some reason you have locked a file twice, you have to unlock it twice too. Therefore, always prefer using the lock guard, which will automatically release a lockfile before leaving its scope of declaration.
 
 **The locker provides process-safety, but not thread-safety.** Once a process has acquired the lock, its threads and future forks will not be stopped by it nor they will be able to mutually exclude each other by using the filelock. Therefore, avoid forking a program while it has some file locked and use mutexes to synchronize its inner threads.
 
