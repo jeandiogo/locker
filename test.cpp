@@ -33,16 +33,29 @@
 
 #define NUM_FORKS 50
 
+auto safe_open(std::string const & filename, std::ios_base::openmode const mode)
+{
+	auto file = std::fstream(filename, mode);
+	if(!file.good())
+	{
+		throw std::runtime_error("could not open file \"" + filename + "\"");
+	}
+	return file;
+}
+
 int main()
 {
-	auto const filename = "test.txt";
-	std::ofstream(filename) << 0;
+	std::string const filename = "test.txt";
+	
+	int data = 0;
+	
+	safe_open(filename, std::fstream::out) << data << std::flush;
+	
 	std::cout << "\"" << filename << "\" was initialized with 0 and should be incremented up until " << NUM_FORKS << std::endl;
 	
-	int pid;
 	for(std::size_t i = 0; i < NUM_FORKS; ++i)
 	{
-		pid = fork();
+		auto pid = fork();
 		if(pid < 0)
 		{
 			return EXIT_FAILURE;
@@ -51,31 +64,35 @@ int main()
 		{
 			break;
 		}
-	}
-	if(pid > 0)
-	{
-		int status;
-		while((pid = wait(&status)) > 0)
+		if(i == NUM_FORKS - 1)
 		{
+			int status;
+			while((pid = wait(&status)) > 0);
+			auto const guard = locker::lock_guard(filename);
+			safe_open(filename, std::fstream::in) >> data;
+			if(data == NUM_FORKS)
+			{
+				std::cout << "The test was successful!" << std::endl;
+			}
+			else
+			{
+				std::cout << "The test was not successful!" << std::endl;
+			}
+			return EXIT_SUCCESS;
 		}
-		return EXIT_SUCCESS;
 	}
 	
-	auto guard = locker::lock_guard(filename);
+	auto const guard = locker::lock_guard(filename);
 	
-	int data;
-	std::ifstream(filename) >> data;
-	std::cout << "PID " << getpid() << " read " << data << ", wrote ";
-	++data;
-	std::ofstream(filename) << data << std::flush;
-	std::cout << data << std::endl;
+	safe_open(filename, std::fstream::in) >> data;
 	
-	if(data == NUM_FORKS)
-	{
-		std::cout << "The test was successful!" << std::endl;
-	}
+	auto const inc_data = data + 1;
+	
+	safe_open(filename, std::fstream::out) << inc_data << std::flush;
 	
 	std::this_thread::sleep_for(std::chrono::milliseconds(50));
+	
+	std::cout << "PID " << getpid() << " read " << data << " and wrote " << inc_data << std::endl;
 	
 	return EXIT_SUCCESS;
 }
