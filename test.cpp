@@ -51,7 +51,7 @@ int main()
 	
 	safe_open(filename, std::fstream::out) << data << std::flush;
 	
-	std::cout << "\"" << filename << "\" was initialized with 0 and should be incremented up until " << NUM_FORKS << std::endl;
+	std::cout << "Process " << getpid() << " initialized \"" << filename << "\" with 0 and expects " << NUM_FORKS << std::endl;
 	
 	for(std::size_t i = 0; i < NUM_FORKS; ++i)
 	{
@@ -92,7 +92,7 @@ int main()
 	
 	std::this_thread::sleep_for(std::chrono::milliseconds(50));
 	
-	std::cout << "PID " << getpid() << " read " << data << " and wrote " << inc_data << std::endl;
+	std::cout << "Child " << getpid() << " read " << data << " and wrote " << inc_data << std::endl;
 	
 	return EXIT_SUCCESS;
 }
