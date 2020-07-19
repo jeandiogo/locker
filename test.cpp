@@ -64,7 +64,7 @@ int main()
 		{
 			break;
 		}
-		if(i == NUM_FORKS - 1)
+		else if(i == NUM_FORKS - 1)
 		{
 			int status;
 			while((pid = wait(&status)) > 0);
