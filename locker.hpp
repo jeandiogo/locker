@@ -192,7 +192,7 @@ class locker
 			return file_data[index];
 		}
 		
-		auto & operator[](std::size_t index) const
+		auto const & operator[](std::size_t index) const
 		{
 			return file_data[index];
 		}
@@ -206,7 +206,7 @@ class locker
 			return file_data[index];
 		}
 		
-		auto & at(std::size_t index) const
+		auto const & at(std::size_t index) const
 		{
 			if(index >= file_size)
 			{
@@ -272,7 +272,7 @@ class locker
 		}
 		try
 		{
-			std::string filename = std::filesystem::canonical(raw_filename);
+			std::string const filename = std::filesystem::canonical(raw_filename);
 			auto & descriptors = get_singleton().descriptors;
 			if(descriptors.contains(filename))
 			{
@@ -333,7 +333,7 @@ class locker
 		{
 			throw std::runtime_error("could not find lockfile " + raw_filename);
 		}
-		auto const filename = std::filesystem::canonical(raw_filename);
+		std::string const filename = std::filesystem::canonical(raw_filename);
 		auto & descriptors = get_singleton().descriptors;
 		if(descriptors.contains(filename))
 		{
@@ -362,7 +362,7 @@ class locker
 		}
 		for(auto it = filenames.rbegin(); it != filenames.rend(); ++it)
 		{
-			auto const filename = std::filesystem::canonical(*it);
+			std::string const filename = std::filesystem::canonical(*it);
 			auto & descriptors = get_singleton().descriptors;
 			if(descriptors.contains(filename))
 			{
@@ -415,7 +415,7 @@ class locker
 		auto const guard = std::scoped_lock<std::mutex>(get_singleton().descriptors_mutex);
 		if(std::filesystem::exists(raw_filename))
 		{
-			auto filename = std::filesystem::canonical(raw_filename);
+			std::string const filename = std::filesystem::canonical(raw_filename);
 			return get_singleton().descriptors.contains(filename);
 		}
 		throw std::runtime_error("lockfile \"" + raw_filename + "\" does not exist");
