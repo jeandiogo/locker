@@ -1,7 +1,7 @@
 ########################################################################################################################
 # 
 # Locker (C++ Library)
-# Copyright (C) 2020 Jean Diogo (Jango) <jeandiogo@gmail.com>
+# Copyright (c) 2020 Jean Diogo (Jango) <jeandiogo@gmail.com>
 # 
 # Licensed under the Apache License Version 2.0 (the "License").
 # You may not use this file except in compliance with the License.
@@ -23,7 +23,7 @@ BIN = test.out
 LIB = #link your libs here
 OPT = -pipe -std=c++2a -O3 -march=native -pthread -fopenmp -fopenacc
 ERR = -Wall -Wextra -pedantic -Werror -pedantic-errors -Wfatal-errors -Wno-unused
-WRN = -Wnull-dereference -Wsign-conversion -Wconversion -Wshadow -Wcast-align -Wuseless-cast
+WRN = -Wnull-dereference -Wsign-conversion -Wconversion -Wshadow -Wcast-align #-Wuseless-cast
 DBG = -fsanitize=address -fsanitize=undefined -D_GLIBCXX_DEBUG
 FLG = $(OPT) $(LIB) $(ERR) $(WRN) #$(DBG)
 #
