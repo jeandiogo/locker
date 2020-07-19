@@ -1,6 +1,6 @@
 # Locker
 
-Locker is a single header C++20 class with static member functions to lock files on Linux systems, so they can be accessed exclusively or used for process synchronization (e.g. as slow interprocess mutexes).
+Locker is a single header C++20 class with static member functions to lock files on Linux systems, so they can be accessed exclusively or used for process synchronization (e.g. as slow inter-process mutexes).
 
 - **The locking policy is guaranteed only among programs using this library.** Thus, locking a file does not prevent other processes from opening it, but it ensures that only one program will get the lock at a time. All locking and unlocking functions accept a single filename, multiple filenames, a list of filenames, or a vector of filenames.
 
