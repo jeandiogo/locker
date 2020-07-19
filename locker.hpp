@@ -16,7 +16,7 @@
 // 
 // locker.hpp
 // 
-// Locker is a single header C++20 class with static member functions to lock files in Linux systems, so they can be accessed exclusively or used as inter-process mutexes.	
+// Locker is a single header C++20 class with static member functions to lock files in Linux systems, so they can be accessed exclusively or used for process synchronization.
 // The locker provides process-safety but not thread-safety. Once a process has acquired the lock, its threads and future forks will not be stopped by it.
 // If the lockfile does not exist it will be created, but an exception will be thrown if the lockfile is not a regular file or if its directory is not authorized for writing.
 // The lock will be lost if the lockfile is deleted. To provide a minimal watch on that, the locker will throw an exception if the user tries to unlock a file that does not exist anymore.
