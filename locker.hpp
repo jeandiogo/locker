@@ -187,17 +187,17 @@ class locker
 			unlock(filename);
 		}
 		
-		auto & operator[](std::size_t index)
+		auto & operator[](std::size_t const index)
 		{
 			return file_data[index];
 		}
 		
-		auto const & operator[](std::size_t index) const
+		auto const & operator[](std::size_t const index) const
 		{
 			return file_data[index];
 		}
 		
-		auto & at(std::size_t index)
+		auto & at(std::size_t const index)
 		{
 			if(index >= file_size)
 			{
@@ -206,7 +206,7 @@ class locker
 			return file_data[index];
 		}
 		
-		auto const & at(std::size_t index) const
+		auto const & at(std::size_t const index) const
 		{
 			if(index >= file_size)
 			{
