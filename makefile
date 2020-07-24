@@ -27,17 +27,20 @@ WRN = -Wnull-dereference -Wsign-conversion -Wconversion -Wshadow -Wcast-align -W
 DBG = -fsanitize=address -fsanitize=undefined -D_GLIBCXX_DEBUG
 FLG = $(OPT) $(LIB) $(ERR) $(WRN) #$(DBG)
 #
-.PHONY: main test
+.PHONY: main clear conf test
 #
 main:
 	@clear
 	@clear
-	@sudo rm -rf *~ *.o $(BIN)
 	@time -f "[ %es ]" g++ $(SRC) -o $(BIN) $(FLG)
-	@sudo rm -rf *~ *.o
+#
+clear:
+	@sudo rm -rf *~ *.o $(BIN)
+#
+conf:
 	@sudo chown `whoami`:`whoami` $(BIN)
 	@sudo chmod u=rwX,go=rX $(BIN)
 #
-test: all
+test: clear main conf
 	@time -f "[ %es ]" ./$(BIN)
 #
