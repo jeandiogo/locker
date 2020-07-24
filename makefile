@@ -24,23 +24,19 @@ LIB = #link your libs here
 OPT = -pipe -std=c++2a -O3 -march=native -pthread -fopenmp -fopenacc
 ERR = -Wall -Wextra -pedantic -Werror -pedantic-errors -Wfatal-errors -Wno-unused
 WRN = -Wnull-dereference -Wsign-conversion -Wconversion -Wshadow -Wcast-align -Wuseless-cast
-DBG = -fsanitize=address -fsanitize=undefined -D_GLIBCXX_DEBUG
+DBG = -D_GLIBCXX_DEBUG -fsanitize=undefined -fsanitize=address
 FLG = $(OPT) $(LIB) $(ERR) $(WRN) #$(DBG)
 #
-.PHONY: main clear conf test
+.PHONY: all test
 #
-main:
+all:
 	@clear
 	@clear
 	@time -f "[ %es ]" g++ $(SRC) -o $(BIN) $(FLG)
+	@sudo rm -rf *~ *.o
 #
-clear:
-	@sudo rm -rf *~ *.o $(BIN)
-#
-conf:
+test: all
 	@sudo chown `whoami`:`whoami` $(BIN)
 	@sudo chmod u=rwX,go=rX $(BIN)
-#
-test: clear main conf
 	@time -f "[ %es ]" ./$(BIN)
 #
