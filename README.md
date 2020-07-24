@@ -12,7 +12,7 @@ Locker is a single header C++20 class with static member functions to lock files
 
 - **The locker provides process-safety, but not thread-safety.** Once a process has acquired the lock, its threads and future forks will not be stopped by it nor they will be able to mutually exclude each other by using the filelock. Therefore, avoid forking a program while it has some file locked and use mutexes to synchronize its inner threads.
 
-- **Lock and unlock operations are independent from open and close operations.** If you want to open a lockfile you need to use file handlers like "fopen" and "fstream", and close the file before the unlock. To circumvent that, this library provides functions for exclusive read, exclusive write, exclusive append, and exclusive memory-map, which are all process-safe (although still not thread-safe) and will not interfere with your current locks. It is still your responsability to handle race conditions among threads trying to open files locked by their parent.
+- **Lock and unlock operations are independent from open and close operations.** If you want to open a lockfile you need to use file handlers like "fopen" and "fstream", and close the file before the unlock. To circumvent that, this library provides functions for exclusive read, write, append, and memory-map, which are all process-safe (although still not thread-safe) and will not interfere with your current locks. It is still your responsability to handle race conditions among threads trying to open files locked by their parent.
 
 *When compiling with g++, use the flag "-std=c++2a" (available in GCC 7.0 or later).*
 
