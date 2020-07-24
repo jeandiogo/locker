@@ -32,9 +32,9 @@ FLG = $(OPT) $(LIB) $(ERR) $(WRN) #$(DBG)
 all:
 	@clear
 	@clear
-	@sudo rm -f *~ *.o $(BIN)
+	@sudo rm -rf *~ *.o $(BIN)
 	@time -f "[ %es ]" g++ $(SRC) -o $(BIN) $(FLG)
-	@sudo rm -f *~ *.o
+	@sudo rm -rf *~ *.o
 	@sudo chown `whoami`:`whoami` $(BIN)
 	@sudo chmod u=rwX,go=rX $(BIN)
 #
