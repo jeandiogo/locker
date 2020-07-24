@@ -27,7 +27,7 @@ WRN = -Wnull-dereference -Wsign-conversion -Wconversion -Wshadow -Wcast-align -W
 DBG = -fsanitize=address -fsanitize=undefined -D_GLIBCXX_DEBUG
 FLG = $(OPT) $(LIB) $(ERR) $(WRN) #$(DBG)
 #
-.PHONY: all clear conf test
+.PHONY: all test
 #
 all:
 	@clear
