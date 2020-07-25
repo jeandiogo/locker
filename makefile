@@ -34,10 +34,8 @@ all:
 	@time -f "[ %es ]" g++ $(SRC) -o $(BIN) $(FLG)
 #
 clear:
-	@sudo rm -rf *~ *.o $(BIN)
+	@rm -rf *~ *.o $(BIN)
 #
 test: clear all
-	@sudo chown `whoami`:`whoami` $(BIN)
-	@sudo chmod u=rwX,go=rX $(BIN)
 	@time -f "[ %es ]" ./$(BIN)
 #
