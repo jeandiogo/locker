@@ -21,21 +21,22 @@
 SRC = test.cpp
 BIN = test.out
 LIB = #link your libs here
-OPT = -pipe -std=c++2a -O3 -march=native -pthread -fopenmp -fopenacc
+OPT = -pipe -std=c++20 -O3 -march=native -pthread -fopenmp -fopenacc
 ERR = -Wall -Wextra -pedantic -Werror -pedantic-errors -Wfatal-errors -Wno-unused
 WRN = -Wnull-dereference -Wsign-conversion -Wconversion -Wshadow -Wcast-align -Wuseless-cast
-DBG = -D_GLIBCXX_DEBUG -fsanitize=undefined -fsanitize=address
-FLG = $(OPT) $(LIB) $(ERR) $(WRN) #$(DBG)
+FLG = $(OPT) $(LIB) $(ERR) $(WRN)
 #
-.PHONY: all test
+.PHONY: all clear test
 #
 all:
 	@clear
 	@clear
 	@time -f "[ %es ]" g++ $(SRC) -o $(BIN) $(FLG)
-	@sudo rm -rf *~ *.o
 #
-test: all
+clear:
+	@sudo rm -rf *~ *.o $(BIN)
+#
+test: clear all
 	@sudo chown `whoami`:`whoami` $(BIN)
 	@sudo chmod u=rwX,go=rX $(BIN)
 	@time -f "[ %es ]" ./$(BIN)
