@@ -19,7 +19,7 @@
 ########################################################################################################################
 #
 BIN = test
-SRC = test.cpp #$(wildcard *.cpp)
+SRC = test.cpp #$(wildcard *.cpp) #$(wildcard **/*.cpp)
 LIB = #link your libs here
 OBJ = $(SRC:.cpp=.o)
 DPS = $(OBJ:.o=.d)
