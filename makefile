@@ -22,7 +22,7 @@ SRC = test.cpp
 BIN = test.out
 LIB = #link your libs here
 OPT = -pipe -std=c++20 -O3 -march=native -pthread -fopenmp -fopenacc
-ERR = -Wall -Wextra -pedantic -Werror -pedantic-errors -Wfatal-errors -Wno-unused
+ERR = -Wall -Wextra -pedantic -Werror -pedantic-errors -Wfatal-errors -Wno-unused -Wno-vla
 WRN = -Wnull-dereference -Wsign-conversion -Wconversion -Wshadow -Wcast-align -Wuseless-cast
 FLG = $(OPT) $(LIB) $(ERR) $(WRN)
 #
