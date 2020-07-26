@@ -18,24 +18,51 @@
 # 
 ########################################################################################################################
 #
-SRC = test.cpp
-BIN = test.out
+BIN = test
+SRC = test.cpp #$(wildcard *.cpp)
 LIB = #link your libs here
+OBJ = $(SRC:.cpp=.o)
+DPS = $(OBJ:.o=.d)
 OPT = -pipe -std=c++20 -O3 -march=native -pthread -fopenmp -fopenacc
-ERR = -Wall -Wextra -pedantic -Werror -pedantic-errors -Wfatal-errors -Wno-unused -Wno-vla
+ERR = -Wall -Wextra -pedantic -Werror -pedantic-errors -Wfatal-errors
 WRN = -Wnull-dereference -Wsign-conversion -Wconversion -Wshadow -Wcast-align -Wuseless-cast
-FLG = $(OPT) $(LIB) $(ERR) $(WRN)
+WNO = -Wno-unused -Wno-vla
+DBG = -g -D_GLIBCXX_DEBUG -ftrapv -fsanitize=undefined -fsanitize=address
+FLG = $(OPT) $(LIB) $(ERR) $(WRN) $(WNO)
 #
-.PHONY: all clear test
+-include $(DPS)
+.PHONY: all clear auth debug whole test zip
 #
-all:
+all: $(OBJ)
 	@clear
 	@clear
-	@time -f "[ %es ]" g++ $(SRC) -o $(BIN) $(FLG)
+	@g++ $^ -o $(BIN) $(FLG) -flto -fuse-linker-plugin
+#
+%.o: %.cpp
+	@clear
+	@clear
+	@g++ -MMD $^ -c -o $@ $(FLG) -flto -fuse-linker-plugin
+#
+debug:
+	@clear
+	@clear
+	@time -f "[ %es ]" g++ $(SRC) -o $(BIN) $(FLG) $(DBG)
+#
+whole:
+	@clear
+	@clear
+	@time -f "[ %es ]" g++ $(SRC) -o $(BIN) $(FLG) -fwhole-program
 #
 clear:
-	@rm -rf *~ *.o $(BIN)
+	@sudo rm -rf *~ *.o *.d $(BIN)
 #
-test: clear all
+auth:
+	@sudo chown `whoami`:`whoami` $(BIN)
+	@sudo chmod u=rwX,go=rX $(BIN)
+#
+test: clear whole auth
 	@time -f "[ %es ]" ./$(BIN)
+#
+zip:
+	@sudo zip -q -r $(BIN).zip .
 #
