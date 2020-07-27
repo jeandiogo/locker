@@ -17,8 +17,8 @@
 # makefile
 # 
 # This is a generic makefile.
-# Assign your library link flags in the variable LIB, and your source code filenames in the variable SRC.
-# To compile all the source files in the current directory (and its subdirectories), uncomment the wildcard flags.
+# List your library link flags in the variable LIB, and your source code filenames in the variable SRC.
+# To include all the source files in the current directory (and its subdirectories), uncomment the wildcard flags.
 # 
 ########################################################################################################################
 #
