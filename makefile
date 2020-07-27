@@ -16,12 +16,15 @@
 # 
 # makefile
 # 
+# This is a generic makefile.
+# Assign your library link flags in the variable LIB, and your source code filenames in the variable SRC.
+# To compile all the source files in the current directory (and its subdirectories), uncomment the wildcard flags.
+# 
 ########################################################################################################################
 #
 LIB = #link your libs here
 BIN = test.out
-SRC = test.cpp
-#SRC = $(wildcard *.cpp) $(wildcard **/*.cpp)
+SRC = test.cpp #$(wildcard *.cpp) $(wildcard **/*.cpp)
 OBJ = $(SRC:.cpp=.o)
 DPS = $(OBJ:.o=.d)
 OPT = -pipe -std=c++20 -O3 -march=native -pthread -fopenmp -fopenacc
