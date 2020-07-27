@@ -47,7 +47,6 @@ auto safe_open(std::string const & filename, std::ios_base::openmode const mode)
 int main()
 {
 	int data = 0;
-	
 	std::string const filename = "test.txt";
 	safe_open(filename, std::fstream::out) << data << std::flush;
 	std::cout << "Process " << getpid() << " initialized \"" << filename << "\" with 0 and expects " << NUM_FORKS << std::endl;
@@ -75,12 +74,10 @@ int main()
 	}
 	
 	auto const guard = locker::lock_guard(filename);
-	
 	safe_open(filename, std::fstream::in) >> data;
 	auto const inc_data = data + 1;
 	safe_open(filename, std::fstream::out) << inc_data << std::flush;
 	std::cout << "Child " << getpid() << " read " << data << " and wrote " << inc_data << std::endl;
 	std::this_thread::sleep_for(std::chrono::milliseconds(50));
-	
 	return EXIT_SUCCESS;
 }
