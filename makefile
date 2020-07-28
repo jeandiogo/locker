@@ -20,7 +20,8 @@
 #
 LIB = #link your libs here
 BIN = test.out
-SRC = test.cpp #$(wildcard *.cpp)
+SRC = test.cpp
+#SRC = $(wildcard *.cpp)
 OBJ = $(SRC:.cpp=.o)
 DPS = $(OBJ:.o=.d)
 OPT = -pipe -std=c++20 -O3 -march=native -flto -pthread -fopenmp -fopenacc
