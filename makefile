@@ -18,16 +18,16 @@
 # 
 # This is a generic makefile.
 # List your library link flags in the variable LIB, and your source code filenames in the variable SRC.
-# To include all the source files in the current directory (and its subdirectories), uncomment the wildcard flags.
+# To include all the source files in the current directory, uncomment the wildcard flag.
 # 
 ########################################################################################################################
 #
 LIB = #link your libs here
 BIN = test.out
-SRC = test.cpp #$(wildcard *.cpp) $(wildcard **/*.cpp)
+SRC = test.cpp #$(wildcard *.cpp)
 OBJ = $(SRC:.cpp=.o)
 DPS = $(OBJ:.o=.d)
-OPT = -pipe -std=c++20 -O3 -march=native -pthread -fopenmp -fopenacc
+OPT = -pipe -std=c++20 -O3 -march=native -flto -pthread -fopenmp -fopenacc
 ERR = -Wall -Wextra -pedantic -Werror -pedantic-errors -Wfatal-errors
 WRN = -Wnull-dereference -Wsign-conversion -Wconversion -Wshadow -Wcast-align -Wuseless-cast
 WNO = -Wno-unused -Wno-vla
@@ -35,38 +35,30 @@ DBG = -g -D_GLIBCXX_DEBUG -ftrapv -fsanitize=undefined -fsanitize=address
 FLG = $(OPT) $(LIB) $(ERR) $(WRN) $(WNO)
 #
 -include $(DPS)
-.PHONY: all clear auth debug whole test zip
+.PHONY: all debug clear conf test
 #
 all: $(OBJ)
 	@clear
 	@clear
-	@g++ $^ -o $(BIN) $(FLG) -flto -fuse-linker-plugin
+	@g++ $^ -o $(BIN) $(FLG) -flto
 #
 %.o: %.cpp
 	@clear
 	@clear
-	@g++ -MMD $^ -c -o $@ $(FLG) -flto -fuse-linker-plugin
+	@g++ -MMD $^ -c -o $@ $(FLG) -flto
 #
 debug:
 	@clear
 	@clear
 	@time -f "[ %es ]" g++ $(SRC) -o $(BIN) $(FLG) $(DBG)
 #
-whole:
-	@clear
-	@clear
-	@time -f "[ %es ]" g++ $(SRC) -o $(BIN) $(FLG) -fwhole-program
-#
 clear:
 	@sudo rm -rf *~ *.o *.d $(BIN)
 #
-auth:
+conf:
 	@sudo chown `whoami`:`whoami` $(BIN)
 	@sudo chmod u=rwX,go=rX $(BIN)
 #
-test: clear whole auth
+test: clear all conf
 	@time -f "[ %es ]" ./$(BIN)
-#
-zip:
-	@sudo zip -q -r $(BIN).zip .
 #
