@@ -16,10 +16,6 @@
 # 
 # makefile
 # 
-# This is a generic makefile.
-# List your library link flags in the variable LIB, and your source code filenames in the variable SRC.
-# To include all the source files in the current directory, uncomment the wildcard flag.
-# 
 ########################################################################################################################
 #
 LIB = #link your libs here
@@ -31,34 +27,22 @@ OPT = -pipe -std=c++20 -O3 -march=native -flto -pthread -fopenmp -fopenacc
 ERR = -Wall -Wextra -pedantic -Werror -pedantic-errors -Wfatal-errors
 WRN = -Wnull-dereference -Wsign-conversion -Wconversion -Wshadow -Wcast-align -Wuseless-cast
 WNO = -Wno-unused -Wno-vla
-DBG = -g -D_GLIBCXX_DEBUG -ftrapv -fsanitize=undefined -fsanitize=address
 FLG = $(OPT) $(LIB) $(ERR) $(WRN) $(WNO)
 #
 -include $(DPS)
-.PHONY: all debug clear conf test
+.PHONY: all clear test
 #
 all: $(OBJ)
-	@clear
-	@clear
-	@g++ $^ -o $(BIN) $(FLG) -flto
+	@g++ $^ -o $(BIN) $(FLG)
 #
 %.o: %.cpp
 	@clear
 	@clear
-	@g++ -MMD $^ -c -o $@ $(FLG) -flto
-#
-debug:
-	@clear
-	@clear
-	@time -f "[ %es ]" g++ $(SRC) -o $(BIN) $(FLG) $(DBG)
+	@g++ -MMD $^ -c -o $@ $(FLG)
 #
 clear:
-	@sudo rm -rf *~ *.o *.d $(BIN)
+	@sudo rm -rf *~ *.o *.d
 #
-conf:
-	@sudo chown `whoami`:`whoami` $(BIN)
-	@sudo chmod u=rwX,go=rX $(BIN)
-#
-test: clear all conf
+test: clear all
 	@time -f "[ %es ]" ./$(BIN)
 #
