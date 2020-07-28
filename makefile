@@ -43,6 +43,6 @@ all: $(OBJ)
 clear:
 	@sudo rm -rf *~ *.o *.d
 #
-test: clear all
+test: all
 	@time -f "[ %es ]" ./$(BIN)
 #
