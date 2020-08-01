@@ -26,9 +26,10 @@ OBJ = $(SRC:.cpp=.o)
 DPS = $(OBJ:.o=.d)
 OPT = -std=c++20 -O3 -march=native -pipe -pthread -fopenmp -fopenacc
 ERR = -Wall -Wextra -pedantic -Werror -pedantic-errors -Wfatal-errors
-WRN = -Wnull-dereference -Wsign-conversion -Wconversion -Wshadow -Wcast-align -Wuseless-cast
+WRN = -Wnull-dereference -Wsign-conversion -Wconversion -Wshadow -Wcast-align=strict
+XTR = -Wzero-as-null-pointer-constant -Wuseless-cast
 WNO = -Wno-unused -Wno-vla
-FLG = $(OPT) $(LIB) $(ERR) $(WRN) $(WNO)
+FLG = $(OPT) $(LIB) $(ERR) $(WRN) $(XTR) $(WNO)
 #
 -include $(DPS)
 .PHONY: all clear test prof $(BIN)
