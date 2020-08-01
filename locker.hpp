@@ -51,7 +51,7 @@
 // 
 // locker::xflush("a.txt", my_vector);                                      //exclusively writes binary data to a file (data must be an std::vector of any type)
 // locker::xflush<true>("a.txt", my_vector);                                //use template argument to append data instead of overwrite
-// locker::xflush("a.txt", my_data_pointer, my_data_size);                  //one can also send a raw pointer (void *) and the length (in bytes) of the data to be written
+// locker::xflush("a.txt", my_data_pointer, my_data_size);                  //one can also send a raw void pointer and the length in bytes of the data to be written
 // 
 // locker::memory_map_t my_map = locker::xmap("a.txt");                     //exclusively maps a file to memory and returns a container that behaves like an array of unsigned chars
 // locker::memory_map_t my_map = locker::xmap<char>("a.txt");               //the type underlying the array can be chosen at instantiation via template argument
