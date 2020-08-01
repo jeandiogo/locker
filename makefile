@@ -24,7 +24,7 @@ SRC = test.cpp
 #SRC = $(wildcard *.cpp)
 OBJ = $(SRC:.cpp=.o)
 DPS = $(OBJ:.o=.d)
-OPT = -std=c++20 -O3 -march=native -pipe -pthread -fopenmp -fopenacc
+OPT = -std=c++20 -O3 -march=native -pipe -flto -pthread -fopenmp -fopenacc
 ERR = -Wall -Wextra -pedantic -Werror -pedantic-errors -Wfatal-errors
 WRN = -Wnull-dereference -Wsign-conversion -Wconversion -Wshadow -Wcast-align -Wuseless-cast
 WNO = -Wno-unused -Wno-vla
@@ -41,7 +41,7 @@ $(BIN): $(OBJ)
 %.o: %.cpp
 	@clear
 	@clear
-	@g++ -MMD -c $^ -o $@ $(FLG) -flto
+	@g++ -MMD -c $^ -o $@ $(FLG)
 #
 clear:
 	@sudo rm -rf *~ *.o *.d *.gcda $(BIN)
