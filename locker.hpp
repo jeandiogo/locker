@@ -510,6 +510,10 @@ class locker
 	
 	static auto xread(std::string const & filename)
 	{
+		if(!std::filesystem::exists(filename))
+		{
+			throw std::runtime_error("file \"" + filename + "\" does not exist");
+		}
 		lock(filename);
 		try
 		{
@@ -538,6 +542,10 @@ class locker
 	template <typename T>
 	static auto xread(std::string const & filename)
 	{
+		if(!std::filesystem::exists(filename))
+		{
+			throw std::runtime_error("file \"" + filename + "\" does not exist");
+		}
 		lock(filename);
 		try
 		{
