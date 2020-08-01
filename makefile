@@ -24,26 +24,28 @@ SRC = test.cpp
 #SRC = $(wildcard *.cpp)
 OBJ = $(SRC:.cpp=.o)
 DPS = $(OBJ:.o=.d)
-OPT = -pipe -std=c++20 -O3 -march=native -flto -pthread -fopenmp -fopenacc
+OPT = -std=c++20 -O3 -march=native -pipe -flto -pthread -fopenmp -fopenacc
 ERR = -Wall -Wextra -pedantic -Werror -pedantic-errors -Wfatal-errors
 WRN = -Wnull-dereference -Wsign-conversion -Wconversion -Wshadow -Wcast-align -Wuseless-cast
 WNO = -Wno-unused -Wno-vla
 FLG = $(OPT) $(LIB) $(ERR) $(WRN) $(WNO)
 #
 -include $(DPS)
-.PHONY: all clear test
+.PHONY: all clear test valgrind static zip
 #
-all: $(OBJ)
-	@g++ $^ -o $(BIN) $(FLG)
+all: $(BIN)
+#
+$(BIN): $(OBJ)
+	@g++ $^ -o $@ $(FLG)
 #
 %.o: %.cpp
 	@clear
 	@clear
-	@g++ -MMD $^ -c -o $@ $(FLG)
+	@g++ -MMD -c $^ -o $@ $(FLG)
 #
 clear:
 	@sudo rm -rf *~ *.o *.d
 #
-test: all
+test: clear all
 	@time -f "[ %es ]" ./$(BIN)
 #
