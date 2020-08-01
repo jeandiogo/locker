@@ -41,10 +41,10 @@ $(BIN): $(OBJ)
 %.o: %.cpp
 	@clear
 	@clear
-	@g++ -MMD -c $^ -o $@ $(FLG) -flto
+	@g++ $^ -MMD -c $(FLG) -flto
 #
 clear:
-	@sudo rm -rf *~ *.o *.d *.gcda $(BIN)
+	@sudo rm -rf *~ *.o *.d *.gch *.gcda $(BIN)
 #
 test: clear all
 	@time -f "[ %es ]" ./$(BIN)
