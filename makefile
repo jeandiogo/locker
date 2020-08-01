@@ -31,7 +31,7 @@ WNO = -Wno-unused -Wno-vla
 FLG = $(OPT) $(LIB) $(ERR) $(WRN) $(WNO)
 #
 -include $(DPS)
-.PHONY: all clear test valgrind static zip
+.PHONY: all clear test
 #
 all: $(BIN)
 #
