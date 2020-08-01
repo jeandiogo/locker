@@ -24,7 +24,7 @@ SRC = test.cpp
 #SRC = $(wildcard *.cpp)
 OBJ = $(SRC:.cpp=.o)
 DPS = $(OBJ:.o=.d)
-OPT = -std=c++20 -O3 -march=native -pipe -flto -pthread -fopenmp -fopenacc
+OPT = -std=c++20 -O3 -march=native -pipe -pthread -fopenmp -fopenacc
 ERR = -Wall -Wextra -pedantic -Werror -pedantic-errors -Wfatal-errors
 WRN = -Wnull-dereference -Wsign-conversion -Wconversion -Wshadow -Wcast-align -Wuseless-cast
 WNO = -Wno-unused -Wno-vla
@@ -36,16 +36,21 @@ FLG = $(OPT) $(LIB) $(ERR) $(WRN) $(WNO)
 all: $(BIN)
 #
 $(BIN): $(OBJ)
-	@g++ $^ -o $@ $(FLG)
+	@g++ $^ -o $@ $(FLG) -fuse-linker-plugin
 #
 %.o: %.cpp
 	@clear
 	@clear
-	@g++ -MMD -c $^ -o $@ $(FLG)
+	@g++ -MMD -c $^ -o $@ $(FLG) -flto
 #
 clear:
-	@sudo rm -rf *~ *.o *.d
+	@sudo rm -rf *~ *.o *.d *.gcda $(BIN)
 #
 test: clear all
 	@time -f "[ %es ]" ./$(BIN)
+#
+prof: clear
+	@g++ $(SRC) -o $(BIN) $(FLG) -fwhole-program -fprofile-generate
+	@./$(BIN)
+	@g++ $(SRC) -o $(BIN) $(FLG) -fwhole-program -fprofile-use
 #
