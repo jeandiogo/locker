@@ -32,7 +32,7 @@ WNO = -Wno-unused -Wno-vla
 FLG = $(OPT) $(LIB) $(ERR) $(WRN) $(XTR) $(WNO)
 #
 -include $(DPS)
-.PHONY: all clear test prof $(BIN)
+.PHONY: all clear auth test prof $(BIN)
 #
 all: $(BIN)
 #
@@ -46,6 +46,10 @@ $(BIN): $(OBJ)
 #
 clear:
 	@sudo rm -rf *~ *.o *.d *.gch *.gcda $(BIN)
+#
+auth:
+	@sudo chown -R `whoami`:`whoami` $(BIN)
+	@sudo chmod -R u=rwX,go=rX $(BIN)
 #
 test: all
 	@time -f "[ %es ]" ./$(BIN)
