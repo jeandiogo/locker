@@ -24,7 +24,7 @@ SRC = test.cpp
 #SRC = $(wildcard *.cpp)
 OBJ = $(SRC:.cpp=.o)
 DPS = $(OBJ:.o=.d)
-OPT = -std=c++20 -O3 -march=native -pipe -flto -pthread -fopenmp -fopenacc
+OPT = -pipe -std=c++20 -O3 -march=native -flto -pthread -fopenmp -fopenacc
 ERR = -Wall -Wextra -pedantic -Werror -pedantic-errors -Wfatal-errors -Wcast-align=strict -Wpacked
 WRN = -Wnull-dereference -Wcast-qual -Wconversion -Wsign-conversion -Warith-conversion -Wshadow
 XTR = -Wundef -Wunknown-pragmas -Wunused-parameter -Wuseless-cast -Wfloat-equal
@@ -47,10 +47,11 @@ $(BIN): $(OBJ)
 clear:
 	@sudo rm -rf *~ *.o *.d *.gch *.gcda $(BIN)
 #
-test: clear all
+test: all
 	@time -f "[ %es ]" ./$(BIN)
 #
 prof: clear
 	@g++ $(SRC) -o $(BIN) $(FLG) -fwhole-program -fprofile-generate
 	@./$(BIN)
 	@g++ $(SRC) -o $(BIN) $(FLG) -fwhole-program -fprofile-use
+#
