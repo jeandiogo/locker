@@ -32,7 +32,7 @@ WNO = -Wno-unused -Wno-vla
 FLG = $(OPT) $(LIB) $(ERR) $(WRN) $(XTR) $(WNO)
 #
 -include $(DPS)
-.PHONY: all clear auth test prof $(BIN)
+.PHONY: all clear auth test prof val $(BIN)
 #
 all: $(BIN)
 #
@@ -58,4 +58,7 @@ prof: clear
 	@g++ $(SRC) -o $(BIN) $(FLG) -fwhole-program -fprofile-generate
 	@./$(BIN)
 	@g++ $(SRC) -o $(BIN) $(FLG) -fwhole-program -fprofile-use
+#
+val: all
+	@valgrind -v --leak-check=full --show-leak-kinds=all --track-origins=yes --expensive-definedness-checks=yes --trace-children=yes --track-fds=yes ./$(BIN)
 #
