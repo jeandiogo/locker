@@ -38,7 +38,7 @@ locker::lock_guard_t my_lock = locker::lock_guard("a.lock");             //locks
 locker::lock_guard_t my_lock = locker::lock_guard("a.lock", "b.lock");   //locks multiple files and automatically unlocks them before leaving current scope
 locker::lock_guard_t my_lock = locker::lock_guard({"a.lock", "b.lock"}); //locks a initializer list or a vector of files and automatically unlocks them before leaving current scope
 
-std::string my_data = locker::xread("a.txt");                            //exclusively reads a file and returns its content as a string
+std::string my_data = locker::xread("a.txt");                            //exclusively reads a file and returns its content as a string (throws if file does not exist)
 std::vector<char> my_data = locker::xread<char>("a.txt");                //same, but returns content as a vector of char (or another user specified type)
 
 locker::xwrite("a.txt", my_data);                                        //exclusively writes formatted data to a file (data type must be insertable to std::fstream)
