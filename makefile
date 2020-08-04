@@ -24,14 +24,14 @@ SRC = $(wildcard *.cpp)
 OBJ = $(SRC:.cpp=.o)
 DPS = $(OBJ:.o=.d)
 OPT = -pipe -std=c++20 -O3 -march=native -flto -pthread -fopenmp -fopenacc
-ERR = -Wall -Wextra -pedantic -Werror -pedantic-errors -Wfatal-errors -Wcast-align=strict -Wpacked
+ERR = -Wall -Wextra -pedantic -Werror -pedantic-errors -Wfatal-errors
 WRN = -Wnull-dereference -Wcast-qual -Wconversion -Wsign-conversion -Warith-conversion -Wshadow
-XTR = -Wundef -Wunknown-pragmas -Wunused-parameter -Wuseless-cast -Wfloat-equal
+XTR = -Wcast-align=strict -Wpacked -Wundef -Wunknown-pragmas -Wunused-parameter -Wuseless-cast -Wfloat-equal
 WNO = -Wno-unused -Wno-vla
 FLG = $(OPT) $(LIB) $(ERR) $(WRN) $(XTR) $(WNO)
 #
 -include $(DPS)
-.PHONY: all clear auth test prof val $(BIN)
+.PHONY: all clear test $(BIN)
 #
 all: $(BIN)
 #
@@ -46,18 +46,6 @@ $(BIN): $(OBJ)
 clear:
 	@sudo rm -rf *~ *.o *.d *.gch *.gcda $(BIN)
 #
-auth:
-	@sudo chown -R `whoami`:`whoami` $(BIN)
-	@sudo chmod -R u=rwX,go=rX $(BIN)
-#
 test: all
 	@time -f "[ %es ]" ./$(BIN)
-#
-prof: clear
-	@g++ $(SRC) -o $(BIN) $(FLG) -fwhole-program -fprofile-generate
-	@./$(BIN)
-	@g++ $(SRC) -o $(BIN) $(FLG) -fwhole-program -fprofile-use
-#
-val:
-	@valgrind -v --leak-check=full --show-leak-kinds=all --track-origins=yes --expensive-definedness-checks=yes --trace-children=yes --track-fds=yes ./$(BIN)
 #
