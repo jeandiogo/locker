@@ -24,11 +24,10 @@ SRC = $(wildcard *.cpp)
 OBJ = $(SRC:.cpp=.o)
 DPS = $(OBJ:.o=.d)
 OPT = -pipe -std=c++20 -O3 -march=native -flto -pthread -fopenmp -fopenacc
-ERR = -Wall -Wextra -pedantic -Werror -pedantic-errors -Wfatal-errors
-WRN = -Wnull-dereference -Wcast-qual -Wconversion -Wsign-conversion -Warith-conversion -Wshadow
-XTR = -Wcast-align=strict -Wpacked -Wundef -Wunknown-pragmas -Wunused-parameter -Wuseless-cast -Wfloat-equal
+WRN = -Wall -Wextra -pedantic -Werror -pedantic-errors -Wfatal-errors -Wsuggest-final-types -Wsuggest-final-methods -Wsuggest-override -Wzero-as-null-pointer-constant
+XTR = -Wcast-align=strict -Wpacked -Wundef -Wcast-qual -Wnull-dereference -Wshadow -Wsign-compare -Wconversion -Wsign-conversion -Warith-conversion -Wunused-parameter -Wuseless-cast -Wfloat-equal
 WNO = -Wno-unused -Wno-vla
-FLG = $(OPT) $(LIB) $(ERR) $(WRN) $(XTR) $(WNO)
+FLG = $(OPT) $(LIB) $(WRN) $(XTR) $(WNO)
 #
 -include $(DPS)
 .PHONY: all clear test $(BIN)
