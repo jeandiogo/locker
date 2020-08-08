@@ -137,7 +137,7 @@ class locker
 		}
 	};
 	
-	template <typename data_t>
+	template <typename data_t, std::enable_if_t<std::is_integral_v<data_t>> * dummy = nullptr>
 	class [[nodiscard]] memory_map_t
 	{
 		std::string filename;
@@ -166,7 +166,7 @@ class locker
 				{
 					throw std::runtime_error("could not get size of \"" + filename + "\"");
 				}
-				file_size = static_cast<std::size_t>(file_status.st_size);
+				file_size = static_cast<std::size_t>(file_status.st_size / static_cast<int>(sizeof(data_t)));
 				file_data = static_cast<data_t *>(mmap(nullptr, file_size, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_POPULATE, file_descriptor, 0));
 				if(!file_data)
 				{
