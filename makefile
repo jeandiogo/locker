@@ -30,7 +30,7 @@ WNO = -Wno-vla -Wno-unused
 FLG = $(OPT) $(LIB) $(WRN) $(XTR) $(WNO)
 #
 -include $(DPS)
-.PHONY: all clear test $(BIN)
+.PHONY: all test clear profile valgrind permissions zip $(BIN)
 #
 all: $(BIN)
 #
@@ -42,9 +42,24 @@ $(BIN): $(OBJ)
 	@clear
 	@g++ $^ -MMD -c $(FLG)
 #
+test: all
+	@time -f "[ %es ]" ./$(BIN)
+#
 clear:
 	@sudo rm -rf *~ *.o *.d *.gch *.gcda $(BIN)
 #
-test: all
-	@time -f "[ %es ]" ./$(BIN)
+profile: clear
+	@g++ $(SRC) -o $(BIN) $(FLG) -fwhole-program -fprofile-generate
+	@./$(BIN)
+	@g++ $(SRC) -o $(BIN) $(FLG) -fwhole-program -fprofile-use
+#
+valgrind: all
+	@valgrind -v --leak-check=full --show-leak-kinds=all --track-origins=yes --expensive-definedness-checks=yes --trace-children=yes --track-fds=yes ./$(BIN)
+#
+permissions:
+	@sudo chown -R `whoami`:`whoami` .
+	@sudo chmod -R u=rwX,go=rX .
+#
+zip: clear permissions
+	@sudo zip -q -r $(BIN).zip .
 #
