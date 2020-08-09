@@ -53,15 +53,16 @@
 // locker::xflush<true>("a.txt", my_vector);                                //use template argument to append data instead of overwrite
 // locker::xflush("a.txt", my_data_pointer, my_data_size);                  //one can also send a raw void pointer and the length in bytes of the data to be written
 // 
-// locker::memory_map_t my_map = locker::xmap("a.txt");                     //exclusively maps a file to memory and returns a container that behaves like an array, throws if file is does not exist or is not a regular file
-// locker::memory_map_t my_map = locker::xmap<char>("a.txt");               //the type underlying the array can be chosen at instantiation via template argument (must be an integral type), default is unsigned char
-// locker::memory_map_t my_map = locker::xmap<int>("a.txt");                //please note that trailing bytes will be ignored if the file size is not a multiple of the chosen type size
-// unsigned char my_var = my_map.at(N);                                     //gets the N-th byte as an unsigned char (or the type designated at instantiation), throws if file is smaller than or equal to N bytes
+// locker::memory_map_t my_map = locker::xmap("a.txt");                     //exclusively maps a file to memory and returns a container that behaves like an array, throws if file does not exist or is not a regular file
+// locker::memory_map_t my_map = locker::xmap<char>("a.txt");               //the type underlying the array can be designated at instantiation via template argument (must be an integral type), default is unsigned char
+// locker::memory_map_t my_map = locker::xmap<int>("a.txt");                //please note that trailing bytes will be ignored if size of file is not a multiple of the size of the designated type
+// unsigned char my_var = my_map.at(N);                                     //gets the N-th memory position of the file based on the size of designated type, throws if N excedess file's range
 // unsigned char my_var = my_map[N];                                        //same, but does not check range
-// my_map.at(N) = M;                                                        //assigns the value M to the N-th byte, throws if file is smaller than or equal to N bytes
+// my_map.at(N) = M;                                                        //assigns the value M to the N-th position, throws if N excedess file's range
 // my_map[N] = M;                                                           //same, but does not check range
-// std::size_t my_size = my_map.get_size();                                 //gets the size of the file
+// std::size_t my_size = my_map.get_size();                                 //gets the size of the array (which may not be the same as the size of the file)
 // std::size_t my_size = my_map.size();                                     //same as above, for STL compatibility
+// std::size_t my_size = my_map.get_file_size();                            //gets the size of the file (in bytes)
 // bool is_empty = my_map.is_empty();                                       //returns true if map is ampty
 // bool is_empty = my_map.empty();                                          //same as above, for STL compatibility
 // unsigned char * my_data = my_map.get_data();                             //gets a raw pointer to file's data, whose underlying type is unsigned char (or the one designated at instantiation)
