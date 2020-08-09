@@ -51,6 +51,7 @@ locker::xflush("a.txt", my_data_pointer, my_data_size);                  //one c
 
 locker::memory_map_t my_map = locker::xmap("a.txt");                     //exclusively maps a file to memory and returns a container that behaves like an array, throws if file is does not exist or is not a regular file
 locker::memory_map_t my_map = locker::xmap<char>("a.txt");               //the type underlying the array can be chosen at instantiation via template argument (must be an integral type), default is unsigned char
+locker::memory_map_t my_map = locker::xmap<int>("a.txt");                //please note that trailing bytes will be ignored if the file size is not a multiple of the chosen type size
 unsigned char my_var = my_map.at(N);                                     //gets the N-th byte as an unsigned char (or the type designated at instantiation), throws if file is smaller than or equal to N bytes
 unsigned char my_var = my_map[N];                                        //same, but does not check range
 my_map.at(N) = M;                                                        //assigns the value M to the N-th byte, throws if file is smaller than or equal to N bytes
