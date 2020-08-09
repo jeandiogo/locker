@@ -53,8 +53,9 @@
 // locker::xflush<true>("a.txt", my_vector);                                //use template argument to append data instead of overwrite
 // locker::xflush("a.txt", my_data_pointer, my_data_size);                  //one can also send a raw void pointer and the length in bytes of the data to be written
 // 
-// locker::memory_map_t my_map = locker::xmap("a.txt");                     //exclusively maps a file to memory and returns a container that behaves like an array of unsigned chars
-// locker::memory_map_t my_map = locker::xmap<char>("a.txt");               //the type underlying the array can be chosen at instantiation via template argument (must be an integral type)
+// locker::memory_map_t my_map = locker::xmap("a.txt");                     //exclusively maps a file to memory and returns a container that behaves like an array, throws if file is does not exist or is not a regular file
+// locker::memory_map_t my_map = locker::xmap<char>("a.txt");               //the type underlying the array can be chosen at instantiation via template argument (must be an integral type), default is unsigned char
+// locker::memory_map_t my_map = locker::xmap<int>("a.txt");                //please note that trailing bytes will be ignored if the file size is not a multiple of the chosen type size
 // unsigned char my_var = my_map.at(N);                                     //gets the N-th byte as an unsigned char (or the type designated at instantiation), throws if file is smaller than or equal to N bytes
 // unsigned char my_var = my_map[N];                                        //same, but does not check range
 // my_map.at(N) = M;                                                        //assigns the value M to the N-th byte, throws if file is smaller than or equal to N bytes
@@ -87,6 +88,7 @@
 #include <stdexcept>
 #include <string>
 #include <thread>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
@@ -137,13 +139,13 @@ class locker
 		}
 	};
 	
-	template <typename data_t, std::enable_if_t<std::is_integral_v<data_t>> * dummy = nullptr>
+	template <typename data_t = unsigned char, std::enable_if_t<std::is_integral_v<data_t>> * dummy = nullptr>
 	class [[nodiscard]] memory_map_t
 	{
-		std::string filename;
-		int file_descriptor;
-		std::size_t file_size;
-		data_t * file_data;
+		std::string filename = "";
+		int file_descriptor = -1;
+		std::size_t file_size = 0;
+		data_t * file_data = nullptr;
 		
 		public:
 		
@@ -156,6 +158,10 @@ class locker
 		{
 			if(true)
 			{
+				if(filename.empty() or !std::filesystem::exists(filename) or !std::filesystem::is_regular_file(std::filesystem::status(filename)))
+				{
+					throw std::runtime_error("\"" + filename + "\" is not a regular file");
+				}
 				auto const guard = std::scoped_lock<std::mutex>(get_singleton().descriptors_mutex);
 				file_descriptor = unsafe_try_lock<true>(filename);
 			}
@@ -166,7 +172,7 @@ class locker
 				{
 					throw std::runtime_error("could not get size of \"" + filename + "\"");
 				}
-				file_size = static_cast<std::size_t>(file_status.st_size / static_cast<int>(sizeof(data_t)));
+				file_size = static_cast<std::size_t>(file_status.st_size / static_cast<off_t>(sizeof(data_t)));
 				file_data = static_cast<data_t *>(mmap(nullptr, file_size, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_POPULATE, file_descriptor, 0));
 				if(!file_data)
 				{
@@ -176,6 +182,10 @@ class locker
 			catch(...)
 			{
 				unlock(filename);
+				file_data = nullptr;
+				file_size = 0;
+				file_descriptor = -1;
+				filename = "";
 				throw;
 			}
 		}
@@ -185,6 +195,10 @@ class locker
 			msync(file_data, file_size, MS_SYNC);
 			munmap(file_data, file_size);
 			unlock(filename);
+			file_data = nullptr;
+			file_size = 0;
+			file_descriptor = -1;
+			filename = "";
 		}
 		
 		auto & operator[](std::size_t const index)
@@ -331,7 +345,7 @@ class locker
 	{
 		if(!std::filesystem::exists(raw_filename))
 		{
-			throw std::runtime_error("could not find lockfile " + raw_filename);
+			throw std::runtime_error("could not find lockfile \"" + raw_filename + "\"");
 		}
 		std::string const filename = std::filesystem::canonical(raw_filename);
 		auto & descriptors = get_singleton().descriptors;
