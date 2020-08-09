@@ -60,9 +60,8 @@
 // unsigned char my_var = my_map[N];                                        //same, but does not check range
 // my_map.at(N) = M;                                                        //assigns the value M to the N-th position, throws if N excedess file's range
 // my_map[N] = M;                                                           //same, but does not check range
-// std::size_t my_size = my_map.get_size();                                 //gets the size of the array (which may not be the same as the size of the file)
+// std::size_t my_size = my_map.get_size();                                 //gets the size of the array (which is size of file divided by size of the array underlying type)
 // std::size_t my_size = my_map.size();                                     //same as above, for STL compatibility
-// std::size_t my_size = my_map.get_file_size();                            //gets the size of the file (in bytes)
 // bool is_empty = my_map.is_empty();                                       //returns true if map is ampty
 // bool is_empty = my_map.empty();                                          //same as above, for STL compatibility
 // unsigned char * my_data = my_map.get_data();                             //gets a raw pointer to file's data, whose underlying type is unsigned char (or the one designated at instantiation)
@@ -145,8 +144,8 @@ class locker
 	{
 		std::string filename = "";
 		int file_descriptor = -1;
-		std::size_t file_size = 0;
-		data_t * file_data = nullptr;
+		std::size_t data_size = 0;
+		data_t * data_ptr = nullptr;
 		
 		public:
 		
@@ -173,9 +172,9 @@ class locker
 				{
 					throw std::runtime_error("could not get size of \"" + filename + "\"");
 				}
-				file_size = static_cast<std::size_t>(file_status.st_size / static_cast<off_t>(sizeof(data_t)));
-				file_data = static_cast<data_t *>(mmap(nullptr, file_size, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_POPULATE, file_descriptor, 0));
-				if(!file_data)
+				data_size = static_cast<std::size_t>(file_status.st_size / static_cast<off_t>(sizeof(data_t)));
+				data_ptr = static_cast<data_t *>(mmap(nullptr, data_size, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_POPULATE, file_descriptor, 0));
+				if(!data_ptr)
 				{
 					throw std::runtime_error("could not map file \"" + filename + "\" to memory");
 				}
@@ -183,8 +182,8 @@ class locker
 			catch(...)
 			{
 				unlock(filename);
-				file_data = nullptr;
-				file_size = 0;
+				data_ptr = nullptr;
+				data_size = 0;
 				file_descriptor = -1;
 				filename = "";
 				throw;
@@ -193,76 +192,76 @@ class locker
 		
 		~memory_map_t()
 		{
-			msync(file_data, file_size, MS_SYNC);
-			munmap(file_data, file_size);
+			msync(data_ptr, data_size, MS_SYNC);
+			munmap(data_ptr, data_size);
 			unlock(filename);
-			file_data = nullptr;
-			file_size = 0;
+			data_ptr = nullptr;
+			data_size = 0;
 			file_descriptor = -1;
 			filename = "";
 		}
 		
 		auto & operator[](std::size_t const index)
 		{
-			return file_data[index];
+			return data_ptr[index];
 		}
 		
 		auto const & operator[](std::size_t const index) const
 		{
-			return file_data[index];
+			return data_ptr[index];
 		}
 		
 		auto & at(std::size_t const index)
 		{
-			if(index >= file_size)
+			if(index >= data_size)
 			{
-				throw std::runtime_error("index " + std::to_string(index) + " is out of the range [0, " + std::to_string(file_size) + "[ of \"" + filename + "\"");
+				throw std::runtime_error("index " + std::to_string(index) + " is out of the range");
 			}
-			return file_data[index];
+			return data_ptr[index];
 		}
 		
 		auto const & at(std::size_t const index) const
 		{
-			if(index >= file_size)
+			if(index >= data_size)
 			{
-				throw std::runtime_error("index " + std::to_string(index) + " is out of the range [0, " + std::to_string(file_size) + "[ of \"" + filename + "\"");
+				throw std::runtime_error("index " + std::to_string(index) + " is out of the range");
 			}
-			return file_data[index];
+			return data_ptr[index];
 		}
 		
 		auto get_data() const
 		{
-			return file_data;
+			return data_ptr;
 		}
 		
 		auto data() const
 		{
-			return file_data;
+			return data_ptr;
 		}
 		
 		auto get_size() const
 		{
-			return file_size;
+			return data_size;
 		}
 		
 		auto size() const
 		{
-			return file_size;
+			return data_size;
 		}
 		
 		auto is_empty() const
 		{
-			return (file_size == 0);
+			return (data_size == 0);
 		}
 		
 		auto empty() const
 		{
-			return (file_size == 0);
+			return (data_size == 0);
 		}
 		
 		auto flush()
 		{
-			return (msync(file_data, file_size, MS_SYNC) >= 0);
+			return (msync(data_ptr, data_size, MS_SYNC) >= 0);
 		}
 	};
 	
