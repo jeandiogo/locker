@@ -163,7 +163,7 @@ class locker
 					throw std::runtime_error("\"" + filename + "\" is not a regular file");
 				}
 				auto const guard = std::scoped_lock<std::mutex>(get_singleton().descriptors_mutex);
-				file_descriptor = unsafe_try_lock<true>(filename);
+				file_descriptor = unsafe_try_lock<true>(filename); //open(filename.c_str(), O_RDWR, 0666);
 			}
 			try
 			{
@@ -181,7 +181,7 @@ class locker
 			}
 			catch(...)
 			{
-				unlock(filename);
+				unlock(filename); //close(filename.c_str());
 				data_ptr = nullptr;
 				data_size = 0;
 				file_descriptor = -1;
