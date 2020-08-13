@@ -23,7 +23,7 @@ BIN = test.out
 SRC = $(wildcard *.cpp)
 OBJ = $(SRC:.cpp=.o)
 DPS = $(OBJ:.o=.d)
-OPT = -pipe -std=c++20 -O3 -march=native -flto -pthread -fopenmp -fopenacc
+OPT = -pipe -std=c++20 -O3 -march=native -flto -pthread -fopenmp -fopenacc -fPIC
 WRN = -Wall -Wextra -pedantic -Werror -pedantic-errors -Wfatal-errors -Wsuggest-final-types -Wsuggest-final-methods -Wsuggest-override
 XTR = -Wcast-align=strict -Wpacked -Wundef -Wcast-qual -Wnull-dereference -Wshadow -Wsign-compare -Wconversion -Wsign-conversion -Warith-conversion -Wfloat-equal -Wuseless-cast
 WNO = -Wno-vla -Wno-unused
