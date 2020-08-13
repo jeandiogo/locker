@@ -46,7 +46,7 @@ test: all
 	@time -f "[ %es ]" ./$(BIN)
 #
 clear:
-	@sudo rm -rf *~ *.o *.d *.gch *.gcda $(BIN)
+	@sudo rm -rf *~ *.o *.d *.gch *.gcda *.gcno $(BIN)
 #
 profile: clear
 	@g++ $(SRC) -o $(BIN) $(FLG) -fwhole-program -fprofile-generate
