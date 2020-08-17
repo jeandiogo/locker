@@ -42,8 +42,10 @@
 // locker::lock_guard_t my_lock = locker::lock_guard("a.lock", "b.lock");   //locks multiple files and automatically unlocks them before leaving current scope
 // locker::lock_guard_t my_lock = locker::lock_guard({"a.lock", "b.lock"}); //locks a initializer list or a vector of files and automatically unlocks them before leaving current scope
 // 
-// std::string my_data = locker::xread("a.txt");                            //exclusively reads a file and returns its content as a string (throws if file does not exist)
-// std::vector<char> my_data = locker::xread<char>("a.txt");                //same, but returns content as a vector of char (or another user specified type)
+// std::string       my_data = locker::xread("a.txt");                      //exclusively reads a file (throws if file does not exist) and returns its content as a string (trailing newlines are removed)
+// std::vector<char> my_data = locker::xread<char>("a.txt");                //same, but does not remove trailing newlines and return content as a vector of user specified type (must be an integral type)
+// std::vector<int>  my_data = locker::xread<int>("a.txt");                 //note that trailing bytes will be ignored if the file size is not a multiple of the chosen type size
+// std::vector<long> my_data = locker::xread<long>("a.txt");                //also note that traling newlines may be included if they turn the file size into a multiple of the type size
 // 
 // locker::xwrite("a.txt", my_data);                                        //exclusively writes formatted data to a file (data type must be insertable to std::fstream)
 // locker::xwrite("a.txt", "value", ':', 42);                               //exclusively writes multiple data to a file
@@ -529,6 +531,7 @@ class locker
 			throw std::runtime_error("file \"" + filename + "\" does not exist");
 		}
 		lock(filename);
+		std::string data;
 		try
 		{
 			auto input = std::fstream(filename, std::fstream::in | std::fstream::ate);
@@ -536,24 +539,24 @@ class locker
 			{
 				throw std::runtime_error("could not open file \"" + filename + "\" for input");
 			}
-			auto data = std::string(static_cast<std::size_t>(input.tellg()), '\n');
+			data.resize(static_cast<std::size_t>(input.tellg()), '\n');
 			input.seekg(0);
 			input.read(data.data(), static_cast<long>(data.size()));
-			unlock(filename);
 			while(data.size() and data.back() == '\n')
 			{
 				data.pop_back();
 			}
-			return data;
 		}
 		catch(...)
 		{
 			unlock(filename);
 			throw;
 		}
+		unlock(filename);
+		return data;
 	}
-	
-	template <typename T>
+
+	template <typename T, std::enable_if_t<std::is_integral_v<T>> * dummy = nullptr>
 	static auto xread(std::string const & filename)
 	{
 		if(!std::filesystem::exists(filename))
@@ -561,6 +564,7 @@ class locker
 			throw std::runtime_error("file \"" + filename + "\" does not exist");
 		}
 		lock(filename);
+		std::vector<T> data;
 		try
 		{
 			auto input = std::fstream(filename, std::fstream::in | std::fstream::ate | std::fstream::binary);
@@ -568,23 +572,19 @@ class locker
 			{
 				throw std::runtime_error("could not open file \"" + filename + "\" for binary input");
 			}
-			auto data = std::vector<T>(static_cast<std::size_t>(input.tellg()));
+			data.resize(static_cast<std::size_t>(input.tellg()) / sizeof(T));
 			input.seekg(0);
 			input.read(reinterpret_cast<char *>(data.data()), static_cast<long>(data.size() * sizeof(T)));
-			unlock(filename);
-			while(data.size() and data.back() == '\n')
-			{
-				data.pop_back();
-			}
-			return data;
 		}
 		catch(...)
 		{
 			unlock(filename);
 			throw;
 		}
+		unlock(filename);
+		return data;
 	}
-	
+
 	template <bool should_append = false, typename ... TS>
 	static auto xwrite(std::string const & filename, TS && ... data)
 	{
@@ -602,44 +602,44 @@ class locker
 				throw std::runtime_error("could not open file \"" + filename + "\" for output");
 			}
 			(output << ... << std::forward<TS>(data)) << std::flush;
-			unlock(filename);
 		}	
 		catch(...)
 		{
 			unlock(filename);
 			throw;
 		}
+		unlock(filename);
 	}
-	
+
 	template <bool should_append = false, typename T>
 	static auto xflush(std::string const & filename, std::vector<T> const & data)
 	{
 		lock(filename);
 		try
 		{
-			auto flag = std::fstream::binary;
+			auto flag = std::fstream::out | std::fstream::binary;
 			if constexpr(should_append)
 			{
 				flag |= std::fstream::app;
 			}
-			auto output = std::ofstream(filename, flag);
+			auto output = std::fstream(filename, flag);
 			if(!output.good())
 			{
 				throw std::runtime_error("could not open file \"" + filename + "\" for binary output");
 			}
 			output.write(reinterpret_cast<char const *>(data.data()), static_cast<std::streamsize>(data.size() * sizeof(T)));
 			output.flush();
-			unlock(filename);
 		}	
 		catch(...)
 		{
 			unlock(filename);
 			throw;
 		}
+		unlock(filename);
 	}
-	
+
 	template <bool should_append = false>
-	static auto xflush(std::string const & filename, void * data, std::size_t size)
+	static auto xflush(std::string const & filename, void * data, std::size_t const size)
 	{
 		lock(filename);
 		try
@@ -656,12 +656,12 @@ class locker
 			}
 			output.write(static_cast<char *>(data), static_cast<std::streamsize>(size));
 			output.flush();
-			unlock(filename);
 		}	
 		catch(...)
 		{
 			unlock(filename);
 			throw;
 		}
+		unlock(filename);
 	}
 };
