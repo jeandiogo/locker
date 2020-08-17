@@ -38,9 +38,9 @@ locker::lock_guard_t my_lock = locker::lock_guard("a.lock");             //locks
 locker::lock_guard_t my_lock = locker::lock_guard("a.lock", "b.lock");   //locks multiple files and automatically unlocks them before leaving current scope
 locker::lock_guard_t my_lock = locker::lock_guard({"a.lock", "b.lock"}); //locks a initializer list or a vector of files and automatically unlocks them before leaving current scope
 
-std::string       my_data = locker::xread("a.txt");                      //exclusively reads a file (throws if file does not exist) and returns its content as a string (trailing newlines are removed)
+std::string my_data = locker::xread("a.txt");                            //exclusively reads a file (throws if file does not exist) and returns its content as a string (trailing newlines are removed)
 std::vector<char> my_data = locker::xread<char>("a.txt");                //same, but does not remove trailing newlines and return content as a vector of user specified type (must be an integral type)
-std::vector<int>  my_data = locker::xread<int>("a.txt");                 //note that trailing bytes will be ignored if the file size is not a multiple of the chosen type size
+std::vector<int> my_data = locker::xread<int>("a.txt");                  //note that trailing bytes will be ignored if the file size is not a multiple of the chosen type size
 std::vector<long> my_data = locker::xread<long>("a.txt");                //also note that traling newlines may be included if they turn the file size into a multiple of the type size
 
 locker::xwrite("a.txt", my_data);                                        //exclusively writes formatted data to a file (data type must be insertable to std::fstream)
