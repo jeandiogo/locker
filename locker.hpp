@@ -51,7 +51,7 @@
 // locker::xwrite("a.txt", "value", ':', 42);                               //exclusively writes multiple data to a file
 // locker::xwrite<true>("a.txt", "order", ':', 66);                         //use template argument to append data instead of overwrite
 // 
-// locker::xflush("a.txt", my_vector);                                      //exclusively writes binary data to a file (data must be an std::vector of any type)
+// locker::xflush("a.txt", my_vector);                                      //exclusively writes binary data to a file (data must be an std::vector of any integral type)
 // locker::xflush<true>("a.txt", my_vector);                                //use template argument to append data instead of overwrite
 // locker::xflush("a.txt", my_data_pointer, my_data_size);                  //one can also send a raw void pointer and the length in bytes of the data to be written
 // 
