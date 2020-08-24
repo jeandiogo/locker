@@ -39,7 +39,7 @@ locker::lock_guard_t my_lock = locker::lock_guard("a.lock", "b.lock");   //locks
 locker::lock_guard_t my_lock = locker::lock_guard({"a.lock", "b.lock"}); //locks a initializer list or a vector of files and automatically unlocks them before leaving current scope
 
 std::string my_data = locker::xread("a.txt");                            //exclusively reads a file (throws if file does not exist) and returns its content as a string (trailing newlines are removed)
-std::vector<char> my_data = locker::xread<char>("a.txt");                //same, but does not remove trailing newlines and return content as a vector of user specified type (must be an integral type)
+std::vector<char> my_data = locker::xread<char>("a.txt");                //same, but does not remove trailing newlines and return content as a vector of user specified type (must be an arithmetic type)
 std::vector<int> my_data = locker::xread<int>("a.txt");                  //note that trailing bytes will be ignored if the file size is not a multiple of the chosen type size
 std::vector<long> my_data = locker::xread<long>("a.txt");                //also note that traling newlines may be included if they turn the file size into a multiple of the type size
 
@@ -47,12 +47,12 @@ locker::xwrite("a.txt", my_data);                                        //exclu
 locker::xwrite("a.txt", "value", ':', 42);                               //exclusively writes multiple data to a file
 locker::xwrite<true>("a.txt", "order", ':', 66);                         //use template argument to append data instead of overwrite
 
-locker::xflush("a.txt", my_vector);                                      //exclusively writes binary data to a file (data must be an std::vector of any integral type)
+locker::xflush("a.txt", my_vector);                                      //exclusively writes binary data to a file (data must be an std::vector of any arithmetic type)
 locker::xflush<true>("a.txt", my_vector);                                //use template argument to append data instead of overwrite
 locker::xflush("a.txt", my_data_pointer, my_data_size);                  //one can also send a raw void pointer and the length in bytes of the data to be written
 
 locker::memory_map_t my_map = locker::xmap("a.txt");                     //exclusively maps a file to memory and returns a container that behaves like an array, throws if file does not exist or is not a regular file
-locker::memory_map_t my_map = locker::xmap<char>("a.txt");               //the type underlying the array can be designated at instantiation via template argument (must be an integral type), default is unsigned char
+locker::memory_map_t my_map = locker::xmap<char>("a.txt");               //the type underlying the array can be designated at instantiation via template argument (must be an arithmetic type), default is unsigned char
 locker::memory_map_t my_map = locker::xmap<int>("a.txt");                //note that trailing bytes will be ignored if size of file is not a multiple of the size of the designated type
 unsigned char my_var = my_map.at(N);                                     //gets the N-th memory position of the file based on the size of designated type, throws if N excedess file's range
 unsigned char my_var = my_map[N];                                        //same, but does not check range
