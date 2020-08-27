@@ -46,6 +46,7 @@
 // std::vector<char> my_data = locker::xread<char>("a.txt");                //same, but does not remove trailing newlines and return content as a vector of user specified type
 // std::vector<int> my_data = locker::xread<int>("a.txt");                  //note that trailing bytes will be ignored if the file size is not a multiple of the chosen type size
 // std::vector<long> my_data = locker::xread<long>("a.txt");                //also note that traling newlines may be included if they turn the file size into a multiple of the type size
+// locker::xread("a.txt", my_container);                                    //open input file exclusively and call the extraction operator once from the filestream to the container passed as argument
 // 
 // locker::xwrite("a.txt", my_data);                                        //exclusively writes formatted data to a file (data type must be insertable to std::fstream)
 // locker::xwrite("a.txt", "value", ':', 42);                               //exclusively writes multiple data to a file
@@ -585,6 +586,31 @@ class locker
 		return data;
 	}
 
+	template <typename T>
+	static auto xread(std::string const & filename, T & container)
+	{
+		if(!std::filesystem::exists(filename))
+		{
+			throw std::runtime_error("file \"" + filename + "\" does not exist");
+		}
+		lock(filename);
+		try
+		{
+			auto input = std::fstream(filename, std::fstream::in);
+			if(!input.good())
+			{
+				throw std::runtime_error("could not open file \"" + filename + "\" for input");
+			}
+			input >> container;
+		}
+		catch(...)
+		{
+			unlock(filename);
+			throw;
+		}
+		unlock(filename);
+	}
+
 	template <bool should_append = false, typename ... TS>
 	static auto xwrite(std::string const & filename, TS && ... data)
 	{
@@ -644,12 +670,12 @@ class locker
 		lock(filename);
 		try
 		{
-			auto flag = std::fstream::binary;
+			auto flag = std::fstream::out | std::fstream::binary;
 			if constexpr(should_append)
 			{
 				flag |= std::fstream::app;
 			}
-			auto output = std::ofstream(filename, flag);
+			auto output = std::fstream(filename, flag);
 			if(!output.good())
 			{
 				throw std::runtime_error("could not open file \"" + filename + "\" for binary output");
