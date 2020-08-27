@@ -24,8 +24,8 @@ SRC = $(wildcard *.cpp)
 OBJ = $(SRC:.cpp=.o)
 DPS = $(OBJ:.o=.d)
 OPT = -std=c++20 -O3 -march=native -pipe -flto -pthread -fopenmp -fopenacc -fPIC
-WRN = -Wall -Wextra -pedantic -Werror -pedantic-errors -Wfatal-errors -Wshadow -Wconversion -Wfloat-conversion -Wsign-conversion -Warith-conversion #-Wfloat-equal
-XTR = -Wcast-align=strict -Wnull-dereference -Wcast-qual -Wpacked -Wundef -Wold-style-cast -Wuseless-cast -Wredundant-tags -Wsuggest-final-types -Wsuggest-final-methods -Wsuggest-override
+WRN = -Wall -Wextra -pedantic -Werror -pedantic-errors -Wfatal-errors -Wshadow -Wconversion -Wfloat-conversion -Wsign-conversion -Warith-conversion -Wnull-dereference
+XTR = -Wcast-align=strict -Wcast-qual -Wpacked -Wundef -Wold-style-cast -Wuseless-cast -Wredundant-tags -Wsuggest-final-types -Wsuggest-final-methods -Wsuggest-override
 WNO = -Wno-vla -Wno-unused
 FLG = $(OPT) $(LIB) $(WRN) $(XTR) $(WNO)
 #
@@ -51,7 +51,7 @@ clear:
 profile: clear
 	@g++ $(SRC) -o $(BIN) $(FLG) -fwhole-program -fprofile-generate
 	@./$(BIN)
-	@g++ $(SRC) -o $(BIN) $(FLG) -fwhole-program -fprofile-use
+	@g++ $(SRC) -o $(BIN) $(FLG) -fwhole-program -fprofile-use -fprofile-correction
 #
 valgrind: all
 	@valgrind -v --leak-check=full --show-leak-kinds=all --track-origins=yes --expensive-definedness-checks=yes --trace-children=yes --track-fds=yes ./$(BIN)
