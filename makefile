@@ -60,6 +60,6 @@ perm:
 	@sudo chown -R `whoami`:`whoami` .
 	@sudo chmod -R u=rwX,go=rX .
 #
-zip: clear permissions
+zip: clear perm
 	@sudo zip -q -r $(BIN).zip .
 #
