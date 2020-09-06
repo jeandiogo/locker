@@ -35,12 +35,12 @@ FLG = $(OPT) $(LIB) $(WRN) $(XTR) $(WNO)
 all: $(BIN)
 #
 $(BIN): $(OBJ)
-	@g++ $^ -o $@ $(FLG) -fuse-linker-plugin
+	@g++ -o $@ $^ $(FLG) -fuse-linker-plugin
 #
 %.o: %.cpp
 	@clear
 	@clear
-	@g++ $^ -MMD -c $(FLG)
+	@g++ -o $@ $< -MMD -c $(FLG)
 #
 test: all
 	@time -f "[ %es ]" ./$(BIN)
