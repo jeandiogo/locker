@@ -42,7 +42,7 @@ std::string my_data = locker::xread("a.txt");                            //exclu
 std::vector<char> my_data = locker::xread<char>("a.txt");                //same, but does not remove trailing newlines and return content as a vector of user specified type
 std::vector<int> my_data = locker::xread<int>("a.txt");                  //note that trailing bytes will be ignored if the file size is not a multiple of the chosen type size
 std::vector<long> my_data = locker::xread<long>("a.txt");                //also note that traling newlines may be included if they turn the file size into a multiple of the type size
-locker::xread("a.txt", my_container);                                    //open input file exclusively and call the extraction operator once from the filestream to the container passed as argument
+locker::xread("a.txt", my_container);                                    //open input file exclusively as a std::fstream and call the extraction operator from it to the container passed as argument
 
 locker::xwrite("a.txt", my_data);                                        //exclusively writes formatted data to a file (data type must be insertable to std::fstream)
 locker::xwrite("a.txt", "value", ':', 42);                               //exclusively writes multiple data to a file
