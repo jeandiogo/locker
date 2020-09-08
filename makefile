@@ -22,14 +22,14 @@ LIB = #link your libs here
 BIN = test.out
 SRC = $(wildcard *.cpp)
 OBJ = $(SRC:.cpp=.o)
-DPS = $(OBJ:.o=.d)
+DEP = $(OBJ:.o=.d)
 OPT = -std=c++20 -O3 -march=native -pipe -flto -pthread -fopenmp -fopenacc -fPIC
 WRN = -Wall -Wextra -pedantic -Werror -pedantic-errors -Wfatal-errors -Wshadow -Wconversion -Wfloat-conversion -Wsign-conversion -Warith-conversion
 XTR = -Wnull-dereference -Wcast-align=strict -Wpacked -Wcast-qual -Wundef -Wsuggest-final-types -Wsuggest-final-methods -Wsuggest-override -Wuseless-cast
 WNO = -Wno-vla -Wno-unused
 FLG = $(OPT) $(LIB) $(WRN) $(XTR) $(WNO)
 #
--include $(DPS)
+-include $(DEP)
 .PHONY: all test clear profile valgrind permissions zip $(BIN)
 #
 all: $(BIN)
