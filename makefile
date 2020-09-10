@@ -24,8 +24,8 @@ SRC = $(wildcard *.cpp)
 OBJ = $(SRC:.cpp=.o)
 DEP = $(OBJ:.o=.d)
 OPT = -pipe -std=c++20 -O3 -march=native -pthread -fopenmp -fopenacc -flto -fPIC
-WRN = -Wall -Wextra -pedantic -Werror -pedantic-errors -Wfatal-errors -Wshadow -Wconversion -Wfloat-conversion -Wsign-conversion -Warith-conversion
-XTR = -Wnull-dereference -Wcast-align=strict -Wpacked -Wundef -Wcast-qual -Wuseless-cast -Wsuggest-final-types -Wsuggest-final-methods -Wsuggest-override
+WRN = -Wall -Wextra -pedantic -Werror -pedantic-errors -Wfatal-errors -Wnull-dereference -Wshadow -Wconversion -Wsign-conversion -Warith-conversion
+XTR = -Wcast-align=strict -Wpacked -Wundef -Wcast-qual -Wuseless-cast -Wsuggest-final-types -Wsuggest-final-methods -Wsuggest-override
 WNO = -Wno-vla -Wno-unused
 FLG = $(OPT) $(LIB) $(WRN) $(XTR) $(WNO)
 #
