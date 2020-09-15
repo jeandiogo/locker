@@ -112,8 +112,9 @@ class locker
 		
 		lock_guard_t(lock_guard_t const &) = delete;
 		lock_guard_t(lock_guard_t &&) = delete;
-		auto & operator=(lock_guard_t) = delete;
-		auto operator&() = delete;
+		lock_guard_t & operator=(lock_guard_t const &) = delete;
+		lock_guard_t & operator=(lock_guard_t &&) = delete;
+		lock_guard_t * operator&() = delete;
 		
 		explicit lock_guard_t(std::vector<std::string> && fs) : filenames(std::forward<std::vector<std::string>>(fs))
 		{
@@ -154,8 +155,9 @@ class locker
 		
 		memory_map_t(memory_map_t &) = delete;
 		memory_map_t(memory_map_t &&) = delete;
-		auto & operator=(memory_map_t) = delete;
-		auto operator&() = delete;
+		memory_map_t & operator=(memory_map_t const &) = delete;
+		memory_map_t & operator=(memory_map_t &&) = delete;
+		memory_map_t * operator&() = delete;
 		
 		explicit memory_map_t(std::string const & f) : filename(f)
 		{
@@ -403,7 +405,8 @@ class locker
 	
 	locker(locker const &) = delete;
 	locker(locker &&) = delete;
-	auto & operator=(locker) = delete;
+	locker & operator=(locker const &) = delete;
+	locker & operator=(locker &&) = delete;
 	
 	static void clear()
 	{
