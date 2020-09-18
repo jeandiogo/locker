@@ -8,7 +8,7 @@ Locker is a single header C++20 class with static member functions to lock files
 
 - **A process will loose the lock if the lockfile is deleted.** For that reason, if a file is not found when the unlock function is called, an exception will be throw to indicate that a lock may have been lost during the execution at some point after the lock.
 
-- **The lockings are reentrant.** Thus, if for some reason you have locked a file twice, you have to unlock it twice too. Therefore, always prefer using the lock guard, which will automatically release a lockfile before leaving its scope of declaration.
+- **The lockings are reentrant.** If you have locked a file twice, you have to unlock it twice too. Therefore, always prefer using the lock guard, which will automatically release a lockfile before leaving its scope of declaration.
 
 - **The locker provides process-safety, but not thread-safety.** Once a process has acquired the lock, its threads and future forks will not be stopped by it nor they will be able to mutually exclude each other by using the filelock. Therefore, avoid forking a program while it has some file locked and use mutexes to synchronize its inner threads.
 
