@@ -60,7 +60,13 @@ int main()
 		}
 		else if(pid == 0)
 		{
-			break;
+			auto const guard = locker::lock_guard(filename);
+			safe_open(filename, std::fstream::in) >> data;
+			auto const inc_data = data + 1;
+			safe_open(filename, std::fstream::out) << inc_data << std::flush;
+			std::cout << "Child " << getpid() << " read " << data << " and wrote " << inc_data << std::endl;
+			std::this_thread::sleep_for(std::chrono::milliseconds(50));
+			return EXIT_SUCCESS;
 		}
 		else if(i == NUM_FORKS - 1)
 		{
@@ -72,12 +78,4 @@ int main()
 			return EXIT_SUCCESS;
 		}
 	}
-	
-	auto const guard = locker::lock_guard(filename);
-	safe_open(filename, std::fstream::in) >> data;
-	auto const inc_data = data + 1;
-	safe_open(filename, std::fstream::out) << inc_data << std::flush;
-	std::cout << "Child " << getpid() << " read " << data << " and wrote " << inc_data << std::endl;
-	std::this_thread::sleep_for(std::chrono::milliseconds(50));
-	return EXIT_SUCCESS;
 }
