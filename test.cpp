@@ -34,7 +34,7 @@
 
 #define NUM_FORKS 50
 
-auto safe_open(std::string const & filename, std::ios_base::openmode const mode)
+inline auto safe_open(std::string const & filename, std::ios_base::openmode const mode)
 {
 	auto file = std::fstream(filename, mode);
 	if(!file.good())
@@ -56,7 +56,7 @@ int main()
 		auto pid = fork();
 		if(pid < 0)
 		{
-			return EXIT_FAILURE;
+			throw std::runtime_error("fork did not work");
 		}
 		else if(pid == 0)
 		{
