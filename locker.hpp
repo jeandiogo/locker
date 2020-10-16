@@ -356,14 +356,17 @@ class locker
 	
 	static inline void unsafe_unlock(std::string const & raw_filename)
 	{
-		std::string const filename = std::filesystem::canonical(raw_filename);
-		auto & descriptors = get_singleton().descriptors;
-		if(descriptors.contains(filename))
+		if(std::filesystem::exists(raw_filename))
 		{
-			auto & descriptor = descriptors.at(filename);
-			if((--descriptor.first <= 0) and ((fsync(descriptor.second) < 0) or (close(descriptor.second) < 0) or !descriptors.erase(filename)))
+			std::string const filename = std::filesystem::canonical(raw_filename);
+			auto & descriptors = get_singleton().descriptors;
+			if(descriptors.contains(filename))
 			{
-				throw std::runtime_error("could not unlock file \"" + raw_filename + "\"");
+				auto & descriptor = descriptors.at(filename);
+				if((--descriptor.first <= 0) and ((fsync(descriptor.second) < 0) or (close(descriptor.second) < 0) or !descriptors.erase(filename)))
+				{
+					throw std::runtime_error("could not unlock file \"" + raw_filename + "\"");
+				}
 			}
 		}
 	}
@@ -372,14 +375,17 @@ class locker
 	{
 		for(auto it = filenames.rbegin(); it != filenames.rend(); ++it)
 		{
-			std::string const filename = std::filesystem::canonical(*it);
-			auto & descriptors = get_singleton().descriptors;
-			if(descriptors.contains(filename))
+			if(std::filesystem::exists(*it))
 			{
-				auto & descriptor = descriptors.at(filename);
-				if((--descriptor.first <= 0) and ((fsync(descriptor.second) < 0) or (close(descriptor.second) < 0) or !descriptors.erase(filename)))
+				std::string const filename = std::filesystem::canonical(*it);
+				auto & descriptors = get_singleton().descriptors;
+				if(descriptors.contains(filename))
 				{
-					throw std::runtime_error("could not unlock files \"" + filenames.front() + "\" to \"" + *it + "\"");
+					auto & descriptor = descriptors.at(filename);
+					if((--descriptor.first <= 0) and ((fsync(descriptor.second) < 0) or (close(descriptor.second) < 0) or !descriptors.erase(filename)))
+					{
+						throw std::runtime_error("could not unlock files \"" + filenames.front() + "\" to \"" + *it + "\"");
+					}
 				}
 			}
 		}
