@@ -30,7 +30,7 @@ WNO = -Wno-vla -Wno-unused
 FLG = $(OPT) $(LIB) $(WRN) $(XTR) $(WNO)
 #
 -include $(DEP)
-.PHONY: all test clear profile valgrind permissions zip $(BIN)
+.PHONY: all test clear profile valgrind permissions zip
 #
 all: $(BIN)
 #
