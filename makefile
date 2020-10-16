@@ -29,7 +29,6 @@ XTR = -Wcast-align=strict -Wpacked -Wundef -Wcast-qual -Wredundant-decls -Wusele
 WNO = -Wno-vla -Wno-unused
 FLG = $(OPT) $(LIB) $(WRN) $(XTR) $(WNO)
 #
--include $(DEP)
 .PHONY: all test clear profile valgrind permissions zip
 #
 all: $(BIN)
@@ -62,4 +61,6 @@ permissions:
 #
 zip: clear permissions
 	@sudo zip -q -r $(BIN).zip .
+#
+-include $(DEP)
 #
