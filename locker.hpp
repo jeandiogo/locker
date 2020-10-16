@@ -18,8 +18,7 @@
 // 
 // A class with static functions to lock files in Linux systems, so they can be accessed exclusively or used as inter-process mutexes.
 // The locker provides process-safety but not thread-safety. Once a process has acquired the lock, its threads and future forks will not be stopped by it.
-// If the lockfile does not exist it will be created, but an exception will be thrown if the lockfile is not a regular file or if its directory is not authorized for writing.
-// If a lockfile is deleted and there is another process waiting for the lock, it will lock the deleted file when it became unlocked, while a third processes which tries to lock after the deletion will acquire the lock, and both processes will seem to be locking the same file.
+// If the lockfile does not exist it will be created, but an exception will be thrown if the lockfile exists and it is not a regular file or if its directory is not authorized for writing.
 // When compiling with g++ use the flag "-std=c++20", available in GCC 10 or later.
 // 
 // Usage:
@@ -282,45 +281,54 @@ class locker
 	template <bool should_block = false>
 	static inline int unsafe_try_lock(std::string const & raw_filename)
 	{
-		mode_t mask = umask(0);
-		int descriptor = open(raw_filename.c_str(), O_RDWR | O_CREAT, 0666);
-		umask(mask);
-		if(descriptor < 0)
+		while(true)
 		{
-			throw std::runtime_error("could not open file \"" + raw_filename + "\"");
-		}
-		try
-		{
-			std::string const filename = std::filesystem::canonical(raw_filename);
-			auto & descriptors = get_singleton().descriptors;
-			if(descriptors.contains(filename))
+			mode_t mask = umask(0);
+			int descriptor = open(raw_filename.c_str(), O_RDWR | O_CREAT, 0666);
+			umask(mask);
+			if(descriptor < 0)
 			{
-				close(descriptor);
-				descriptors.at(filename).first += 1;
-				return descriptors.at(filename).second;
+				throw std::runtime_error("could not open file \"" + raw_filename + "\"");
 			}
-			if constexpr(should_block)
+			try
 			{
-				if(flock(descriptor, LOCK_EX) < 0)
-				{
-					throw std::runtime_error("could not lock file \"" + filename + "\"");
-				}
-			}
-			else
-			{
-				if(flock(descriptor, LOCK_EX | LOCK_NB) < 0)
+				std::string const filename = std::filesystem::canonical(raw_filename);
+				auto & descriptors = get_singleton().descriptors;
+				if(descriptors.contains(filename))
 				{
 					close(descriptor);
-					return -1;
+					descriptors.at(filename).first += 1;
+					return descriptors.at(filename).second;
 				}
+				if constexpr(should_block)
+				{
+					if(flock(descriptor, LOCK_EX) < 0)
+					{
+						throw std::runtime_error("could not lock file \"" + filename + "\"");
+					}
+				}
+				else
+				{
+					if(flock(descriptor, LOCK_EX | LOCK_NB) < 0)
+					{
+						close(descriptor);
+						return -1;
+					}
+				}
+				struct stat status;
+				fstat(descriptor, &status);
+				if(status.st_nlink > 0)
+				{
+					descriptors.emplace(filename, std::make_pair(1, descriptor));
+					return descriptor;
+				}
+				close(descriptor);
 			}
-			descriptors.emplace(filename, std::make_pair(1, descriptor));
-			return descriptor;
-		}
-		catch(...)
-		{
-			close(descriptor);
-			throw;
+			catch(...)
+			{
+				close(descriptor);
+				throw;
+			}
 		}
 	}
 	
@@ -348,10 +356,6 @@ class locker
 	
 	static inline void unsafe_unlock(std::string const & raw_filename)
 	{
-		if(!std::filesystem::exists(raw_filename))
-		{
-			throw std::runtime_error("could not find lockfile \"" + raw_filename + "\"");
-		}
 		std::string const filename = std::filesystem::canonical(raw_filename);
 		auto & descriptors = get_singleton().descriptors;
 		if(descriptors.contains(filename))
@@ -366,19 +370,6 @@ class locker
 	
 	static inline void unsafe_unlock(std::vector<std::string> const & filenames)
 	{
-		std::string missing = "";
-		for(auto const & filename : filenames)
-		{
-			if(!std::filesystem::exists(filename))
-			{
-				missing += " \"" + filename + "\",";
-			}
-		}
-		if(missing.size())
-		{
-			missing.pop_back();
-			throw std::runtime_error("could not find lockfiles" + missing);
-		}
 		for(auto it = filenames.rbegin(); it != filenames.rend(); ++it)
 		{
 			std::string const filename = std::filesystem::canonical(*it);
