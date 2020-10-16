@@ -40,7 +40,7 @@ $(BIN): $(OBJ)
 %.o: %.cpp
 	@clear
 	@clear
-	@g++ -o $@ $< -MMD -c $(FLG)
+	@g++ -o $@ $< -MMD -MP -c $(FLG)
 #
 test: all
 	@time -f "[ %es ]" ./$(BIN)
