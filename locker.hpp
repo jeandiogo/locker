@@ -71,7 +71,6 @@
 // my_map.flush();                                                          //flushes data to file (unnecessary, since current process will be the only one accessing the file)
 // 
 // bool success = locker::is_locked("a.txt");                               //returns true if file is currently locked, false otherwise (throws if file does not exist)
-// std::vector<std::string> my_locked = locker::get_locked();               //returns a vector with the canonical filenames of all currently locked files
 // locker::clear();                                                         //unlocks all currently locked files (do not call this function if a lockfile is open)
 // 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -167,7 +166,7 @@ class locker
 					throw std::runtime_error("\"" + filename + "\" is not a regular file");
 				}
 				auto const guard = std::scoped_lock<std::mutex>(get_singleton().descriptors_mutex);
-				file_descriptor = unsafe_try_lock<true>(filename); //open(filename.c_str(), O_RDWR, 0666);
+				file_descriptor = unsafe_try_lock<true>(filename);
 			}
 			try
 			{
@@ -185,7 +184,7 @@ class locker
 			}
 			catch(...)
 			{
-				unlock(filename); //close(filename.c_str());
+				unlock(filename);
 				data_ptr = nullptr;
 				data_size = 0;
 				file_descriptor = -1;
@@ -270,7 +269,7 @@ class locker
 	};
 	
 	std::mutex descriptors_mutex;
-	std::map<std::string, std::pair<int, int>> descriptors;
+	std::map<ino_t, std::pair<int, int>> descriptors;
 	
 	static auto & get_singleton()
 	{
@@ -279,26 +278,30 @@ class locker
 	}
 	
 	template <bool should_block = false>
-	static inline int unsafe_try_lock(std::string const & raw_filename)
+	static inline int unsafe_try_lock(std::string const & filename)
 	{
 		while(true)
 		{
 			mode_t mask = umask(0);
-			int descriptor = open(raw_filename.c_str(), O_RDWR | O_CREAT, 0666);
+			int descriptor = open(filename.c_str(), O_RDWR | O_CREAT, 0666);
 			umask(mask);
 			if(descriptor < 0)
 			{
-				throw std::runtime_error("could not open file \"" + raw_filename + "\"");
+				throw std::runtime_error("could not open file \"" + filename + "\"");
 			}
 			try
 			{
-				std::string const filename = std::filesystem::canonical(raw_filename);
+				struct stat status;
+				if(fstat(descriptor, &status) < 0)
+				{
+					throw std::runtime_error("could not get status of file \"" + filename + "\"");
+				}
 				auto & descriptors = get_singleton().descriptors;
-				if(descriptors.contains(filename))
+				if(descriptors.contains(status.st_ino))
 				{
 					close(descriptor);
-					descriptors.at(filename).first += 1;
-					return descriptors.at(filename).second;
+					descriptors.at(status.st_ino).first += 1;
+					return descriptors.at(status.st_ino).second;
 				}
 				if constexpr(should_block)
 				{
@@ -315,11 +318,13 @@ class locker
 						return -1;
 					}
 				}
-				struct stat status;
-				fstat(descriptor, &status);
+				if(fstat(descriptor, &status) < 0)
+				{
+					throw std::runtime_error("could not get status of file \"" + filename + "\"");
+				}
 				if(status.st_nlink > 0)
 				{
-					descriptors.emplace(filename, std::make_pair(1, descriptor));
+					descriptors.emplace(status.st_ino, std::make_pair(1, descriptor));
 					return descriptor;
 				}
 				close(descriptor);
@@ -354,18 +359,18 @@ class locker
 		return true;
 	}
 	
-	static inline void unsafe_unlock(std::string const & raw_filename)
+	static inline void unsafe_unlock(std::string const & filename)
 	{
-		if(std::filesystem::exists(raw_filename))
+		struct stat status;
+		if(stat(filename.c_str(), &status) >= 0)
 		{
-			std::string const filename = std::filesystem::canonical(raw_filename);
 			auto & descriptors = get_singleton().descriptors;
-			if(descriptors.contains(filename))
+			if(descriptors.contains(status.st_ino))
 			{
-				auto & descriptor = descriptors.at(filename);
-				if((--descriptor.first <= 0) and ((fsync(descriptor.second) < 0) or (close(descriptor.second) < 0) or !descriptors.erase(filename)))
+				auto & descriptor = descriptors.at(status.st_ino);
+				if((--descriptor.first <= 0) and ((fsync(descriptor.second) < 0) or (close(descriptor.second) < 0) or !descriptors.erase(status.st_ino)))
 				{
-					throw std::runtime_error("could not unlock file \"" + raw_filename + "\"");
+					throw std::runtime_error("could not unlock file \"" + filename + "\"");
 				}
 			}
 		}
@@ -375,14 +380,14 @@ class locker
 	{
 		for(auto it = filenames.rbegin(); it != filenames.rend(); ++it)
 		{
-			if(std::filesystem::exists(*it))
+			struct stat status;
+			if(stat((*it).c_str(), &status) >= 0)
 			{
-				std::string const filename = std::filesystem::canonical(*it);
 				auto & descriptors = get_singleton().descriptors;
-				if(descriptors.contains(filename))
+				if(descriptors.contains(status.st_ino))
 				{
-					auto & descriptor = descriptors.at(filename);
-					if((--descriptor.first <= 0) and ((fsync(descriptor.second) < 0) or (close(descriptor.second) < 0) or !descriptors.erase(filename)))
+					auto & descriptor = descriptors.at(status.st_ino);
+					if((--descriptor.first <= 0) and ((fsync(descriptor.second) < 0) or (close(descriptor.second) < 0) or !descriptors.erase(status.st_ino)))
 					{
 						throw std::runtime_error("could not unlock files \"" + filenames.front() + "\" to \"" + *it + "\"");
 					}
@@ -416,26 +421,47 @@ class locker
 		descriptors.clear();
 	}
 	
-	static auto get_locked()
+	static bool is_locked(std::string const & filename)
 	{
 		auto const guard = std::scoped_lock<std::mutex>(get_singleton().descriptors_mutex);
-		std::vector<std::string> filenames;
-		for(auto && descriptor : get_singleton().descriptors)
+		if(!std::filesystem::exists(filename))
 		{
-			filenames.emplace_back(descriptor.first);
+			throw std::runtime_error("lockfile \"" + filename + "\" does not exist");
 		}
-		return filenames;
+		struct stat status;
+		if(stat(filename.c_str(), &status) < 0)
+		{
+			throw std::runtime_error("could not get status of file \"" + filename + "\"");
+		}
+		return get_singleton().descriptors.contains(status.st_ino);
 	}
 	
-	static bool is_locked(std::string const & raw_filename)
+	static bool xremove(std::string const & filename)
 	{
 		auto const guard = std::scoped_lock<std::mutex>(get_singleton().descriptors_mutex);
-		if(std::filesystem::exists(raw_filename))
+		auto & descriptors = get_singleton().descriptors;
+		auto const descriptor = unsafe_try_lock<true>(filename);
+		struct stat status;
+		try
 		{
-			std::string const filename = std::filesystem::canonical(raw_filename);
-			return get_singleton().descriptors.contains(filename);
+			if(fstat(descriptor, &status) < 0)
+			{
+				throw std::runtime_error("could not get status of file \"" + filename + "\"");
+			}
+			if(!std::filesystem::remove(filename))
+			{
+				throw std::runtime_error("could not remove \"" + filename + "\"");
+			}
 		}
-		throw std::runtime_error("lockfile \"" + raw_filename + "\" does not exist");
+		catch(...)
+		{
+			unsafe_unlock(filename);
+			throw;
+		}
+		if(descriptors.contains(status.st_ino))
+		{
+			descriptors.erase(status.st_ino);
+		}
 	}
 	
 	static bool try_lock(std::string const & filename)
@@ -556,7 +582,7 @@ class locker
 		unlock(filename);
 		return data;
 	}
-
+	
 	template <typename T>
 	static auto xread(std::string const & filename)
 	{
@@ -585,7 +611,7 @@ class locker
 		unlock(filename);
 		return data;
 	}
-
+	
 	template <typename T>
 	static auto xread(std::string const & filename, T & container)
 	{
@@ -610,7 +636,7 @@ class locker
 		}
 		unlock(filename);
 	}
-
+	
 	template <bool should_append = false, typename ... TS>
 	static auto xwrite(std::string const & filename, TS && ... data)
 	{
@@ -636,7 +662,7 @@ class locker
 		}
 		unlock(filename);
 	}
-
+	
 	template <bool should_append = false, typename T>
 	static auto xflush(std::string const & filename, std::vector<T> const & data)
 	{
@@ -663,7 +689,7 @@ class locker
 		}
 		unlock(filename);
 	}
-
+	
 	template <bool should_append = false>
 	static auto xflush(std::string const & filename, void * data, std::size_t const size)
 	{
