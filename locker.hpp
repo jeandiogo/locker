@@ -402,7 +402,7 @@ class locker
 	
 	~locker()
 	{
-		clear();
+		unlock_all();
 	}
 	
 	locker(locker const &) = delete;
@@ -410,7 +410,7 @@ class locker
 	auto & operator=(locker const &) = delete;
 	auto & operator=(locker &&) = delete;
 	
-	static void clear()
+	static void unlock_all()
 	{
 		auto const guard = std::scoped_lock<std::mutex>(get_singleton().descriptors_mutex);
 		auto & descriptors = get_singleton().descriptors;
