@@ -49,7 +49,8 @@
 // 
 // locker::xwrite("a.txt", my_data);                                        //exclusively writes formatted data to a file (data type must be insertable to std::fstream)
 // locker::xwrite("a.txt", "value", ':', 42);                               //exclusively writes multiple data to a file
-// locker::xwrite<true>("a.txt", "order", ':', 66);                         //use template argument to append data instead of overwrite
+// locker::xwrite<true>("a.txt", "order", ':', 66);                         //use first template argument to append data instead of overwrite
+// locker::xwrite<false, true>("a.txt", "foobar");                          //use second template argument to write a newline at the end
 // 
 // locker::xflush("a.txt", my_vector);                                      //exclusively writes binary data to a file
 // locker::xflush<true>("a.txt", my_vector);                                //use template argument to append data instead of overwrite
@@ -113,23 +114,23 @@ class locker
 		auto & operator=(lock_guard_t &&) = delete;
 		auto operator&() = delete;
 		
-		explicit lock_guard_t(std::vector<std::string> && fs) : filenames(std::forward<std::vector<std::string>>(fs))
+		lock_guard_t(std::vector<std::string> && fs) : filenames(std::forward<std::vector<std::string>>(fs))
 		{
 			lock(filenames);
 		}
 		
-		explicit lock_guard_t(std::initializer_list<std::string> && fs) : filenames(std::forward<std::initializer_list<std::string>>(fs))
+		lock_guard_t(std::initializer_list<std::string> && fs) : filenames(std::forward<std::initializer_list<std::string>>(fs))
 		{
 			lock(filenames);
 		}
 		
-		explicit lock_guard_t(std::string const & f) : filenames({f})
+		lock_guard_t(std::string const & f) : filenames({f})
 		{
 			lock(filenames);
 		}
 		
 		template <typename ... TS>
-		explicit lock_guard_t(TS && ... f) : filenames({std::forward<TS>(f) ...})
+		lock_guard_t(TS && ... f) : filenames({std::forward<TS>(f) ...})
 		{
 			lock(filenames);
 		}
@@ -156,7 +157,7 @@ class locker
 		auto & operator=(memory_map_t &&) = delete;
 		auto operator&() = delete;
 		
-		explicit memory_map_t(std::string const & f) : filename(f)
+		memory_map_t(std::string const & f) : filename(f)
 		{
 			if(true)
 			{
@@ -593,7 +594,7 @@ class locker
 		unlock(filename);
 	}
 	
-	template <bool should_append = false, typename ... TS>
+	template <bool should_append = false, bool should_add_newline = false, typename ... TS>
 	static auto xwrite(std::string const & filename, TS && ... data)
 	{
 		lock(filename);
@@ -609,7 +610,14 @@ class locker
 			{
 				throw std::runtime_error("could not open file \"" + filename + "\" for output");
 			}
-			(output << ... << std::forward<TS>(data)) << std::flush;
+			if constexpr(should_add_newline)
+			{
+				(output << ... << std::forward<TS>(data)) << std::endl;
+			}
+			else
+			{
+				(output << ... << std::forward<TS>(data)) << std::flush;
+			}
 		}	
 		catch(...)
 		{
