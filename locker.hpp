@@ -50,7 +50,7 @@
 // locker::xwrite("a.txt", my_data);                                        //exclusively writes formatted data to a file (data type must be insertable to std::fstream)
 // locker::xwrite("a.txt", "value", ':', 42);                               //exclusively writes multiple data to a file
 // locker::xwrite<true>("a.txt", "order", ':', 66);                         //use first template argument to append data instead of overwrite
-// locker::xwrite<false, true>("a.txt", "foobar");                          //use second template argument to write a newline at the end
+// locker::xwrite<false, true>("a.txt", "foobar");                          //use second template argument to write a trailing newline
 // 
 // locker::xflush("a.txt", my_vector);                                      //exclusively writes binary data to a file
 // locker::xflush<true>("a.txt", my_vector);                                //use template argument to append data instead of overwrite
