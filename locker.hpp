@@ -70,7 +70,6 @@
 // unsigned char * my_data = my_map.data();                                 //same as above, for STL compatibility
 // my_map.flush();                                                          //flushes data to file (unnecessary, since current process will be the only one accessing the file)
 // 
-// bool success = locker::is_locked("a.txt");                               //returns true if file is currently locked, false otherwise (throws if file does not exist)
 // locker::clear();                                                         //unlocks all currently locked files (do not call this function if a lockfile is open)
 // 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -402,7 +401,7 @@ class locker
 	
 	~locker()
 	{
-		unlock_all();
+		clear();
 	}
 	
 	locker(locker const &) = delete;
@@ -410,7 +409,7 @@ class locker
 	auto & operator=(locker const &) = delete;
 	auto & operator=(locker &&) = delete;
 	
-	static void unlock_all()
+	static void clear()
 	{
 		auto const guard = std::scoped_lock<std::mutex>(get_singleton().descriptors_mutex);
 		auto & descriptors = get_singleton().descriptors;
@@ -419,49 +418,6 @@ class locker
 			close(descriptor.second.second);
 		}
 		descriptors.clear();
-	}
-	
-	static bool is_locked(std::string const & filename)
-	{
-		auto const guard = std::scoped_lock<std::mutex>(get_singleton().descriptors_mutex);
-		if(!std::filesystem::exists(filename))
-		{
-			throw std::runtime_error("lockfile \"" + filename + "\" does not exist");
-		}
-		struct stat status;
-		if(stat(filename.c_str(), &status) < 0)
-		{
-			throw std::runtime_error("could not get status of file \"" + filename + "\"");
-		}
-		return get_singleton().descriptors.contains(status.st_ino);
-	}
-	
-	static bool xremove(std::string const & filename)
-	{
-		auto const guard = std::scoped_lock<std::mutex>(get_singleton().descriptors_mutex);
-		auto & descriptors = get_singleton().descriptors;
-		auto const descriptor = unsafe_try_lock<true>(filename);
-		struct stat status;
-		try
-		{
-			if(fstat(descriptor, &status) < 0)
-			{
-				throw std::runtime_error("could not get status of file \"" + filename + "\"");
-			}
-			if(!std::filesystem::remove(filename))
-			{
-				throw std::runtime_error("could not remove \"" + filename + "\"");
-			}
-		}
-		catch(...)
-		{
-			unsafe_unlock(filename);
-			throw;
-		}
-		if(descriptors.contains(status.st_ino))
-		{
-			descriptors.erase(status.st_ino);
-		}
 	}
 	
 	static bool try_lock(std::string const & filename)
@@ -715,5 +671,33 @@ class locker
 			throw;
 		}
 		unlock(filename);
+	}
+	
+	static bool xremove(std::string const & filename)
+	{
+		auto const guard = std::scoped_lock<std::mutex>(get_singleton().descriptors_mutex);
+		auto & descriptors = get_singleton().descriptors;
+		auto const descriptor = unsafe_try_lock<true>(filename);
+		struct stat status;
+		try
+		{
+			if(fstat(descriptor, &status) < 0)
+			{
+				throw std::runtime_error("could not get status of file \"" + filename + "\"");
+			}
+			if(!std::filesystem::remove(filename))
+			{
+				throw std::runtime_error("could not remove \"" + filename + "\"");
+			}
+		}
+		catch(...)
+		{
+			unsafe_unlock(filename);
+			throw;
+		}
+		if(descriptors.contains(status.st_ino))
+		{
+			descriptors.erase(status.st_ino);
+		}
 	}
 };
