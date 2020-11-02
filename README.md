@@ -2,15 +2,15 @@
 
 Locker is a single header C++20 class with static member functions to lock files on Linux systems, so they can be accessed exclusively or used for process synchronization (e.g. as slow inter-process mutexes).
 
-- **The locking policy is guaranteed only among programs using this library.** Locking a file does not prevent other processes from opening it, but it ensures that only one program will get the lock at a time. All locking and unlocking functions accept a single filename, multiple filenames, a list of filenames, or a vector of filenames.
+- **The locking policy is guaranteed only among programs using this library.** Locking a file does not prevent other processes from opening it, but it ensures that only one program will get the lock at a time. All lock and unlock functions accept a single filename, multiple filenames, a list of filenames, or a vector of filenames.
 
 - **If the file to be locked does not exist it will be created.** However, an exception will be throw if an empty filename is given, if a directory name is given, or if the program does not have permission to read and write to the file and its directory.
 
-- **The lockings are reentrant.** If you have locked a file twice, you have to unlock it twice too. Therefore, always prefer using the lock guard, which will automatically release a lockfile before leaving its scope of declaration.
+- **The locks are reentrant.** If you have locked a file twice, you have to unlock it twice too. Therefore, always prefer using the lock guard, which will automatically release a lockfile before leaving its scope of declaration.
 
-- **The locker provides process-safety, but not thread-safety.** Once a process has acquired the lock, its threads and future forks will not be stopped by it nor they will be able to mutually exclude each other by using the filelock. Therefore, avoid forking a program while it has some file locked and use mutexes to synchronize its inner threads.
+- **The locker provides process-safety, but not thread-safety.** Once a process has acquired the lock, its threads and future forks will not be stopped by it, nor they will be able to mutually exclude each other by using the lock. Therefore, avoid forking a program while it has some file locked, and use mutexes to synchronize its inner threads.
 
-- **Lock and unlock operations are independent from open and close operations.** If you want to open a lockfile you need to use file handlers like "fopen" and "fstream", and close the file before the unlock. To circumvent that, this library provides functions for exclusive read, write, append, and memory-map, which are all process-safe (although still not thread-safe) and will not interfere with your current locks. It is still your responsability to handle race conditions among threads trying to open files locked by their parent.
+- **Lock and unlock operations are independent from open and close operations.** If you want to open a lockfile you need to use file handlers like "fopen" and "fstream", and close the file before the unlock. To circumvent that, this library provides functions for exclusive read, write, append, and memory-map, which are all process-safe (although not thread-safe) and will not interfere with your current locks. It is still your responsability to handle race conditions among threads trying to open files locked by their parent.
 
 When compiling with g++, use the flag *-std=c++20* (available since GCC 10).
 
