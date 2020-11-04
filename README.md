@@ -39,11 +39,11 @@ locker::xflush<true>("a.txt", my_vector);                    //use template argu
 locker::memory_map_t my_map = locker::xmap("a.txt");         //exclusively maps a file to memory and returns a container that behaves like an array of unsigned chars, throws if file is does not exist or is not a regular file
 locker::memory_map_t my_map = locker::xmap<char>("a.txt");   //the type underlying the array can be chosen at instantiation via template argument
 locker::memory_map_t my_map = locker::xmap<int>("a.txt");    //note that trailing bytes will be ignored if the file size is not a multiple of the chosen type size
-unsigned char my_var = my_map.at(N);                         //gets the N-th byte as an unsigned char (or the type designated at instantiation), throws if file is smaller than or equal to N bytes
-unsigned char my_var = my_map[N];                            //same, but does not check range
-my_map.at(N) = M;                                            //assigns the value M to the N-th byte, throws if file is smaller than or equal to N bytes
-my_map[N] = M;                                               //same, but does not check range
-std::size_t my_size = my_map.get_size();                     //gets the size of the file
+unsigned char my_var = my_map.at(N);                         //gets the N-th element, throws if N is out of range
+unsigned char my_var = my_map[N];                            //same as above, but does not check range
+my_map.at(N) = M;                                            //assigns the value M to the N-th element, throws if N is out of range
+my_map[N] = M;                                               //same as above, but does not check range
+std::size_t my_size = my_map.get_size();                     //gets data size (which is equals to size of file divided by the size of the type) 
 std::size_t my_size = my_map.size();                         //same as above, for STL compatibility
 std::size_t my_size = my_map.get_length();                   //same as "get_size()"
 std::size_t my_size = my_map.length();                       //same as above, for STL compatibility
