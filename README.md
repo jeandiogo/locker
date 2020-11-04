@@ -22,8 +22,8 @@ locker::lock_guard_t my_lock = locker::lock_guard("a.lock"); //locks a file and 
 
 std::string       my_data = locker::xread("a.txt");          //exclusively reads a file (throws if file does not exist) and returns its content as a string (trailing newlines are removed)
 std::vector<char> my_data = locker::xread<char>("a.txt");    //same, but does not remove trailing newlines and return content as a vector of user specified type
-std::vector<int>  my_data = locker::xread<int>("a.txt");     //note that trailing bytes will be ignored if the file size is not a multiple of the chosen type size
-std::vector<long> my_data = locker::xread<long>("a.txt");    //also note that traling newlines may be included if they turn the file size into a multiple of the type size
+std::vector<int>  my_data = locker::xread<int>("a.txt");     //note that trailing bytes will be ignored if the size of the file is not a multiple of the the size of the chosen type
+std::vector<long> my_data = locker::xread<long>("a.txt");    //also note that eventual traling newlines may be included if they turn the file size into a multiple of the type size
 locker::xread("a.txt", my_container);                        //opens input file and calls operator ">>" once from the filestream to the container passed as argument
 
 locker::xwrite("a.txt", my_data);                            //exclusively writes formatted data to a file (data type must be insertable to std::fstream)
@@ -38,7 +38,7 @@ locker::xflush<true>("a.txt", my_vector);                    //use template argu
 
 locker::memory_map_t my_map = locker::xmap("a.txt");         //exclusively maps a file to memory and returns a container that behaves like an array of unsigned chars, throws if file is does not exist or is not a regular file
 locker::memory_map_t my_map = locker::xmap<char>("a.txt");   //the type underlying the array can be chosen at instantiation via template argument
-locker::memory_map_t my_map = locker::xmap<int>("a.txt");    //note that trailing bytes will be ignored if the file size is not a multiple of the chosen type size
+locker::memory_map_t my_map = locker::xmap<int>("a.txt");    //note that trailing bytes will be ignored if the size of the file is not a multiple of the size of the chosen type
 unsigned char my_var = my_map.at(N);                         //gets the N-th element, throws if N is out of range
 unsigned char my_var = my_map[N];                            //same as above, but does not check range
 my_map.at(N) = M;                                            //assigns the value M to the N-th element, throws if N is out of range
