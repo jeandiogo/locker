@@ -31,10 +31,10 @@ locker::xwrite("a.txt", "value", ':', 42);                       //exclusively w
 locker::xwrite<true>("a.txt", "order", ':', 66);                 //use first template argument to append data instead of overwrite
 locker::xwrite<false, true>("a.txt", "foobar");                  //use second template argument to write a trailing newline
 
-locker::xflush("a.txt", my_vector);                              //exclusively writes binary data to a file (data must be an std::vector of any type)
+locker::xflush("a.txt", my_vector);                              //exclusively writes binary data from a std::vector to a file
 locker::xflush("a.txt", my_span);                                //same as above, but with an std::span instead of a vector
+locker::xflush("a.txt", my_data_pointer, my_data_size);          //you can also send a raw void pointer to the data, and its length in bytes
 locker::xflush<true>("a.txt", my_vector);                        //use template argument to append data instead of overwrite
-locker::xflush("a.txt", my_data_pointer, my_data_size);          //one can also send a raw void pointer to the data to be written and its length in bytes
 
 locker::memory_map_t my_map       = locker::xmap("a.txt");       //exclusively maps a file to memory and returns a container that behaves like an array of unsigned chars (throws if file is does not exist or is not regular)
 locker::memory_map_t my_map       = locker::xmap<char>("a.txt"); //the type underlying the array can be chosen at instantiation via template argument
