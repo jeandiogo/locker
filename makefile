@@ -23,23 +23,24 @@ BIN = test.out
 SRC = $(wildcard *.cpp)
 OBJ = $(SRC:.cpp=.o)
 DEP = $(OBJ:.o=.d)
-OPT = -std=c++20 -O3 -march=native -pthread -fopenmp -fopenacc -pipe -flto -fPIC
+CMP = g++ -pipe -flto -fPIC
+OPT = -std=c++20 -O3 -march=native -pthread -fopenmp -fopenacc
 WRN = -Wall -Wextra -pedantic -Werror -pedantic-errors -Wfatal-errors -Wnull-dereference -Wshadow -Wconversion -Wsign-conversion -Warith-conversion
-XTR = -Wcast-align=strict -Wpacked -Wundef -Wcast-qual -Wredundant-decls -Wuseless-cast -Wsuggest-override -Wsuggest-final-methods -Wsuggest-final-types
+XTR = -Wcast-align=strict -Wpacked -Wundef -Wcast-qual -Wsuggest-override -Wsuggest-final-methods -Wsuggest-final-types -Wredundant-decls -Wuseless-cast
 WNO = -Wno-vla -Wno-unused
-FLG = $(OPT) $(LIB) $(WRN) $(XTR) $(WNO)
+FLG = $(CMP) $(OPT) $(LIB) $(WRN) $(XTR) $(WNO)
 #
 .PHONY: all test clear profile valgrind permissions zip
 #
 all: $(BIN)
 #
 $(BIN): $(OBJ)
-	@g++ -o $@ $^ $(FLG) -fuse-linker-plugin
+	@$(CMP) -o $@ $^ $(FLG) -fuse-linker-plugin
 #
 %.o: %.cpp
 	@clear
 	@clear
-	@g++ -o $@ $< -MMD -MP -c $(FLG)
+	@$(CMP) -o $@ $< -MMD -MP -c $(FLG)
 #
 test: all
 	@time -f "[ %es ]" ./$(BIN)
@@ -48,9 +49,9 @@ clear:
 	@sudo rm -rf *~ *.o *.d *.gch *.gcda *.gcno $(BIN)
 #
 profile: clear
-	@g++ $(SRC) -o $(BIN) $(FLG) -fwhole-program -fprofile-generate
+	@$(CMP) $(SRC) -o $(BIN) $(FLG) -fwhole-program -fprofile-generate
 	@./$(BIN)
-	@g++ $(SRC) -o $(BIN) $(FLG) -fwhole-program -fprofile-use -fprofile-correction
+	@$(CMP) $(SRC) -o $(BIN) $(FLG) -fwhole-program -fprofile-use -fprofile-correction
 #
 valgrind: all
 	@valgrind -v --leak-check=full --show-leak-kinds=all --track-origins=yes --expensive-definedness-checks=yes --trace-children=yes --track-fds=yes ./$(BIN)
