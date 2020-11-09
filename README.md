@@ -18,37 +18,37 @@ To compile and run the test, enter *make test* in the terminal.
 ```
 #include "locker.hpp"
 
-locker::lock_guard_t my_lock = locker::lock_guard("a.lock"); //locks a file and automatically unlocks it before leaving current scope
+locker::lock_guard_t my_lock = locker::lock_guard("a.lock");    //locks a file and automatically unlocks it before leaving current scope
 
-std::string       my_data = locker::xread("a.txt");          //exclusively reads a file (throws if file does not exist) and returns its content as a string (trailing newlines are removed)
-std::vector<char> my_data = locker::xread<char>("a.txt");    //same, but does not remove trailing newlines and return content as a vector of user specified type
-std::vector<int>  my_data = locker::xread<int>("a.txt");     //note that in these cases trailing bytes will be ignored if the size of the file is not a multiple of the the size of the chosen type
-std::vector<long> my_data = locker::xread<long>("a.txt");    //also note that an eventual traling newline may be included if it turns the file size into a multiple of the type size
-locker::xread("a.txt", my_container);                        //opens input file and calls operator ">>" once from the filestream to the container passed as argument
+std::string       my_data = locker::xread("a.txt");             //exclusively reads a file (throws if file does not exist) and returns its content as a string (trailing newlines are removed)
+std::vector<char> my_data = locker::xread<char>("a.txt");       //same, but does not remove trailing newlines and return content as a vector of user specified type
+std::vector<int>  my_data = locker::xread<int>("a.txt");        //note that in these cases trailing bytes will be ignored if the size of the file is not a multiple of the the size of the chosen type
+std::vector<long> my_data = locker::xread<long>("a.txt");       //also note that an eventual traling newline may be included if it turns the file size into a multiple of the type size
+locker::xread("a.txt", my_container);                           //opens input file and calls operator ">>" once from the filestream to the container passed as argument
 
-locker::xwrite("a.txt", my_data);                            //exclusively writes formatted data to a file (data type must be insertable to std::fstream via a single call to operator "<<")
-locker::xwrite("a.txt", "value", ':', 42);                   //exclusively writes multiple data to file
-locker::xwrite<true>("a.txt", "order", ':', 66);             //use first template argument to append data instead of overwrite
-locker::xwrite<false, true>("a.txt", "foobar");              //use second template argument to write a trailing newline
+locker::xwrite("a.txt", my_data);                               //exclusively writes formatted data to a file (data type must be insertable to std::fstream via a single call to operator "<<")
+locker::xwrite("a.txt", "value", ':', 42);                      //exclusively writes multiple data to file
+locker::xwrite<true>("a.txt", "order", ':', 66);                //use first template argument to append data instead of overwrite
+locker::xwrite<false, true>("a.txt", "foobar");                 //use second template argument to write a trailing newline
 
-locker::xflush("a.txt", my_vector);                          //exclusively writes binary data to a file (data must be an std::vector of any type)
-locker::xflush("a.txt", my_span);                            //same as above, but with an std::span instead of a vector
-locker::xflush<true>("a.txt", my_vector);                    //use template argument to append data instead of overwrite
-locker::xflush("a.txt", my_data_pointer, my_data_size);      //one can also send a raw void pointer to the data to be written and its length in bytes
+locker::xflush("a.txt", my_vector);                             //exclusively writes binary data to a file (data must be an std::vector of any type)
+locker::xflush("a.txt", my_span);                               //same as above, but with an std::span instead of a vector
+locker::xflush("a.txt", my_data_pointer, my_data_size);         //one can also send a raw void pointer to the data to be written and its length in bytes
+locker::xflush<true>("a.txt", my_vector);                       //use template argument to append data instead of overwrite
 
-locker::memory_map_t my_map   = locker::xmap("a.txt");       //exclusively maps a file to memory and returns a container that behaves like an array of unsigned chars (throws if file is does not exist or is not regular)
-locker::memory_map_t my_map   = locker::xmap<char>("a.txt"); //the type underlying the array can be chosen at instantiation via template argument
-locker::memory_map_t my_map   = locker::xmap<int>("a.txt");  //note that trailing bytes will be ignored if the size of the file is not a multiple of the size of the chosen type
-my_map.at(N) = V;                                            //assigns the value V to the N-th element, throws if N is out of range
-my_map[N]    = V;                                            //same as above, but does not check range
-unsigned char *      my_data  = my_map.get_data();           //gets a raw pointer to file's data, whose underlying type is the one designated at instantiation (default is unsigned char)
-unsigned char *      my_data  = my_map.data();               //same as above, for STL compatibility
-std::size_t          my_size  = my_map.get_size();           //gets data size (which is equals to size of file divided by the size of the type) 
-std::size_t          my_size  = my_map.size();               //same as above, for STL compatibility
-bool                 is_empty = my_map.is_empty();           //returns true if map is ampty
-bool                 is_empty = my_map.empty();              //same as above, for STL compatibility
-unsigned char        my_var   = my_map.at(N);                //gets the N-th element, throws if N is out of range
-unsigned char        my_var   = my_map[N];                   //same as above, but does not check range
-my_map.flush();                                              //flushes data to file (unnecessary, since current process will be the only one accessing the file, and it will flush at destruction)
+locker::memory_map_t my_map      = locker::xmap("a.txt");       //exclusively maps a file to memory and returns a container that behaves like an array of unsigned chars (throws if file is does not exist or is not regular)
+locker::memory_map_t my_map      = locker::xmap<char>("a.txt"); //the type underlying the array can be chosen at instantiation via template argument
+locker::memory_map_t my_map      = locker::xmap<int>("a.txt");  //note that trailing bytes will be ignored if the size of the file is not a multiple of the size of the chosen type
+                     my_map.at(N) = V;                          //assigns the value V to the N-th element, throws if N is out of range
+                     my_map[N]    = V;                          //same as above, but does not check range
+unsigned char *      my_data      = my_map.get_data();           //gets a raw pointer to file's data, whose underlying type is the one designated at instantiation (default is unsigned char)
+unsigned char *      my_data      = my_map.data();               //same as above, for STL compatibility
+std::size_t          my_size      = my_map.get_size();           //gets data size (which is equals to size of file divided by the size of the type) 
+std::size_t          my_size      = my_map.size();               //same as above, for STL compatibility
+bool                 is_empty     = my_map.is_empty();           //returns true if map is ampty
+bool                 is_empty     = my_map.empty();              //same as above, for STL compatibility
+unsigned char        my_var       = my_map.at(N);                //gets the N-th element, throws if N is out of range
+unsigned char        my_var       = my_map[N];                   //same as above, but does not check range
+my_map.flush();                                                  //flushes data to file (unnecessary, since current process will be the only one accessing the file, and it will flush at destruction)
 ```
 *Copyright (C) 2020 Jean Diogo ([Jango](mailto:jeandiogo@gmail.com))*
