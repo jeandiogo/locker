@@ -50,5 +50,7 @@ std::size_t          my_size      = my_map.size();               //same as above
 bool                 is_empty     = my_map.is_empty();           //returns true if map is ampty
 bool                 is_empty     = my_map.empty();              //same as above, for STL compatibility
 bool                 success      = my_map.flush();              //flushes data to file (unnecessary, since current process will be the only one accessing the file, and it will flush at destruction)
+
+locker::xremove("filename");                                     //locks a file, then removes it
 ```
 *Copyright (C) 2020 Jean Diogo ([Jango](mailto:jeandiogo@gmail.com))*
