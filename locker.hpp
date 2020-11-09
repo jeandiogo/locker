@@ -48,8 +48,8 @@
 // locker::memory_map_t my_map       = locker::xmap<int>("a.txt");  //note that trailing bytes will be ignored if the size of the file is not a multiple of the size of the chosen type
 // unsigned char        my_var       = my_map.at(N);                //gets the N-th element, throws if N is out of range
 // unsigned char        my_var       = my_map[N];                   //same as above, but does not check range
-//                      my_map.at(N) = V;                           //assigns the value V to the N-th element, throws if N is out of range
-//                      my_map[N]    = V;                           //same as above, but does not check range
+//                      my_map.at(N) = my_value;                    //assigns "my_value" to the N-th element, throws if N is out of range
+//                      my_map[N]    = my_value;                    //same as above, but does not check range
 // unsigned char *      my_data      = my_map.get_data();           //gets a raw pointer to file's data, whose underlying type is the one designated at instantiation (default is unsigned char)
 // unsigned char *      my_data      = my_map.data();               //same as above, for STL compatibility
 // std::size_t          my_size      = my_map.get_size();           //gets data size (which is equals to size of file divided by the size of the type) 
@@ -57,6 +57,8 @@
 // bool                 is_empty     = my_map.is_empty();           //returns true if map is ampty
 // bool                 is_empty     = my_map.empty();              //same as above, for STL compatibility
 // bool                 success      = my_map.flush();              //flushes data to file (unnecessary, since current process will be the only one accessing the file, and it will flush at destruction)
+// 
+// locker::xremove("filename");                                     //locks a file, then removes it
 // 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -476,7 +478,7 @@ class locker
 		output.flush();
 	}
 	
-	static bool xremove(std::string const & filename)
+	static auto xremove(std::string const & filename)
 	{
 		auto const guard = lock_guard(filename);
 		if(!std::filesystem::remove(filename))
