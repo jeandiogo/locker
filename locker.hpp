@@ -315,8 +315,7 @@ class locker
 	
 	~locker()
 	{
-		auto const guard = std::scoped_lock<std::mutex>(get_singleton().lockfiles_mutex);
-		auto & lockfiles = get_singleton().lockfiles;
+		auto const guard = std::scoped_lock<std::mutex>(lockfiles_mutex);
 		for(auto & lockfile : lockfiles)
 		{
 			close(lockfile.second.first);
