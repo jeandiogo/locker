@@ -48,19 +48,15 @@
 // locker::memory_map_t my_map = locker::xmap<int>("a.txt");    //note that trailing bytes will be ignored if the size of the file is not a multiple of the size of the chosen type
 // unsigned char my_var = my_map.at(N);                         //gets the N-th element, throws if N is out of range
 // unsigned char my_var = my_map[N];                            //same as above, but does not check range
-// my_map.at(N) = M;                                            //assigns the value M to the N-th element, throws if N is out of range
-// my_map[N] = M;                                               //same as above, but does not check range
+// my_map.at(N) = V;                                            //assigns the value V to the N-th element, throws if N is out of range
+// my_map[N] = V;                                               //same as above, but does not check range
 // std::size_t my_size = my_map.get_size();                     //gets data size (which is equals to size of file divided by the size of the type) 
 // std::size_t my_size = my_map.size();                         //same as above, for STL compatibility
-// std::size_t my_size = my_map.get_length();                   //same as "get_size()"
-// std::size_t my_size = my_map.length();                       //same as above, for STL compatibility
 // bool is_empty = my_map.is_empty();                           //returns true if map is ampty
 // bool is_empty = my_map.empty();                              //same as above, for STL compatibility
 // unsigned char * my_data = my_map.get_data();                 //gets a raw pointer to file's data, whose underlying type is the one designated at instantiation (default is unsigned char)
 // unsigned char * my_data = my_map.data();                     //same as above, for STL compatibility
 // my_map.flush();                                              //flushes data to file (unnecessary, since current process will be the only one accessing the file)
-// 
-// locker::clear();                                             //unlocks all currently locked files (do not call this function if a lockfile is open)
 // 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -95,26 +91,26 @@ class locker
 	class [[nodiscard]] lock_guard_t
 	{
 		std::pair<ino_t, dev_t> id;
-
+		
 		public:
-
+		
 		lock_guard_t(lock_guard_t const &) = delete;
 		lock_guard_t(lock_guard_t &&) = delete;
 		auto & operator=(lock_guard_t const &) = delete;
 		auto & operator=(lock_guard_t &&) = delete;
 		auto operator&() = delete;
-
+		
 		lock_guard_t(std::string const & filename)
 		{
 			id = lock(filename).first;
 		}
-
+		
 		~lock_guard_t()
 		{
 			unlock(id);
 		}
 	};
-
+	
 	template <typename data_t = unsigned char>
 	class [[nodiscard]] memory_map_t
 	{
@@ -123,15 +119,15 @@ class locker
 		std::size_t               data_size  =  0;
 		data_t                  * data_ptr   = nullptr;
 		std::string               filename;
-
+		
 		public:
-
+		
 		memory_map_t(memory_map_t &) = delete;
 		memory_map_t(memory_map_t &&) = delete;
 		auto & operator=(memory_map_t const &) = delete;
 		auto & operator=(memory_map_t &&) = delete;
 		auto operator&() = delete;
-
+		
 		memory_map_t(std::string const & f) : filename(f)
 		{
 			if(filename.empty() or !std::filesystem::exists(filename) or !std::filesystem::is_regular_file(std::filesystem::status(filename)))
@@ -162,24 +158,24 @@ class locker
 				throw;
 			}
 		}
-
+		
 		~memory_map_t()
 		{
 			msync(data_ptr, data_size, MS_SYNC);
 			munmap(data_ptr, data_size);
 			unlock(id);
 		}
-
+		
 		auto & operator[](std::size_t const index)
 		{
 			return data_ptr[index];
 		}
-
+		
 		auto const & operator[](std::size_t const index) const
 		{
 			return data_ptr[index];
 		}
-
+		
 		auto & at(std::size_t const index)
 		{
 			if(index >= data_size)
@@ -188,7 +184,7 @@ class locker
 			}
 			return data_ptr[index];
 		}
-
+		
 		auto const & at(std::size_t const index) const
 		{
 			if(index >= data_size)
@@ -197,62 +193,52 @@ class locker
 			}
 			return data_ptr[index];
 		}
-
+		
 		auto get_data() const
 		{
 			return data_ptr;
 		}
-
+		
 		auto data() const
 		{
 			return data_ptr;
 		}
-
+		
 		auto get_size() const
 		{
 			return data_size;
 		}
-
+		
 		auto size() const
 		{
 			return data_size;
 		}
-
-		auto get_length() const
-		{
-			return data_size;
-		}
-
-		auto length() const
-		{
-			return data_size;
-		}
-
+		
 		auto is_empty() const
 		{
 			return (data_size == 0);
 		}
-
+		
 		auto empty() const
 		{
 			return (data_size == 0);
 		}
-
+		
 		auto flush()
 		{
 			return (msync(data_ptr, data_size, MS_SYNC) >= 0);
 		}
 	};
-
+	
 	std::mutex lockfiles_mtx;
 	std::map<std::pair<ino_t, dev_t>, std::pair<int, int>> lockfiles;
-
+	
 	static locker & get_singleton()
 	{
 		static auto singleton = locker();
 		return singleton;
 	}
-
+	
 	static inline std::pair<std::pair<ino_t, dev_t>, std::pair<int, int>> lock(std::string const & filename)
 	{
 		auto const guard = std::scoped_lock<std::mutex>(get_singleton().lockfiles_mtx);
@@ -302,7 +288,7 @@ class locker
 			}
 		}
 	}
-
+	
 	static inline void unlock(std::pair<ino_t, dev_t> const & id)
 	{
 		auto const guard = std::scoped_lock<std::mutex>(get_singleton().lockfiles_mtx);
@@ -322,22 +308,12 @@ class locker
 			}
 		}
 	}
-
+	
 	locker() = default;
-
+	
 	public:
-
+	
 	~locker()
-	{
-		clear();
-	}
-
-	locker(locker const &) = delete;
-	locker(locker &&) = delete;
-	auto & operator=(locker const &) = delete;
-	auto & operator=(locker &&) = delete;
-
-	static void clear()
 	{
 		auto const guard = std::scoped_lock<std::mutex>(get_singleton().lockfiles_mtx);
 		auto & lockfiles = get_singleton().lockfiles;
@@ -347,19 +323,24 @@ class locker
 		}
 		lockfiles.clear();
 	}
-
+	
+	locker(locker const &) = delete;
+	locker(locker &&) = delete;
+	auto & operator=(locker const &) = delete;
+	auto & operator=(locker &&) = delete;
+	
 	template <typename ... TS>
 	static auto lock_guard(std::string const & filename)
 	{
 		return lock_guard_t(filename);
 	}
-
+	
 	template <typename data_t = unsigned char>
 	static auto xmap(std::string const & filename)
 	{
 		return memory_map_t<data_t>(filename);
 	}
-
+	
 	static auto xread(std::string const & filename)
 	{
 		if(!std::filesystem::exists(filename))
@@ -381,7 +362,7 @@ class locker
 		}
 		return data;
 	}
-
+	
 	template <typename T>
 	static auto xread(std::string const & filename)
 	{
@@ -401,7 +382,7 @@ class locker
 		input.read(reinterpret_cast<char *>(data.data()), static_cast<long>(data.size() * sizeof(T)));
 		return data;
 	}
-
+	
 	template <typename T>
 	static auto xread(std::string const & filename, T & container)
 	{
@@ -417,7 +398,7 @@ class locker
 		}
 		input >> container;
 	}
-
+	
 	template <bool should_append = false, bool should_add_newline = false, typename ... TS>
 	static auto xwrite(std::string const & filename, TS && ... data)
 	{
@@ -441,7 +422,7 @@ class locker
 			(output << ... << std::forward<TS>(data)) << std::flush;
 		}
 	}
-
+	
 	template <bool should_append = false, typename T>
 	static auto xflush(std::string const & filename, std::vector<T> const & data)
 	{
@@ -459,7 +440,7 @@ class locker
 		output.write(reinterpret_cast<char const *>(data.data()), static_cast<std::streamsize>(data.size() * sizeof(T)));
 		output.flush();
 	}
-
+	
 	template <bool should_append = false, typename T>
 	static auto xflush(std::string const & filename, std::span<T> const data)
 	{
@@ -477,7 +458,7 @@ class locker
 		output.write(reinterpret_cast<char const *>(data.data()), static_cast<std::streamsize>(data.size() * sizeof(T)));
 		output.flush();
 	}
-
+	
 	template <bool should_append = false>
 	static auto xflush(std::string const & filename, void * data, std::size_t const size)
 	{
