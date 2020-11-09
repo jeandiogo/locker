@@ -48,7 +48,7 @@
 // locker::memory_map_t my_map       = locker::xmap<int>("a.txt");  //note that trailing bytes will be ignored if the size of the file is not a multiple of the size of the chosen type
 // unsigned char        my_var       = my_map.at(N);                //gets the N-th element, throws if N is out of range
 // unsigned char        my_var       = my_map[N];                   //same as above, but does not check range
-//                      my_map.at(N) = my_value;                    //assigns "my_value" to the N-th element, throws if N is out of range
+//                      my_map.at(N) = my_value;                    //assigns the variable "my_value" to the N-th element, throws if N is out of range
 //                      my_map[N]    = my_value;                    //same as above, but does not check range
 // unsigned char *      my_data      = my_map.get_data();           //gets a raw pointer to file's data, whose underlying type is the one designated at instantiation (default is unsigned char)
 // unsigned char *      my_data      = my_map.data();               //same as above, for STL compatibility
