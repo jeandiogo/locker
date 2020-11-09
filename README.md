@@ -36,19 +36,19 @@ locker::xflush("a.txt", my_span);                            //same as above, bu
 locker::xflush<true>("a.txt", my_vector);                    //use template argument to append data instead of overwrite
 locker::xflush("a.txt", my_data_pointer, my_data_size);      //one can also send a raw void pointer to the data to be written and its length in bytes
 
-locker::memory_map_t my_map   = locker::xmap("a.txt");       //exclusively maps a file to memory and returns a container that behaves like an array of unsigned chars (throws if file is does not exist or is not regular)
-locker::memory_map_t my_map   = locker::xmap<char>("a.txt"); //the type underlying the array can be chosen at instantiation via template argument
-locker::memory_map_t my_map   = locker::xmap<int>("a.txt");  //note that trailing bytes will be ignored if the size of the file is not a multiple of the size of the chosen type
-unsigned char *      my_data  = my_map.get_data();           //gets a raw pointer to file's data, whose underlying type is the one designated at instantiation (default is unsigned char)
-unsigned char *      my_data  = my_map.data();               //same as above, for STL compatibility
-std::size_t          my_size  = my_map.get_size();           //gets data size (which is equals to size of file divided by the size of the type) 
-std::size_t          my_size  = my_map.size();               //same as above, for STL compatibility
-bool                 is_empty = my_map.is_empty();           //returns true if map is ampty
-bool                 is_empty = my_map.empty();              //same as above, for STL compatibility
-unsigned char        my_var   = my_map.at(N);                //gets the N-th element, throws if N is out of range
-unsigned char        my_var   = my_map[N];                   //same as above, but does not check range
-my_map.at(N) = V;                                            //assigns the value V to the N-th element, throws if N is out of range
-my_map[N]    = V;                                            //same as above, but does not check range
-my_map.flush();                                              //flushes data to file (unnecessary, since current process will be the only one accessing the file, and it will flush at destruction)
+locker::memory_map_t my_map       = locker::xmap("a.txt");       //exclusively maps a file to memory and returns a container that behaves like an array of unsigned chars (throws if file is does not exist or is not regular)
+locker::memory_map_t my_map       = locker::xmap<char>("a.txt"); //the type underlying the array can be chosen at instantiation via template argument
+locker::memory_map_t my_map       = locker::xmap<int>("a.txt");  //note that trailing bytes will be ignored if the size of the file is not a multiple of the size of the chosen type
+unsigned char        my_var       = my_map.at(N);                //gets the N-th element, throws if N is out of range
+unsigned char        my_var       = my_map[N];                   //same as above, but does not check range
+                     my_map.at(N) = V;                           //assigns the value V to the N-th element, throws if N is out of range
+                     my_map[N]    = V;                           //same as above, but does not check range
+unsigned char *      my_data      = my_map.get_data();           //gets a raw pointer to file's data, whose underlying type is the one designated at instantiation (default is unsigned char)
+unsigned char *      my_data      = my_map.data();               //same as above, for STL compatibility
+std::size_t          my_size      = my_map.get_size();           //gets data size (which is equals to size of file divided by the size of the type) 
+std::size_t          my_size      = my_map.size();               //same as above, for STL compatibility
+bool                 is_empty     = my_map.is_empty();           //returns true if map is ampty
+bool                 is_empty     = my_map.empty();              //same as above, for STL compatibility
+bool                 success      = my_map.flush();              //flushes data to file (unnecessary, since current process will be the only one accessing the file, and it will flush at destruction)
 ```
 *Copyright (C) 2020 Jean Diogo ([Jango](mailto:jeandiogo@gmail.com))*
