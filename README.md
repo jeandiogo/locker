@@ -52,7 +52,5 @@ bool is_empty = my_map.empty();                              //same as above, fo
 unsigned char * my_data = my_map.get_data();                 //gets a raw pointer to file's data, whose underlying type is the one designated at instantiation (default is unsigned char)
 unsigned char * my_data = my_map.data();                     //same as above, for STL compatibility
 my_map.flush();                                              //flushes data to file (unnecessary, since current process will be the only one accessing the file)
-
-locker::clear();                                             //unlocks all currently locked files (do not call this function if a lockfile is open)
 ```
 *Copyright (C) 2020 Jean Diogo ([Jango](mailto:jeandiogo@gmail.com))*
