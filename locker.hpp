@@ -62,22 +62,17 @@
 // 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-#include <chrono>
-#include <cerrno>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <filesystem>
 #include <fstream>
-#include <initializer_list>
-#include <iterator>
 #include <map>
 #include <mutex>
 #include <span>
 #include <stdexcept>
 #include <string>
 #include <thread>
-#include <type_traits>
 #include <utility>
 #include <vector>
 
@@ -139,7 +134,7 @@ class locker
 			auto const guard = std::scoped_lock<std::mutex>(get_singleton().lockfiles_mutex);
 			auto const lockfile = lock(filename);
 			id = lockfile.first;
-			descriptor = lockfile.second.first;
+			descriptor = lockfile.second.first; //descriptor = open(filename.c_str(), O_RDWR, 0666);
 			try
 			{
 				struct stat file_status;
@@ -300,9 +295,10 @@ class locker
 			auto & lockfile = lockfiles.at(id);
 			if((--lockfile.second <= 0) and ((fsync(lockfile.first) < 0) or (close(lockfile.first) < 0) or !lockfiles.erase(id)))
 			{
-				auto filename = std::string(256, '\0');
+				std::size_t const size = 256;
+				auto filename = std::string(size, '\0');
 				auto const link = "/proc/self/fd/" + std::to_string(lockfile.first);
-				if(readlink(link.c_str(), &filename[0], 256 - 1) < 0)
+				if(readlink(link.c_str(), &filename[0], size - 1) < 0)
 				{
 					filename.clear();
 				}
