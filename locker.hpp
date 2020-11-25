@@ -17,9 +17,9 @@
 // locker.hpp
 // 
 // Locker is a C++20 library for Linux systems, providing functions to lock files so they can be accessed exclusively or used as inter-process mutexes.
-// The locker provides process-safety but not thread-safety. Once a process has acquired the lock, its threads and future forks will not be stopped by it.
+// The locker provides process-safety but not thread-safety. Once a process has acquired the lock, its threads will not be stopped by it (although its forks will, so be careful with forks).
 // If the lockfile does not exist it will be created, but an exception will be thrown if the lockfile is not a regular file or if its directory is not authorized for writing.
-// When compiling with g++ use the flag "-std=c++20", available in GCC 10 or later.
+// When compiling with g++ use the flag "-std=c++20" (available in GCC 10 or later).
 // 
 // Usage:
 // 
@@ -85,9 +85,52 @@
 
 class locker
 {
+	struct key_t
+	{
+		ino_t inode  = 0;
+		dev_t device = 0;
+		
+		key_t(ino_t _inode, dev_t _device) : inode(_inode), device(_device)
+		{
+		}
+		
+		key_t() = default;
+		key_t(key_t const &) = default;
+		key_t(key_t &&) = default;
+		key_t & operator=(key_t const &) = default;
+		key_t & operator=(key_t &&) = default;
+		
+		friend auto operator==(key_t const & x, key_t const & y)
+		{
+			return x.inode == y.inode and x.device == y.device;
+		}
+		
+		friend auto operator<(key_t const & x, key_t const & y)
+		{
+			return x.inode < y.inode and x.device < y.device;
+		}
+	};
+	
+	struct value_t
+	{
+		int descriptor = -1;
+		int num_locks  =  0;
+		pid_t pid      = -1;
+		
+		value_t(int _descriptor, int _num_locks, pid_t _pid) : descriptor(_descriptor), num_locks(_num_locks), pid(_pid)
+		{
+		}
+		
+		value_t() = default;
+		value_t(value_t const &) = default;
+		value_t(value_t &&) = default;
+		value_t & operator=(value_t const &) = default;
+		value_t & operator=(value_t &&) = default;
+	};
+	
 	class [[nodiscard]] lock_guard_t
 	{
-		std::pair<ino_t, dev_t> id;
+		key_t id;
 		
 		public:
 		
@@ -111,11 +154,11 @@ class locker
 	template <typename data_t = unsigned char>
 	class [[nodiscard]] memory_map_t
 	{
-		std::pair<ino_t, dev_t>   id         = {0, 0};
-		int                       descriptor = -1;
-		std::size_t               data_size  =  0;
-		data_t                  * data_ptr   = nullptr;
-		std::string               filename   = "";
+		key_t         id;
+		int           descriptor = -1;
+		std::size_t   data_size  =  0;
+		data_t      * data_ptr   = nullptr;
+		std::string   filename   = "";
 		
 		public:
 		
@@ -134,7 +177,7 @@ class locker
 			auto const guard = std::scoped_lock<std::mutex>(get_singleton().lockfiles_mutex);
 			auto const lockfile = lock(filename);
 			id = lockfile.first;
-			descriptor = lockfile.second.first; //descriptor = open(filename.c_str(), O_RDWR, 0666);
+			descriptor = lockfile.second.descriptor; //descriptor = open(filename.c_str(), O_RDWR, 0666);
 			try
 			{
 				struct stat file_status;
@@ -228,7 +271,7 @@ class locker
 	};
 	
 	std::mutex lockfiles_mutex;
-	std::map<std::pair<ino_t, dev_t>, std::pair<int, int>> lockfiles;
+	std::map<key_t, value_t> lockfiles;
 	
 	static locker & get_singleton()
 	{
@@ -236,9 +279,10 @@ class locker
 		return singleton;
 	}
 	
-	static inline std::pair<std::pair<ino_t, dev_t>, std::pair<int, int>> lock(std::string const & filename)
+	static inline std::pair<key_t, value_t> lock(std::string const & filename)
 	{
-		auto const guard = std::scoped_lock<std::mutex>(get_singleton().lockfiles_mutex);
+		auto & singleton = get_singleton();
+		auto const guard = std::scoped_lock<std::mutex>(singleton.lockfiles_mutex);
 		while(true)
 		{
 			mode_t mask = umask(0);
@@ -255,14 +299,21 @@ class locker
 				{
 					throw std::runtime_error("could not get status of file \"" + filename + "\"");
 				}
-				auto id = std::make_pair(status.st_ino, status.st_dev);
-				auto & lockfiles = get_singleton().lockfiles;
-				if(lockfiles.contains(id))
+				auto id = key_t(status.st_ino, status.st_dev);
+				auto const pid = getpid();
+				if(singleton.lockfiles.contains(id))
 				{
-					close(descriptor);
-					auto & lockfile = lockfiles.at(id);
-					++lockfile.second;
-					return std::make_pair(id, lockfile);
+					if(singleton.lockfiles.at(id).pid == pid)
+					{
+						close(descriptor);
+						auto & lockfile = singleton.lockfiles.at(id);
+						++lockfile.num_locks;
+						return std::make_pair(id, lockfile);
+					}
+					else
+					{
+						singleton.lockfiles.erase(id);
+					}
 				}
 				if(flock(descriptor, LOCK_EX) < 0)
 				{
@@ -271,9 +322,9 @@ class locker
 				struct stat new_status;
 				if(stat(filename.c_str(), &new_status) >= 0 and new_status.st_nlink > 0 and new_status.st_ino == status.st_ino and new_status.st_dev == status.st_dev)
 				{
-					id = std::make_pair(status.st_ino, status.st_dev);
-					auto const lockfile = std::make_pair(descriptor, 1);
-					lockfiles.emplace(id, lockfile);
+					id = key_t(status.st_ino, status.st_dev);
+					auto const lockfile = value_t(descriptor, 1, pid);
+					singleton.lockfiles.emplace(id, lockfile);
 					return std::make_pair(id, lockfile);
 				}
 				close(descriptor);
@@ -286,18 +337,18 @@ class locker
 		}
 	}
 	
-	static inline void unlock(std::pair<ino_t, dev_t> const & id)
+	static inline void unlock(key_t const & id)
 	{
-		auto const guard = std::scoped_lock<std::mutex>(get_singleton().lockfiles_mutex);
-		auto & lockfiles = get_singleton().lockfiles;
-		if(lockfiles.contains(id))
+		auto & singleton = get_singleton();
+		auto const guard = std::scoped_lock<std::mutex>(singleton.lockfiles_mutex);
+		if(singleton.lockfiles.contains(id))
 		{
-			auto & lockfile = lockfiles.at(id);
-			if((--lockfile.second <= 0) and ((fsync(lockfile.first) < 0) or (close(lockfile.first) < 0) or !lockfiles.erase(id)))
+			auto & lockfile = singleton.lockfiles.at(id);
+			if((--lockfile.num_locks <= 0) and ((fsync(lockfile.descriptor) < 0) or (close(lockfile.descriptor) < 0) or !singleton.lockfiles.erase(id)))
 			{
 				std::size_t const size = 256;
 				auto filename = std::string(size, '\0');
-				auto const link = "/proc/self/fd/" + std::to_string(lockfile.first);
+				auto const link = "/proc/self/fd/" + std::to_string(lockfile.descriptor);
 				if(readlink(link.c_str(), &filename[0], size - 1) < 0)
 				{
 					filename.clear();
@@ -316,7 +367,7 @@ class locker
 		auto const guard = std::scoped_lock<std::mutex>(lockfiles_mutex);
 		for(auto & lockfile : lockfiles)
 		{
-			close(lockfile.second.first);
+			close(lockfile.second.descriptor);
 		}
 		lockfiles.clear();
 	}
