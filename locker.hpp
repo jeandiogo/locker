@@ -156,10 +156,8 @@ class locker
 	class [[nodiscard]] memory_map_t
 	{
 		key_t         id;
-		int           descriptor = -1;
-		std::size_t   data_size  =  0;
-		data_t      * data_ptr   = nullptr;
-		std::string   filename   = "";
+		std::size_t   data_size = 0;
+		data_t      * data_ptr  = nullptr;
 		
 		public:
 		
@@ -169,7 +167,7 @@ class locker
 		auto & operator=(memory_map_t &&) = delete;
 		auto operator&() = delete;
 		
-		memory_map_t(std::string const & f) : filename(f)
+		memory_map_t(std::string const & filename)
 		{
 			if(filename.empty() or !std::filesystem::exists(filename) or !std::filesystem::is_regular_file(std::filesystem::status(filename)))
 			{
@@ -178,7 +176,7 @@ class locker
 			auto const guard = std::scoped_lock<std::mutex>(get_singleton().lockfiles_mutex);
 			auto const lockfile = lock(filename);
 			id = lockfile.first;
-			descriptor = lockfile.second.descriptor; //descriptor = open(filename.c_str(), O_RDWR, 0666);
+			auto const descriptor = lockfile.second.descriptor; //descriptor = open(filename.c_str(), O_RDWR, 0666);
 			try
 			{
 				struct stat file_status;
@@ -195,7 +193,7 @@ class locker
 			}
 			catch(...)
 			{
-				unlock(id);
+				unlock(id); //close(descriptor);
 				throw;
 			}
 		}
