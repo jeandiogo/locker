@@ -20,9 +20,10 @@ To compile and run the test, enter *make test* in the terminal.
 
 locker::lock_guard_t my_lock = locker::lock_guard("a.lock");     //locks a file and automatically unlocks it before leaving current scope
 
-std::string       my_data = locker::xread("a.txt");              //exclusively reads a file (throws if file does not exist) and returns its content as a string (trailing newlines are removed)
-std::vector<char> my_data = locker::xread<char>("a.txt");        //same, but does not remove trailing newlines and return content as a vector of user specified type
-std::vector<int>  my_data = locker::xread<int>("a.txt");         //note that in these cases trailing bytes will be ignored if the size of the file is not a multiple of the the size of the chosen type
+std::string       my_data = locker::xread("a.txt");              //exclusively reads a file and returns its content as a string (returns an empty string if file does not exist)
+std::string       my_data = locker::xread<true>("a.txt");        //use template argument to remove trailing newlines ("\n" and "\r\n")
+std::vector<char> my_data = locker::xread<char>("a.txt");        //use template typename to get file content as a vector of some specified type
+std::vector<int>  my_data = locker::xread<int>("a.txt");         //note that in these cases trailing bytes will be ignored if the size of the file is not a multiple of the size of the chosen type
 std::vector<long> my_data = locker::xread<long>("a.txt");        //also note that an eventual traling newline may be included if it turns the file size into a multiple of the type size
 locker::xread("a.txt", my_container);                            //opens input file and calls operator ">>" once from the filestream to the container passed as argument
 
@@ -41,8 +42,8 @@ locker::memory_map_t my_map       = locker::xmap<char>("a.txt"); //the type unde
 locker::memory_map_t my_map       = locker::xmap<int>("a.txt");  //note that trailing bytes will be ignored if the size of the file is not a multiple of the size of the chosen type
 unsigned char        my_var       = my_map.at(N);                //gets the N-th element, throws if N is out of range
 unsigned char        my_var       = my_map[N];                   //same as above, but does not check range
-                     my_map.at(N) = my_value;                    //assigns the variable "my_value" to the N-th element, throws if N is out of range
-                     my_map[N]    = my_value;                    //same as above, but does not check range
+                  my_map.at(N) = V;                           //assigns the value V to the N-th element, throws if N is out of range
+                  my_map[N]    = V;                           //same as above, but does not check range
 unsigned char *      my_data      = my_map.get_data();           //gets a raw pointer to file's data, whose underlying type is the one designated at instantiation (default is unsigned char)
 unsigned char *      my_data      = my_map.data();               //same as above, for STL compatibility
 std::size_t          my_size      = my_map.get_size();           //gets data size (which is equals to size of file divided by the size of the type) 
