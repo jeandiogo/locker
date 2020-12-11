@@ -16,8 +16,8 @@
 // 
 // locker.hpp
 // 
-// Locker is a C++20 library for Linux systems, providing functions to lock files so they can be accessed exclusively or used as inter-process mutexes.
-// The locker provides process-safety but not thread-safety. Once a process has acquired the lock, its threads will not be stopped by it (although its forks will, so be careful with forks).
+/// A class with static functions to lock files in Linux systems, so they can be accessed exclusively or used as inter-process mutexes.
+// The locker provides process-safety but not thread-safety. Once a process has acquired the lock, its threads and future forks will not be stopped by it.
 // If the lockfile does not exist it will be created, but an exception will be thrown if the lockfile is not a regular file or if its directory is not authorized for writing.
 // When compiling with g++ use the flag "-std=c++20" (available in GCC 10 or later).
 // 
@@ -27,9 +27,10 @@
 // 
 // locker::lock_guard_t my_lock = locker::lock_guard("a.lock");     //locks a file and automatically unlocks it before leaving current scope
 // 
-// std::string       my_data = locker::xread("a.txt");              //exclusively reads a file (throws if file does not exist) and returns its content as a string (trailing newlines are removed)
-// std::vector<char> my_data = locker::xread<char>("a.txt");        //same, but does not remove trailing newlines and return content as a vector of user specified type
-// std::vector<int>  my_data = locker::xread<int>("a.txt");         //note that in these cases trailing bytes will be ignored if the size of the file is not a multiple of the the size of the chosen type
+// std::string       my_data = locker::xread("a.txt");              //exclusively reads a file and returns its content as a string (returns an empty string if file does not exist)
+// std::string       my_data = locker::xread<true>("a.txt");        //use template argument to remove trailing newlines ("\n" and "\r\n")
+// std::vector<char> my_data = locker::xread<char>("a.txt");        //use template typename to get file content as a vector of some specified type
+// std::vector<int>  my_data = locker::xread<int>("a.txt");         //note that in these cases trailing bytes will be ignored if the size of the file is not a multiple of the size of the chosen type
 // std::vector<long> my_data = locker::xread<long>("a.txt");        //also note that an eventual traling newline may be included if it turns the file size into a multiple of the type size
 // locker::xread("a.txt", my_container);                            //opens input file and calls operator ">>" once from the filestream to the container passed as argument
 // 
@@ -48,8 +49,8 @@
 // locker::memory_map_t my_map       = locker::xmap<int>("a.txt");  //note that trailing bytes will be ignored if the size of the file is not a multiple of the size of the chosen type
 // unsigned char        my_var       = my_map.at(N);                //gets the N-th element, throws if N is out of range
 // unsigned char        my_var       = my_map[N];                   //same as above, but does not check range
-//                      my_map.at(N) = my_value;                    //assigns the variable "my_value" to the N-th element, throws if N is out of range
-//                      my_map[N]    = my_value;                    //same as above, but does not check range
+//                      my_map.at(N) = V;                           //assigns the value V to the N-th element, throws if N is out of range
+//                      my_map[N]    = V;                           //same as above, but does not check range
 // unsigned char *      my_data      = my_map.get_data();           //gets a raw pointer to file's data, whose underlying type is the one designated at instantiation (default is unsigned char)
 // unsigned char *      my_data      = my_map.data();               //same as above, for STL compatibility
 // std::size_t          my_size      = my_map.get_size();           //gets data size (which is equals to size of file divided by the size of the type) 
@@ -58,7 +59,7 @@
 // bool                 is_empty     = my_map.empty();              //same as above, for STL compatibility
 // bool                 success      = my_map.flush();              //flushes data to file (unnecessary, since current process will be the only one accessing the file, and it will flush at destruction)
 // 
-// locker::xremove("filename");                                     //locks a file, then removes it
+// locker::xremove("filename");                                     //locks a file, then remove it
 // 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -290,7 +291,7 @@ class locker
 			umask(mask);
 			if(descriptor < 0)
 			{
-				throw std::runtime_error("could not open file \"" + filename + "\"");
+				throw std::runtime_error("could not open file \"" + filename + "\" for lock");
 			}
 			try
 			{
@@ -389,24 +390,31 @@ class locker
 		return memory_map_t<data_t>(filename);
 	}
 	
+	template <bool should_strip_newlines = false>
 	static auto xread(std::string const & filename)
 	{
-		if(!std::filesystem::exists(filename))
-		{
-			throw std::runtime_error("file \"" + filename + "\" does not exist");
-		}
 		auto const guard = lock_guard(filename);
 		auto input = std::fstream(filename, std::fstream::in | std::fstream::ate);
 		if(!input.good())
 		{
 			throw std::runtime_error("could not open file \"" + filename + "\" for input");
 		}
-		auto data = std::string(static_cast<std::size_t>(input.tellg()), '\n');
-		input.seekg(0);
-		input.read(data.data(), static_cast<long>(data.size()));
-		while(data.size() and data.back() == '\n')
+		auto data = std::string(static_cast<std::size_t>(input.tellg()), '\0');
+		if(data.size())
 		{
-			data.pop_back();
+			input.seekg(0);
+			input.read(data.data(), static_cast<long>(data.size()));
+			if constexpr(should_strip_newlines)
+			{
+				while(data.size() and data.back() == '\n')
+				{
+					data.pop_back();
+					if(data.size() and data.back() == '\r')
+					{
+						data.pop_back();
+					}
+				}
+			}
 		}
 		return data;
 	}
@@ -414,10 +422,6 @@ class locker
 	template <typename T>
 	static auto xread(std::string const & filename)
 	{
-		if(!std::filesystem::exists(filename))
-		{
-			throw std::runtime_error("file \"" + filename + "\" does not exist");
-		}
 		auto const guard = lock_guard(filename);
 		std::vector<T> data;
 		auto input = std::fstream(filename, std::fstream::in | std::fstream::ate | std::fstream::binary);
@@ -426,18 +430,17 @@ class locker
 			throw std::runtime_error("could not open file \"" + filename + "\" for binary input");
 		}
 		data.resize(static_cast<std::size_t>(input.tellg()) / sizeof(T));
-		input.seekg(0);
-		input.read(reinterpret_cast<char *>(data.data()), static_cast<long>(data.size() * sizeof(T)));
+		if(data)
+		{
+			input.seekg(0);
+			input.read(reinterpret_cast<char *>(data.data()), static_cast<long>(data.size() * sizeof(T)));
+		}
 		return data;
 	}
 	
 	template <typename T>
 	static auto xread(std::string const & filename, T & container)
 	{
-		if(!std::filesystem::exists(filename))
-		{
-			throw std::runtime_error("file \"" + filename + "\" does not exist");
-		}
 		auto const guard = lock_guard(filename);
 		auto input = std::fstream(filename, std::fstream::in);
 		if(!input.good())
