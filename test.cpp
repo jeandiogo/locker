@@ -63,7 +63,7 @@ int main()
 			auto const guard = locker::lock_guard(filename);
 			safe_open(filename, std::fstream::in) >> data;
 			auto const new_data = data + 1;
-			safe_open(filename, std::fstream::out) << inc_data << std::flush;
+			safe_open(filename, std::fstream::out) << new_data << std::flush;
 			std::cout << "Child " << getpid() << " read " << data << " and wrote " << new_data << std::endl;
 			std::this_thread::sleep_for(std::chrono::milliseconds(50));
 			return EXIT_SUCCESS;
