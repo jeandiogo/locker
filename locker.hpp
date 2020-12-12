@@ -129,148 +129,8 @@ class locker
 		value_t & operator=(value_t &&) = default;
 	};
 	
-	class [[nodiscard]] lock_guard_t
-	{
-		key_t id;
-		
-		public:
-		
-		lock_guard_t(lock_guard_t const &) = delete;
-		lock_guard_t(lock_guard_t &&) = delete;
-		auto & operator=(lock_guard_t const &) = delete;
-		auto & operator=(lock_guard_t &&) = delete;
-		auto operator&() = delete;
-		
-		lock_guard_t(std::string const & filename)
-		{
-			id = lock(filename).first;
-		}
-		
-		~lock_guard_t()
-		{
-			unlock(id);
-		}
-	};
-	
-	template <typename data_t = unsigned char>
-	class [[nodiscard]] memory_map_t
-	{
-		key_t         id;
-		std::size_t   data_size = 0;
-		data_t      * data_ptr  = nullptr;
-		
-		public:
-		
-		memory_map_t(memory_map_t &) = delete;
-		memory_map_t(memory_map_t &&) = delete;
-		auto & operator=(memory_map_t const &) = delete;
-		auto & operator=(memory_map_t &&) = delete;
-		auto operator&() = delete;
-		
-		memory_map_t(std::string const & filename)
-		{
-			if(filename.empty() or !std::filesystem::exists(filename) or !std::filesystem::is_regular_file(std::filesystem::status(filename)))
-			{
-				throw std::runtime_error("\"" + filename + "\" is not a regular file");
-			}
-			auto const guard = std::scoped_lock<std::mutex>(get_singleton().lockfiles_mutex);
-			auto const lockfile = lock(filename);
-			id = lockfile.first;
-			auto const descriptor = lockfile.second.descriptor; //descriptor = open(filename.c_str(), O_RDWR, 0666);
-			try
-			{
-				struct stat file_status;
-				if(fstat(descriptor, &file_status) < 0)
-				{
-					throw std::runtime_error("could not get size of \"" + filename + "\"");
-				}
-				data_size = static_cast<std::size_t>(file_status.st_size / static_cast<off_t>(sizeof(data_t)));
-				data_ptr = static_cast<data_t *>(mmap(nullptr, data_size, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_POPULATE, descriptor, 0));
-				if(data_ptr == MAP_FAILED)
-				{
-					throw std::runtime_error("could not map file \"" + filename + "\" to memory");
-				}
-			}
-			catch(...)
-			{
-				unlock(id); //close(descriptor);
-				throw;
-			}
-		}
-		
-		~memory_map_t()
-		{
-			msync(data_ptr, data_size, MS_SYNC);
-			munmap(data_ptr, data_size);
-			unlock(id);
-		}
-		
-		auto & operator[](std::size_t const index)
-		{
-			return data_ptr[index];
-		}
-		
-		auto const & operator[](std::size_t const index) const
-		{
-			return data_ptr[index];
-		}
-		
-		auto & at(std::size_t const index)
-		{
-			if(index >= data_size)
-			{
-				throw std::runtime_error("index " + std::to_string(index) + " is out of the range");
-			}
-			return data_ptr[index];
-		}
-		
-		auto const & at(std::size_t const index) const
-		{
-			if(index >= data_size)
-			{
-				throw std::runtime_error("index " + std::to_string(index) + " is out of the range");
-			}
-			return data_ptr[index];
-		}
-		
-		auto get_data() const
-		{
-			return data_ptr;
-		}
-		
-		auto data() const
-		{
-			return data_ptr;
-		}
-		
-		auto get_size() const
-		{
-			return data_size;
-		}
-		
-		auto size() const
-		{
-			return data_size;
-		}
-		
-		auto is_empty() const
-		{
-			return (data_size == 0);
-		}
-		
-		auto empty() const
-		{
-			return (data_size == 0);
-		}
-		
-		auto flush()
-		{
-			return (msync(data_ptr, data_size, MS_SYNC) >= 0);
-		}
-	};
-	
-	std::mutex lockfiles_mutex;
 	std::map<key_t, value_t> lockfiles;
+	std::mutex               lockfiles_mutex;
 	
 	static locker & get_singleton()
 	{
@@ -534,5 +394,144 @@ class locker
 			throw std::runtime_error("could not remove \"" + filename + "\"");
 		}
 	}
+	
+	class [[nodiscard]] lock_guard_t
+	{
+		key_t id;
+		
+		public:
+		
+		lock_guard_t(lock_guard_t const &) = delete;
+		lock_guard_t(lock_guard_t &&) = delete;
+		auto & operator=(lock_guard_t const &) = delete;
+		auto & operator=(lock_guard_t &&) = delete;
+		auto operator&() = delete;
+		
+		lock_guard_t(std::string const & filename)
+		{
+			id = lock(filename).first;
+		}
+		
+		~lock_guard_t()
+		{
+			unlock(id);
+		}
+	};
+	
+	template <typename data_t = unsigned char>
+	class [[nodiscard]] memory_map_t
+	{
+		key_t         id;
+		std::size_t   data_size = 0;
+		data_t      * data_ptr  = nullptr;
+		
+		public:
+		
+		memory_map_t(memory_map_t &) = delete;
+		memory_map_t(memory_map_t &&) = delete;
+		auto & operator=(memory_map_t const &) = delete;
+		auto & operator=(memory_map_t &&) = delete;
+		auto operator&() = delete;
+		
+		memory_map_t(std::string const & filename)
+		{
+			if(filename.empty() or !std::filesystem::exists(filename) or !std::filesystem::is_regular_file(std::filesystem::status(filename)))
+			{
+				throw std::runtime_error("\"" + filename + "\" is not a regular file");
+			}
+			auto const guard = std::scoped_lock<std::mutex>(get_singleton().lockfiles_mutex);
+			auto const lockfile = lock(filename);
+			id = lockfile.first;
+			auto const descriptor = lockfile.second.descriptor; //descriptor = open(filename.c_str(), O_RDWR, 0666);
+			try
+			{
+				struct stat file_status;
+				if(fstat(descriptor, &file_status) < 0)
+				{
+					throw std::runtime_error("could not get size of \"" + filename + "\"");
+				}
+				data_size = static_cast<std::size_t>(file_status.st_size / static_cast<off_t>(sizeof(data_t)));
+				data_ptr = static_cast<data_t *>(mmap(nullptr, data_size, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_POPULATE, descriptor, 0));
+				if(data_ptr == MAP_FAILED)
+				{
+					throw std::runtime_error("could not map file \"" + filename + "\" to memory");
+				}
+			}
+			catch(...)
+			{
+				unlock(id); //close(descriptor);
+				throw;
+			}
+		}
+		
+		~memory_map_t()
+		{
+			msync(data_ptr, data_size, MS_SYNC);
+			munmap(data_ptr, data_size);
+			unlock(id);
+		}
+		
+		auto & operator[](std::size_t const index)
+		{
+			return data_ptr[index];
+		}
+		
+		auto const & operator[](std::size_t const index) const
+		{
+			return data_ptr[index];
+		}
+		
+		auto & at(std::size_t const index)
+		{
+			if(index >= data_size)
+			{
+				throw std::runtime_error("index " + std::to_string(index) + " is out of the range");
+			}
+			return data_ptr[index];
+		}
+		
+		auto const & at(std::size_t const index) const
+		{
+			if(index >= data_size)
+			{
+				throw std::runtime_error("index " + std::to_string(index) + " is out of the range");
+			}
+			return data_ptr[index];
+		}
+		
+		auto get_data() const
+		{
+			return data_ptr;
+		}
+		
+		auto data() const
+		{
+			return data_ptr;
+		}
+		
+		auto get_size() const
+		{
+			return data_size;
+		}
+		
+		auto size() const
+		{
+			return data_size;
+		}
+		
+		auto is_empty() const
+		{
+			return (data_size == 0);
+		}
+		
+		auto empty() const
+		{
+			return (data_size == 0);
+		}
+		
+		auto flush()
+		{
+			return (msync(data_ptr, data_size, MS_SYNC) >= 0);
+		}
+	};
 };
-
