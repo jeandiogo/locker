@@ -435,11 +435,6 @@ class locker
 		
 		memory_map_t(std::string const & filename)
 		{
-			if(filename.empty() or !std::filesystem::exists(filename) or !std::filesystem::is_regular_file(std::filesystem::status(filename)))
-			{
-				throw std::runtime_error("\"" + filename + "\" is not a regular file");
-			}
-			auto const guard = std::scoped_lock<std::mutex>(get_singleton().lockfiles_mutex);
 			auto const lockfile = lock(filename);
 			id = lockfile.first;
 			auto const descriptor = lockfile.second.descriptor; //descriptor = open(filename.c_str(), O_RDWR, 0666);
