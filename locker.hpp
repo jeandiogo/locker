@@ -130,7 +130,7 @@ class locker
 	};
 	
 	std::map<key_t, value_t> lockfiles;
-	std::mutex               lockfiles_mutex;
+	std::mutex lockfiles_mutex;
 	
 	static locker & get_singleton()
 	{
