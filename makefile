@@ -25,7 +25,7 @@ OBJ = $(SRC:.cpp=.o)
 DEP = $(OBJ:.o=.d)
 OPT = -std=c++20 -O3 -march=native -pthread -fopenmp -fopenacc -pipe -flto -fPIC
 WRN = -Wall -Wextra -pedantic -Werror -pedantic-errors -Wfatal-errors -Wnull-dereference -Wshadow -Wconversion -Wsign-conversion -Warith-conversion
-XTR = -Wcast-align=strict -Wpacked -Wundef -Wcast-qual -Wredundant-decls -Wuseless-cast -Wsuggest-override -Wsuggest-final-methods -Wsuggest-final-types
+XTR = -Wcast-align=strict -Wpacked -Wcast-qual -Wredundant-decls -Wundef -Wuseless-cast -Wsuggest-override -Wsuggest-final-methods -Wsuggest-final-types
 WNO = -Wno-unused -Wno-vla
 FLG = $(OPT) $(LIB) $(WRN) $(XTR) $(WNO)
 #
