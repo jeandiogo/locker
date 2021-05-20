@@ -18,8 +18,8 @@
 // 
 // A class with static functions to lock files in Linux systems, so they can be accessed exclusively or used as inter-process mutexes.
 // The locker provides process-safety but not thread-safety. Once a process has acquired the lock, its threads and future forks will not be stopped by it.
-// If the lockfile does not exist it will be created. If the lockfile is empty at unlock, it will be erased.
-// An exception will be thrown if the given filename refers to a file which is not regular or if its directory is not authorized for writing.
+// If the lockfile does not exist it will be created. If the lockfile is empty during unlock, it will be erased.
+// An exception will be thrown if the given filename refers to a file which existis but is not regular, or if its directory is not authorized for writing.
 // When compiling with g++ use the flag "-std=c++20" (available in GCC 10 or later).
 // 
 // Usage:
