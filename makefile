@@ -1,7 +1,7 @@
 ########################################################################################################################
 # 
 # Locker (C++ Library)
-# Copyright (C) 2021 Jean "Jango" Diogo <jeandiogo@gmail.com>
+# Copyright (C) 2020-2021 Jean "Jango" Diogo <jeandiogo@gmail.com>
 # 
 # Licensed under the Apache License Version 2.0 (the "License").
 # You may not use this file except in compliance with the License.
