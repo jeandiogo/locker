@@ -1,7 +1,7 @@
 ########################################################################################################################
 # 
 # Locker (C++ Library)
-# Copyright (C) 2020 Jean Diogo (Jango) <jeandiogo@gmail.com>
+# Copyright (C) 2021 Jean Diogo (Jango) <jeandiogo@gmail.com>
 # 
 # Licensed under the Apache License Version 2.0 (the "License").
 # You may not use this file except in compliance with the License.
@@ -23,7 +23,7 @@ BIN = test.out
 SRC = $(wildcard *.cpp)
 OBJ = $(SRC:.cpp=.o)
 DEP = $(OBJ:.o=.d)
-OPT = -std=c++20 -O3 -march=native -pthread -fopenmp -fopenacc -pipe -flto -fPIC
+OPT = -std=c++20 -O3 -march=native -pipe -flto -pthread -fopenmp -fopenacc -fPIC
 WRN = -Wall -Wextra -pedantic -Werror -pedantic-errors -Wfatal-errors -Wnull-dereference -Wshadow -Wconversion -Wsign-conversion -Warith-conversion
 XTR = -Wcast-align=strict -Wpacked -Wcast-qual -Wredundant-decls -Wundef -Wuseless-cast -Wsuggest-override -Wsuggest-final-methods -Wsuggest-final-types
 WNO = -Wno-unused -Wno-vla
@@ -33,13 +33,13 @@ FLG = $(OPT) $(LIB) $(WRN) $(XTR) $(WNO)
 #
 all: $(BIN)
 #
-$(BIN): $(OBJ)
-	@g++ -o $@ $^ $(FLG) -fuse-linker-plugin
-#
 %.o: %.cpp
 	@clear
 	@clear
 	@g++ -o $@ $< -MMD -MP -c $(FLG)
+#
+$(BIN): $(OBJ)
+	@g++ -o $@ $^ $(FLG) -fuse-linker-plugin
 #
 test: all
 	@time -f "[ %es ]" ./$(BIN)
@@ -60,7 +60,9 @@ permissions:
 	@sudo chmod -R u=rwX,go=rX .
 #
 zip: clear permissions
-	@sudo zip -q -r $(BIN).zip .
+	@sudo zip -qr $(BIN).zip .
+	@google-chrome --new-window https://drive.google.com/drive/my-drive >/dev/null 2>&1 &
+	@nemo `pwd` &
 #
 -include $(DEP)
 #
