@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // 
 // Locker (C++ Library)
-// Copyright (C) 2020 Jean Diogo (Jango) <jeandiogo@gmail.com>
+// Copyright (C) 2020-2021 Jean Diogo (Jango) <jeandiogo@gmail.com>
 // 
 // Licensed under the Apache License Version 2.0 (the "License").
 // You may not use this file except in compliance with the License.
@@ -18,7 +18,8 @@
 // 
 // A class with static functions to lock files in Linux systems, so they can be accessed exclusively or used as inter-process mutexes.
 // The locker provides process-safety but not thread-safety. Once a process has acquired the lock, its threads and future forks will not be stopped by it.
-// If the lockfile does not exist it will be created, but an exception will be thrown if the lockfile is not a regular file or if its directory is not authorized for writing.
+// If the lockfile does not exist it will be created. If the lockfile is empty at unlock, it will be erased.
+// An exception will be thrown if the given filename refers to a file which is not regular or if its directory is not authorized for writing.
 // When compiling with g++ use the flag "-std=c++20" (available in GCC 10 or later).
 // 
 // Usage:
@@ -84,60 +85,64 @@
 #include <unistd.h>
 #include <fcntl.h>
 
+#indef PATH_MAX
+	#define PATH_MAX 4096
+#endif
+
 class locker
 {
 	struct key_t
 	{
 		ino_t inode  = 0;
 		dev_t device = 0;
-		
+
 		key_t(ino_t _inode, dev_t _device) : inode(_inode), device(_device)
 		{
 		}
-		
+
 		key_t() = default;
 		key_t(key_t const &) = default;
 		key_t(key_t &&) = default;
 		key_t & operator=(key_t const &) = default;
 		key_t & operator=(key_t &&) = default;
-		
+
 		friend auto operator==(key_t const & x, key_t const & y)
 		{
 			return x.inode == y.inode and x.device == y.device;
 		}
-		
+
 		friend auto operator<(key_t const & x, key_t const & y)
 		{
 			return x.inode < y.inode and x.device < y.device;
 		}
 	};
-	
+
 	struct value_t
 	{
 		int descriptor = -1;
 		int num_locks  =  0;
 		pid_t pid      = -1;
-		
+
 		value_t(int _descriptor, int _num_locks, pid_t _pid) : descriptor(_descriptor), num_locks(_num_locks), pid(_pid)
 		{
 		}
-		
+
 		value_t() = default;
 		value_t(value_t const &) = default;
 		value_t(value_t &&) = default;
 		value_t & operator=(value_t const &) = default;
 		value_t & operator=(value_t &&) = default;
 	};
-	
+
 	std::map<key_t, value_t> lockfiles;
 	std::mutex lockfiles_mutex;
-	
+
 	static locker & get_singleton()
 	{
 		static auto singleton = locker();
 		return singleton;
 	}
-	
+
 	static inline std::pair<key_t, value_t> lock(std::string const & filename)
 	{
 		auto & singleton = get_singleton();
@@ -195,7 +200,51 @@ class locker
 			}
 		}
 	}
-	
+
+	static inline auto release(int const descriptor)
+	{
+		struct stat descriptor_stat;
+		if(fstat(descriptor, &descriptor_stat) < 0)
+		{
+			throw std::runtime_error("could not fstat descriptor \"" + std::to_string(descriptor) + "\"");
+		}
+		auto const link = "/proc/self/fd/" + std::to_string(descriptor);
+		auto filename = std::string(static_cast<std::size_t>(PATH_MAX) + 1, '\0');
+		auto size = readlink(link.c_str(), &filename[0], filename.size() - 1);
+		if(size < 0 or size > PATH_MAX)
+		{
+			throw std::runtime_error("could not readlink descriptor \"" + std::to_string(descriptor) + "\"");
+		}
+		filename = filename.c_str();
+		struct stat filelink_stat;
+		if(stat(filename.c_str(), &filelink_stat) < 0)
+		{
+			throw std::runtime_error("could not stat filename \"" + filename + "\"");
+		}
+		if(descriptor_stat.st_dev != filelink_stat.st_dev or descriptor_stat.st_ino != filelink_stat.st_ino)
+		{
+			throw std::runtime_error("could not match file descriptor \"" + std::to_string(descriptor) + "\" with filename \"" + filename + "\"");
+		}
+		if(fsync(descriptor) < 0)
+		{
+			throw std::runtime_error("could not fsync file \"" + filename + "\"");
+		}
+		size = lseek(descriptor, 0, SEEK_END);
+		if(size < 0)
+		{
+			throw std::runtime_error("could not lseek file \"" + filename + "\"");
+		}
+		if(size == 0 and unlink(filename.c_str()) < 0)
+		{
+			throw std::runtime_error("could not unlink file \"" + filename + "\"");
+		}
+		if(close(descriptor) < 0)
+		{
+			throw std::runtime_error("could not close file \"" + filename + "\"");
+		}
+		return filename;
+	}
+
 	static inline void unlock(key_t const & id)
 	{
 		auto & singleton = get_singleton();
@@ -203,51 +252,53 @@ class locker
 		if(singleton.lockfiles.contains(id))
 		{
 			auto & lockfile = singleton.lockfiles.at(id);
-			if((--lockfile.num_locks <= 0) and ((fsync(lockfile.descriptor) < 0) or (close(lockfile.descriptor) < 0) or !singleton.lockfiles.erase(id)))
+			if(--lockfile.num_locks <= 0)
 			{
-				std::size_t const size = 256;
-				auto filename = std::string(size, '\0');
-				auto const link = "/proc/self/fd/" + std::to_string(lockfile.descriptor);
-				if(readlink(link.c_str(), &filename[0], size - 1) < 0)
+				auto const filename = release(lockfile.descriptor);
+				if(!singleton.lockfiles.erase(id))
 				{
-					filename.clear();
+					throw std::runtime_error("could not erase file \"" + filename + "\" from locker");
 				}
-				throw std::runtime_error("could not unlock file \"" + filename + "\"");
 			}
 		}
 	}
-		
+
 	locker() = default;
-	
+
 	public:
-	
+
 	~locker()
 	{
 		auto const guard = std::scoped_lock<std::mutex>(lockfiles_mutex);
-		for(auto & lockfile : lockfiles)
+		for(auto const & lockfile : lockfiles)
 		{
-			close(lockfile.second.descriptor);
+			try
+			{
+				release(lockfile.second.descriptor);
+			}
+			catch(...)
+			{
+			}
 		}
 		lockfiles.clear();
 	}
-	
+
 	locker(locker const &) = delete;
 	locker(locker &&) = delete;
 	auto & operator=(locker const &) = delete;
 	auto & operator=(locker &&) = delete;
-	
-	template <typename ... TS>
+
 	static auto lock_guard(std::string const & filename)
 	{
 		return lock_guard_t(filename);
 	}
-	
+
 	template <typename data_t = unsigned char>
 	static auto xmap(std::string const & filename)
 	{
 		return memory_map_t<data_t>(filename);
 	}
-	
+
 	template <bool should_strip_newlines = false>
 	static auto xread(std::string const & filename)
 	{
@@ -276,7 +327,7 @@ class locker
 		}
 		return data;
 	}
-	
+
 	template <typename T>
 	static auto xread(std::string const & filename)
 	{
@@ -295,7 +346,7 @@ class locker
 		}
 		return data;
 	}
-	
+
 	template <typename T>
 	static auto xread(std::string const & filename, T & container)
 	{
@@ -307,7 +358,7 @@ class locker
 		}
 		input >> container;
 	}
-	
+
 	template <bool should_append = false, bool should_add_newline = false, typename ... TS>
 	static auto xwrite(std::string const & filename, TS && ... data)
 	{
@@ -331,7 +382,7 @@ class locker
 			(output << ... << std::forward<TS>(data)) << std::flush;
 		}
 	}
-	
+
 	template <bool should_append = false, typename T>
 	static auto xflush(std::string const & filename, std::vector<T> const & data)
 	{
@@ -349,7 +400,7 @@ class locker
 		output.write(reinterpret_cast<char const *>(data.data()), static_cast<std::streamsize>(data.size() * sizeof(T)));
 		output.flush();
 	}
-	
+
 	template <bool should_append = false, typename T>
 	static auto xflush(std::string const & filename, std::span<T> const data)
 	{
@@ -367,7 +418,7 @@ class locker
 		output.write(reinterpret_cast<char const *>(data.data()), static_cast<std::streamsize>(data.size() * sizeof(T)));
 		output.flush();
 	}
-	
+
 	template <bool should_append = false>
 	static auto xflush(std::string const & filename, void * data, std::size_t const size)
 	{
@@ -385,7 +436,7 @@ class locker
 		output.write(static_cast<char *>(data), static_cast<std::streamsize>(size));
 		output.flush();
 	}
-	
+
 	static auto xremove(std::string const & filename)
 	{
 		auto const guard = lock_guard(filename);
@@ -394,45 +445,45 @@ class locker
 			throw std::runtime_error("could not remove \"" + filename + "\"");
 		}
 	}
-	
+
 	class [[nodiscard]] lock_guard_t
 	{
 		key_t id;
-		
+
 		public:
-		
+
 		lock_guard_t(lock_guard_t const &) = delete;
 		lock_guard_t(lock_guard_t &&) = delete;
 		auto & operator=(lock_guard_t const &) = delete;
 		auto & operator=(lock_guard_t &&) = delete;
 		auto operator&() = delete;
-		
+
 		lock_guard_t(std::string const & filename)
 		{
 			id = lock(filename).first;
 		}
-		
+
 		~lock_guard_t()
 		{
 			unlock(id);
 		}
 	};
-	
+
 	template <typename data_t = unsigned char>
 	class [[nodiscard]] memory_map_t
 	{
 		key_t         id;
 		std::size_t   data_size = 0;
 		data_t      * data_ptr  = nullptr;
-		
+
 		public:
-		
+
 		memory_map_t(memory_map_t &) = delete;
 		memory_map_t(memory_map_t &&) = delete;
 		auto & operator=(memory_map_t const &) = delete;
 		auto & operator=(memory_map_t &&) = delete;
 		auto operator&() = delete;
-		
+
 		memory_map_t(std::string const & filename)
 		{
 			auto const lockfile = lock(filename);
@@ -458,24 +509,24 @@ class locker
 				throw;
 			}
 		}
-		
+
 		~memory_map_t()
 		{
 			msync(data_ptr, data_size, MS_SYNC);
 			munmap(data_ptr, data_size);
 			unlock(id);
 		}
-		
+
 		auto & operator[](std::size_t const index)
 		{
 			return data_ptr[index];
 		}
-		
+
 		auto const & operator[](std::size_t const index) const
 		{
 			return data_ptr[index];
 		}
-		
+
 		auto & at(std::size_t const index)
 		{
 			if(index >= data_size)
@@ -484,7 +535,7 @@ class locker
 			}
 			return data_ptr[index];
 		}
-		
+
 		auto const & at(std::size_t const index) const
 		{
 			if(index >= data_size)
@@ -493,37 +544,37 @@ class locker
 			}
 			return data_ptr[index];
 		}
-		
+
 		auto get_data() const
 		{
 			return data_ptr;
 		}
-		
+
 		auto data() const
 		{
 			return data_ptr;
 		}
-		
+
 		auto get_size() const
 		{
 			return data_size;
 		}
-		
+
 		auto size() const
 		{
 			return data_size;
 		}
-		
+
 		auto is_empty() const
 		{
 			return (data_size == 0);
 		}
-		
+
 		auto empty() const
 		{
 			return (data_size == 0);
 		}
-		
+
 		auto flush()
 		{
 			return (msync(data_ptr, data_size, MS_SYNC) >= 0);
