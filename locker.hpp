@@ -85,7 +85,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 
-#indef PATH_MAX
+#ifndef PATH_MAX
 	#define PATH_MAX 4096
 #endif
 
