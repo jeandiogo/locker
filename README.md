@@ -54,4 +54,4 @@ unsigned char my_var = my_map[N];                            //same as above, bu
 
 locker::xremove("filename");                                 //locks a file, then removes it
 ```
-*Copyright (C) 2020-2021 Jean Diogo ([Jango](mailto:jeandiogo@gmail.com))*
+*Copyright (C) 2020-2021 Jean "Jango" Diogo*
