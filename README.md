@@ -4,7 +4,7 @@ Locker is a single header C++20 library for Linux programs, providing functions 
 
 - **The locking policy is guaranteed only among programs using this library.** Locking a file does not prevent other processes from opening it, but it ensures that only one program will get the lock at a time.
 
-- **If the file to be locked does not exist it will be created.** However, an exception will be throw if an empty filename is given, if a directory name is given, or if the program does not have permission to read and write to the file and its directory.
+- **If the file to be locked does not exist it will be created.** However, an exception will be throw if an empty filename is given, if a directory name is given, or if the program does not have permission to read and write to the file and its directory. If the lockfile is empty during the unlock, it will be erased.
 
 - **The locker provides process-safety, but not thread-safety.** Once a process has acquired the lock, its threads will not be stopped by it, nor they will be able to mutually exclude each other using the locker. The same is not truth for forks of the process. Since its children will be different processes, they must use the locker to prevent themselves from accessing a file already locked by their parent, as well as they will have to wait until the parent releases the lock. For this reason, avoid forking a proccess while it has some file locked, and use mutexes to synchronize its inner threads.
 
