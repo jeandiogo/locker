@@ -26,41 +26,42 @@
 // 
 // #include "locker.hpp"
 // 
-// locker::lock_guard_t my_lock = locker::lock_guard("a.lock"); //locks a file and automatically unlocks it before leaving current scope
+// locker::lock_guard_t my_lock = locker::lock_guard("a.lock");       //locks a file and automatically unlocks it before leaving current scope
+// locker::lock_guard_t my_lock = locker::lock_guard<true>("a.lock"); //same, but does not delete de locker in case it is an empty file
 // 
-// std::string       my_data = locker::xread("a.txt");          //exclusively reads a file and returns its content as a string (returns an empty string if file does not exist)
-// std::string       my_data = locker::xread<true>("a.txt");    //use template argument to remove trailing newlines ("\n" and "\r\n")
-// std::vector<char> my_data = locker::xread<char>("a.txt");    //use template typename to get file content as a vector of some specified type
-// std::vector<int>  my_data = locker::xread<int>("a.txt");     //note that in these cases trailing bytes will be ignored if the size of the file is not a multiple of the size of the chosen type
-// std::vector<long> my_data = locker::xread<long>("a.txt");    //also note that an eventual traling newline may be included if it turns the file size into a multiple of the type size
-// locker::xread("a.txt", my_container);                        //opens input file and calls operator ">>" once from the filestream to the container passed as argument
+// std::string       my_data = locker::xread("a.txt");                //exclusively reads a file and returns its content as a string (returns an empty string if file does not exist)
+// std::string       my_data = locker::xread<true>("a.txt");          //use template argument to remove trailing newlines ("\n" and "\r\n")
+// std::vector<char> my_data = locker::xread<char>("a.txt");          //use template typename to get file content as a vector of some specified type
+// std::vector<int>  my_data = locker::xread<int>("a.txt");           //note that in these cases trailing bytes will be ignored if the size of the file is not a multiple of the size of the chosen type
+// std::vector<long> my_data = locker::xread<long>("a.txt");          //also note that an eventual traling newline may be included if it turns the file size into a multiple of the type size
+// locker::xread("a.txt", my_container);                              //opens input file and calls operator ">>" once from the filestream to the container passed as argument
 // 
-// locker::xwrite("a.txt", my_data);                            //exclusively writes formatted data to a file (data type must be insertable to std::fstream via a single call to operator "<<")
-// locker::xwrite("a.txt", "value", ':', 42);                   //exclusively writes multiple data to file
-// locker::xwrite<true>("a.txt", "order", ':', 66);             //use first template argument to append data instead of overwrite
-// locker::xwrite<false, true>("a.txt", "foobar");              //use second template argument to write a trailing newline
+// locker::xwrite("a.txt", my_data);                                  //exclusively writes formatted data to a file (data type must be insertable to std::fstream via a single call to operator "<<")
+// locker::xwrite("a.txt", "value", ':', 42);                         //exclusively writes multiple data to file
+// locker::xwrite<true>("a.txt", "order", ':', 66);                   //use first template argument to append data instead of overwrite
+// locker::xwrite<false, true>("a.txt", "foobar");                    //use second template argument to write a trailing newline
 // 
-// locker::xflush("a.txt", my_vector);                          //exclusively writes binary data from a std::vector to a file
-// locker::xflush("a.txt", my_span);                            //same as above, but with an std::span instead of a vector
-// locker::xflush("a.txt", my_data_pointer, my_data_size);      //you can also send a raw void pointer to the data, and its length in bytes
-// locker::xflush<true>("a.txt", my_vector);                    //use template argument to append data instead of overwrite
+// locker::xflush("a.txt", my_vector);                                //exclusively writes binary data from a std::vector to a file
+// locker::xflush("a.txt", my_span);                                  //same as above, but with an std::span instead of a vector
+// locker::xflush("a.txt", my_data_pointer, my_data_size);            //you can also send a raw void pointer to the data, and its length in bytes
+// locker::xflush<true>("a.txt", my_vector);                          //use template argument to append data instead of overwrite
 // 
-// locker::memory_map_t my_map = locker::xmap("a.txt");         //exclusively maps a file to memory and returns a container that behaves like an array of unsigned chars (throws if file is does not exist or is not regular)
-// locker::memory_map_t my_map = locker::xmap<char>("a.txt");   //the type underlying the array can be chosen at instantiation via template argument
-// locker::memory_map_t my_map = locker::xmap<int>("a.txt");    //note that trailing bytes will be ignored if the size of the file is not a multiple of the size of the chosen type
-// unsigned char * my_data = my_map.get_data();                 //gets a raw pointer to file's data, whose underlying type is the one designated at instantiation (default is unsigned char)
-// unsigned char * my_data = my_map.data();                     //same as above, for STL compatibility
-// std::size_t my_size = my_map.get_size();                     //gets data size (which is equals to size of file divided by the size of the type) 
-// std::size_t my_size = my_map.size();                         //same as above, for STL compatibility
-// bool is_empty = my_map.is_empty();                           //returns true if map is ampty
-// bool is_empty = my_map.empty();                              //same as above, for STL compatibility
-// bool success  = my_map.flush();                              //flushes data to file (unnecessary, since current process will be the only one accessing the file, and it will flush at destruction)
-// my_map.at(N) = V;                                            //assigns the value V to the N-th element, throws if N is greater than or equal to "size()"
-// my_map[N]    = V;                                            //same as above, but does not check range
-// unsigned char my_var = my_map.at(N);                         //gets the N-th element, throws if N is greater than or equal to "size()"
-// unsigned char my_var = my_map[N];                            //same as above, but does not check range
+// locker::memory_map_t my_map = locker::xmap("a.txt");               //exclusively maps a file to memory and returns a container that behaves like an array of unsigned chars (throws if file is does not exist or is not regular)
+// locker::memory_map_t my_map = locker::xmap<char>("a.txt");         //the type underlying the array can be chosen at instantiation via template argument
+// locker::memory_map_t my_map = locker::xmap<int>("a.txt");          //note that trailing bytes will be ignored if the size of the file is not a multiple of the size of the chosen type
+// unsigned char * my_data = my_map.get_data();                       //gets a raw pointer to file's data, whose underlying type is the one designated at instantiation (default is unsigned char)
+// unsigned char * my_data = my_map.data();                           //same as above, for STL compatibility
+// std::size_t my_size = my_map.get_size();                           //gets data size (which is equals to size of file divided by the size of the type) 
+// std::size_t my_size = my_map.size();                               //same as above, for STL compatibility
+// bool is_empty = my_map.is_empty();                                 //returns true if map is ampty
+// bool is_empty = my_map.empty();                                    //same as above, for STL compatibility
+// bool success  = my_map.flush();                                    //flushes data to file (unnecessary, since current process will be the only one accessing the file, and it will flush at destruction)
+// my_map.at(N) = V;                                                  //assigns the value V to the N-th element, throws if N is greater than or equal to "size()"
+// my_map[N]    = V;                                                  //same as above, but does not check range
+// unsigned char my_var = my_map.at(N);                               //gets the N-th element, throws if N is greater than or equal to "size()"
+// unsigned char my_var = my_map[N];                                  //same as above, but does not check range
 // 
-// locker::xremove("filename");                                 //locks a file, then removes it
+// locker::xremove("filename");                                       //locks a file, then removes it
 // 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -201,50 +202,71 @@ class locker
 		}
 	}
 
+	template <bool should_keep_empty = false>
 	static inline auto release(int const descriptor)
 	{
-		struct stat descriptor_stat;
-		if(fstat(descriptor, &descriptor_stat) < 0)
+		if constexpr(should_keep_empty)
 		{
-			throw std::runtime_error("could not fstat descriptor \"" + std::to_string(descriptor) + "\"");
+			auto const filename = std::to_string(descriptor);
+			if(fsync(descriptor) < 0)
+			{
+				throw std::runtime_error("could not fsync file \"" + filename + "\"");
+			}
+			if(close(descriptor) < 0)
+			{
+				throw std::runtime_error("could not close file \"" + filename + "\"");
+			}
+			return filename;
 		}
-		auto const link = "/proc/self/fd/" + std::to_string(descriptor);
-		auto filename = std::string(static_cast<std::size_t>(PATH_MAX) + 1, '\0');
-		auto size = readlink(link.c_str(), &filename[0], filename.size() - 1);
-		if(size < 0 or size > PATH_MAX)
+		else
 		{
-			throw std::runtime_error("could not readlink descriptor \"" + std::to_string(descriptor) + "\"");
+			struct stat descriptor_stat;
+			if(fstat(descriptor, &descriptor_stat) < 0)
+			{
+				throw std::runtime_error("could not fstat descriptor \"" + std::to_string(descriptor) + "\"");
+			}
+			auto const link = "/proc/self/fd/" + std::to_string(descriptor);
+			auto filename = std::string(static_cast<std::size_t>(PATH_MAX) + 1, '\0');
+			auto size = readlink(link.c_str(), &filename[0], filename.size() - 1);
+			if(size < 0 or size > PATH_MAX)
+			{
+				throw std::runtime_error("could not readlink descriptor \"" + std::to_string(descriptor) + "\"");
+			}
+			filename = filename.c_str();
+			if(descriptor_stat.st_nlink > 0)
+			{
+				struct stat filelink_stat;
+				if(stat(filename.c_str(), &filelink_stat) < 0)
+				{
+					throw std::runtime_error("could not stat filename \"" + filename + "\"");
+				}
+				if(descriptor_stat.st_dev != filelink_stat.st_dev or descriptor_stat.st_ino != filelink_stat.st_ino)
+				{
+					throw std::runtime_error("could not match file descriptor \"" + std::to_string(descriptor) + "\" with filename \"" + filename + "\"");
+				}
+				if(fsync(descriptor) < 0)
+				{
+					throw std::runtime_error("could not fsync file \"" + filename + "\"");
+				}
+				size = lseek(descriptor, 0, SEEK_END);
+				if(size < 0)
+				{
+					throw std::runtime_error("could not lseek file \"" + filename + "\"");
+				}
+				if(size == 0 and unlink(filename.c_str()) < 0)
+				{
+					throw std::runtime_error("could not unlink file \"" + filename + "\"");
+				}
+				if(close(descriptor) < 0)
+				{
+					throw std::runtime_error("could not close file \"" + filename + "\"");
+				}
+			}
+			return filename;
 		}
-		filename = filename.c_str();
-		struct stat filelink_stat;
-		if(stat(filename.c_str(), &filelink_stat) < 0)
-		{
-			throw std::runtime_error("could not stat filename \"" + filename + "\"");
-		}
-		if(descriptor_stat.st_dev != filelink_stat.st_dev or descriptor_stat.st_ino != filelink_stat.st_ino)
-		{
-			throw std::runtime_error("could not match file descriptor \"" + std::to_string(descriptor) + "\" with filename \"" + filename + "\"");
-		}
-		if(fsync(descriptor) < 0)
-		{
-			throw std::runtime_error("could not fsync file \"" + filename + "\"");
-		}
-		size = lseek(descriptor, 0, SEEK_END);
-		if(size < 0)
-		{
-			throw std::runtime_error("could not lseek file \"" + filename + "\"");
-		}
-		if(size == 0 and unlink(filename.c_str()) < 0)
-		{
-			throw std::runtime_error("could not unlink file \"" + filename + "\"");
-		}
-		if(close(descriptor) < 0)
-		{
-			throw std::runtime_error("could not close file \"" + filename + "\"");
-		}
-		return filename;
 	}
 
+	template <bool should_keep_empty = false>
 	static inline void unlock(key_t const & id)
 	{
 		auto & singleton = get_singleton();
@@ -254,7 +276,7 @@ class locker
 			auto & lockfile = singleton.lockfiles.at(id);
 			if(--lockfile.num_locks <= 0)
 			{
-				auto const filename = release(lockfile.descriptor);
+				auto const filename = release<should_keep_empty>(lockfile.descriptor);
 				if(!singleton.lockfiles.erase(id))
 				{
 					throw std::runtime_error("could not erase file \"" + filename + "\" from locker");
@@ -274,7 +296,7 @@ class locker
 		{
 			try
 			{
-				release(lockfile.second.descriptor);
+				release<true>(lockfile.second.descriptor);
 			}
 			catch(...)
 			{
@@ -288,9 +310,10 @@ class locker
 	auto & operator=(locker const &) = delete;
 	auto & operator=(locker &&) = delete;
 
+	template <bool should_keep_empty = false>
 	static auto lock_guard(std::string const & filename)
 	{
-		return lock_guard_t(filename);
+		return lock_guard_t<should_keep_empty>(filename);
 	}
 
 	template <typename data_t = unsigned char>
@@ -446,6 +469,7 @@ class locker
 		}
 	}
 
+	template <bool should_keep_empty = false>
 	class [[nodiscard]] lock_guard_t
 	{
 		key_t id;
@@ -465,7 +489,7 @@ class locker
 
 		~lock_guard_t()
 		{
-			unlock(id);
+			unlock<should_keep_empty>(id);
 		}
 	};
 
