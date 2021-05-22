@@ -205,35 +205,33 @@ class locker
 	template <bool should_keep_empty = false>
 	static inline auto release(int const descriptor)
 	{
-		if constexpr(should_keep_empty)
+		struct stat descriptor_stat;
+		if(fstat(descriptor, &descriptor_stat) < 0)
 		{
-			auto const filename = std::to_string(descriptor);
-			if(fsync(descriptor) < 0)
-			{
-				throw std::runtime_error("could not fsync file \"" + filename + "\"");
-			}
-			if(close(descriptor) < 0)
-			{
-				throw std::runtime_error("could not close file \"" + filename + "\"");
-			}
-			return filename;
+			throw std::runtime_error("could not fstat descriptor \"" + std::to_string(descriptor) + "\"");
 		}
-		else
+		auto const link = "/proc/self/fd/" + std::to_string(descriptor);
+		auto filename = std::string(static_cast<std::size_t>(PATH_MAX) + 1, '\0');
+		auto size = readlink(link.c_str(), &filename[0], filename.size() - 1);
+		if(size < 0 or size > PATH_MAX)
 		{
-			struct stat descriptor_stat;
-			if(fstat(descriptor, &descriptor_stat) < 0)
+			throw std::runtime_error("could not readlink descriptor \"" + std::to_string(descriptor) + "\"");
+		}
+		filename = filename.c_str();
+		if(descriptor_stat.st_nlink > 0)
+		{
+			if constexpr(should_keep_empty)
 			{
-				throw std::runtime_error("could not fstat descriptor \"" + std::to_string(descriptor) + "\"");
+				if(fsync(descriptor) < 0)
+				{
+					throw std::runtime_error("could not fsync file \"" + filename + "\"");
+				}
+				if(close(descriptor) < 0)
+				{
+					throw std::runtime_error("could not close file \"" + filename + "\"");
+				}
 			}
-			auto const link = "/proc/self/fd/" + std::to_string(descriptor);
-			auto filename = std::string(static_cast<std::size_t>(PATH_MAX) + 1, '\0');
-			auto size = readlink(link.c_str(), &filename[0], filename.size() - 1);
-			if(size < 0 or size > PATH_MAX)
-			{
-				throw std::runtime_error("could not readlink descriptor \"" + std::to_string(descriptor) + "\"");
-			}
-			filename = filename.c_str();
-			if(descriptor_stat.st_nlink > 0)
+			else
 			{
 				struct stat filelink_stat;
 				if(stat(filename.c_str(), &filelink_stat) < 0)
@@ -262,8 +260,15 @@ class locker
 					throw std::runtime_error("could not close file \"" + filename + "\"");
 				}
 			}
-			return filename;
 		}
+		else
+		{
+			if(close(descriptor) < 0)
+			{
+				throw std::runtime_error("could not close file \"" + filename + "\"");
+			}
+		}
+		return filename;
 	}
 
 	template <bool should_keep_empty = false>
