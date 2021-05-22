@@ -27,7 +27,7 @@
 // #include "locker.hpp"
 // 
 // locker::lock_guard_t my_lock = locker::lock_guard("a.lock");       //locks a file and automatically unlocks it before leaving current scope
-// locker::lock_guard_t my_lock = locker::lock_guard<true>("a.lock"); //same, but does not delete de locker in case it is an empty file
+// locker::lock_guard_t my_lock = locker::lock_guard<true>("a.lock"); //same, but does not delete the lockfile in case it is an empty file
 // 
 // std::string       my_data = locker::xread("a.txt");                //exclusively reads a file and returns its content as a string (returns an empty string if file does not exist)
 // std::string       my_data = locker::xread<true>("a.txt");          //use template argument to remove trailing newlines ("\n" and "\r\n")
