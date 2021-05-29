@@ -55,4 +55,4 @@ unsigned char my_var = my_map[N];                                  //same as abo
 
 locker::xremove("filename");                                       //locks a file, then removes it
 ```
-*Copyright (C) 2020-2021 Jean "Jango" Diogo*
+*Copyright (C) 2020 Jean "Jango" Diogo*
