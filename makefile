@@ -29,40 +29,40 @@ XTR = -Wcast-align=strict -Wpacked -Wcast-qual -Wredundant-decls -Wundef -Wusele
 WNO = -Wno-unused -Wno-vla
 FLG = $(OPT) $(LIB) $(WRN) $(XTR) $(WNO)
 #
-.PHONY: all test clear profile valgrind permissions zip
+.PHONY: all test clear profgen protest prouse profile valgrind permissions zip
 #
 all: $(BIN)
+#
+$(BIN): $(OBJ)
+	@g++ -o $@ $^ $(FLG) -fuse-linker-plugin
 #
 %.o: %.cpp
 	@clear
 	@clear
 	@g++ -o $@ $< -MMD -MP -c $(FLG)
 #
-$(BIN): $(OBJ)
-	@g++ -o $@ $^ $(FLG) -fuse-linker-plugin
-#
-test: all
-	@time -f "[ %es ]" ./$(BIN)
-#
 clear:
 	@sudo rm -rf *~ *.o *.d *.gch *.gcda *.gcno $(BIN)
+#
+permissions:
+	@sudo chown -R `whoami`:`whoami` .
+	@sudo chmod -R u=rwX,go=rX .
 #
 profile: clear
 	@g++ $(SRC) -o $(BIN) $(FLG) -fwhole-program -fprofile-generate
 	@./$(BIN)
 	@g++ $(SRC) -o $(BIN) $(FLG) -fwhole-program -fprofile-use -fprofile-correction
 #
+test: all permissions
+	@time -f "[ %es ]" ./$(BIN)
+#
 valgrind: all
 	@valgrind -v --leak-check=full --show-leak-kinds=all --expensive-definedness-checks=yes --track-origins=yes --track-fds=yes --trace-children=yes ./$(BIN)
 #
-permissions:
-	@sudo chown -R `whoami`:`whoami` .
-	@sudo chmod -R u=rwX,go=rX .
-#
 zip: clear permissions
 	@sudo zip -qr $(BIN).zip .
-	@google-chrome --new-window https://drive.google.com/drive/my-drive >/dev/null 2>&1 &
-	@nemo `pwd` &
+	@nohup google-chrome --new-window https://drive.google.com/drive/my-drive </dev/null >/dev/null 2>&1 &
+	@nohup nemo `pwd`  </dev/null >/dev/null 2>&1 &
 #
 -include $(DEP)
 #
