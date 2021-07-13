@@ -49,7 +49,7 @@ int main()
 	int data = 0;
 	std::string const filename = "test.txt";
 	safe_open(filename, std::fstream::out) << data << std::flush;
-	std::cout << "Process " << getpid() << " initialized \"" << filename << "\" with value 0. Expecting " << NUM_FORKS << " at the end of the test." << std::endl;
+	std::cout << "Process " << getpid() << " initialized \"" << filename << "\" with value 0.\nExpecting " << NUM_FORKS << " at the end of the test.\n" << std::flush;
 	
 	for(std::size_t i = 0; i < NUM_FORKS; ++i)
 	{
