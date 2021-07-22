@@ -530,7 +530,7 @@ class locker
 				struct ::stat file_status;
 				if(::fstat(descriptor, &file_status) < 0)
 				{
-					throw std::runtime_error("could not get size of \"" + filename + "\"");
+					throw std::runtime_error("could not get status of \"" + filename + "\"");
 				}
 				data_size = static_cast<std::size_t>(file_status.st_size / static_cast<off_t>(sizeof(data_t)));
 				data_ptr = static_cast<data_t *>(::mmap(nullptr, data_size, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_POPULATE, descriptor, 0));
