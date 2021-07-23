@@ -18,10 +18,6 @@
 // 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-#define runtime_error(x) runtime_error("[" + std::string(__FILE__) + ":" + std::string(__func__) + ":" + std::to_string(__LINE__) + "] " + (x))
-
-#include "locker.hpp"
-
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
@@ -31,6 +27,10 @@
 #include <iostream>
 #include <string>
 #include <thread>
+
+#define runtime_error(x) runtime_error("[" + std::string(__FILE__) + ":" + std::string(__func__) + ":" + std::to_string(__LINE__) + "] " + (x))
+
+#include "locker.hpp"
 
 #define NUM_FORKS 50
 
