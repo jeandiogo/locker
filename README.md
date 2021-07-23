@@ -18,7 +18,7 @@ To compile and run the test, enter *make test* in the terminal.
 ```
 #include "locker.hpp"
 
-locker::lock_guard_t my_lock = locker::lock_guard("a.lock");              //locks a file and automatically unlocks it before leaving current scope (create lockfile if it does not exists)
+locker::lock_guard_t my_lock = locker::lock_guard("a.lock");              //locks a file and automatically unlocks it before leaving current scope (creates lockfile if it does not exist)
 locker::lock_guard_t my_lock = locker::lock_guard<true>("a.lock");        //same, but does not delete the lockfile in case it is an empty file
 locker::lock_guard_t my_lock = locker::lock_guard<false, true>("a.lock"); //use second template argument to make it non-blocking (will throw if file is already locked)
 
