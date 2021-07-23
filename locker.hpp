@@ -26,7 +26,7 @@
 // 
 // #include "locker.hpp"
 // 
-// locker::lock_guard_t my_lock = locker::lock_guard("a.lock");              //locks a file and automatically unlocks it before leaving current scope
+// locker::lock_guard_t my_lock = locker::lock_guard("a.lock");              //locks a file and automatically unlocks it before leaving current scope (creates lockfile if it does not exist)
 // locker::lock_guard_t my_lock = locker::lock_guard<true>("a.lock");        //same, but does not delete the lockfile in case it is an empty file
 // locker::lock_guard_t my_lock = locker::lock_guard<false, true>("a.lock"); //use second template argument to make it non-blocking (will throw if file is already locked)
 // 
@@ -47,21 +47,6 @@
 // locker::xflush("a.txt", my_data_pointer, my_data_size);                   //you can also send a raw void pointer to the data, and its length in bytes
 // locker::xflush<true>("a.txt", my_vector);                                 //use template argument to append data instead of overwrite
 // 
-// locker::memory_map_t my_map = locker::xmap("a.txt");                      //exclusively maps a file to memory and returns a container that behaves like an array of unsigned chars (throws if file is does not exist or is not regular)
-// locker::memory_map_t my_map = locker::xmap<char>("a.txt");                //the type underlying the array can be chosen at instantiation via template argument
-// locker::memory_map_t my_map = locker::xmap<int>("a.txt");                 //note that trailing bytes will be ignored if the size of the file is not a multiple of the size of the chosen type
-// unsigned char * my_data = my_map.get_data();                              //gets a raw pointer to file's data, whose underlying type is the one designated at instantiation (default is unsigned char)
-// unsigned char * my_data = my_map.data();                                  //same as above, for STL compatibility
-// std::size_t my_size = my_map.get_size();                                  //gets data size (which is equals to size of file divided by the size of the type) 
-// std::size_t my_size = my_map.size();                                      //same as above, for STL compatibility
-// bool is_empty = my_map.is_empty();                                        //returns true if map is ampty
-// bool is_empty = my_map.empty();                                           //same as above, for STL compatibility
-// bool success  = my_map.flush();                                           //flushes data to file (unnecessary, since current process will be the only one accessing the file, and it will flush at destruction)
-// my_map.at(N) = V;                                                         //assigns the value V to the N-th element, throws if N is greater than or equal to "size()"
-// my_map[N]    = V;                                                         //same as above, but does not check range
-// unsigned char my_var = my_map.at(N);                                      //gets the N-th element, throws if N is greater than or equal to "size()"
-// unsigned char my_var = my_map[N];                                         //same as above, but does not check range
-// 
 // locker::xremove("filename");                                              //locks a file, then removes it
 // 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -72,7 +57,6 @@
 #include <cstring>
 #include <filesystem>
 #include <fstream>
-#include <iterator>
 #include <map>
 #include <mutex>
 #include <span>
@@ -83,7 +67,6 @@
 #include <utility>
 #include <vector>
 
-#include <sys/mman.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/file.h>
@@ -331,12 +314,6 @@ class locker
 		return lock_guard_t<should_keep_empty, is_non_blocking>(filename);
 	}
 	
-	template <typename data_t = unsigned char>
-	static auto xmap(std::string const & filename)
-	{
-		return memory_map_t<data_t>(filename);
-	}
-	
 	template <bool should_strip_newlines = false>
 	static auto xread(std::string const & filename)
 	{
@@ -505,118 +482,6 @@ class locker
 		~lock_guard_t()
 		{
 			unlock<should_keep_empty>(id);
-		}
-	};
-	
-	template <typename data_t = unsigned char>
-	class [[nodiscard]] memory_map_t
-	{
-		key_t         id;
-		std::size_t   data_size = 0;
-		data_t      * data_ptr  = nullptr;
-		
-		public:
-		
-		memory_map_t(memory_map_t &) = delete;
-		memory_map_t(memory_map_t &&) = delete;
-		auto & operator=(memory_map_t const &) = delete;
-		auto & operator=(memory_map_t &&) = delete;
-		auto operator&() = delete;
-		
-		memory_map_t(std::string const & filename)
-		{
-			auto const lockfile = lock(filename);
-			id = lockfile.first;
-			auto const descriptor = lockfile.second.descriptor; //descriptor = ::open(filename.c_str(), ::O_RDWR, 0666);
-			try
-			{
-				struct ::stat file_status;
-				if(::fstat(descriptor, &file_status) < 0)
-				{
-					throw std::runtime_error("could not get status of \"" + filename + "\"");
-				}
-				data_size = static_cast<std::size_t>(file_status.st_size / static_cast<off_t>(sizeof(data_t)));
-				data_ptr = static_cast<data_t *>(::mmap(nullptr, data_size, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_POPULATE, descriptor, 0));
-				if(data_ptr == MAP_FAILED)
-				{
-					throw std::runtime_error("could not map file \"" + filename + "\" to memory");
-				}
-			}
-			catch(...)
-			{
-				unlock(id); //::close(descriptor);
-				throw;
-			}
-		}
-		
-		~memory_map_t()
-		{
-			::msync(data_ptr, data_size, MS_SYNC);
-			::munmap(data_ptr, data_size);
-			unlock(id);
-		}
-		
-		auto & operator[](std::size_t const index)
-		{
-			return data_ptr[index];
-		}
-		
-		auto const & operator[](std::size_t const index) const
-		{
-			return data_ptr[index];
-		}
-		
-		auto & at(std::size_t const index)
-		{
-			if(index >= data_size)
-			{
-				throw std::runtime_error("index " + std::to_string(index) + " is out of the range");
-			}
-			return data_ptr[index];
-		}
-		
-		auto const & at(std::size_t const index) const
-		{
-			if(index >= data_size)
-			{
-				throw std::runtime_error("index " + std::to_string(index) + " is out of the range");
-			}
-			return data_ptr[index];
-		}
-		
-		auto get_data() const
-		{
-			return data_ptr;
-		}
-		
-		auto data() const
-		{
-			return data_ptr;
-		}
-		
-		auto get_size() const
-		{
-			return data_size;
-		}
-		
-		auto size() const
-		{
-			return data_size;
-		}
-		
-		auto is_empty() const
-		{
-			return (data_size == 0);
-		}
-		
-		auto empty() const
-		{
-			return (data_size == 0);
-		}
-		
-		auto flush()
-		{
-			return (::msync(data_ptr, data_size, MS_SYNC) >= 0);
 		}
 	};
 };
