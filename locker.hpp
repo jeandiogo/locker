@@ -125,7 +125,7 @@ class locker
 	std::map<key_t, value_t> lockfiles;
 	std::mutex lockfiles_mutex;
 	
-	static locker & get_singleton()
+	static auto & get_singleton()
 	{
 		static auto singleton = locker();
 		return singleton;
@@ -283,10 +283,6 @@ class locker
 		}
 	}
 	
-	locker() = default;
-	
-	public:
-	
 	~locker()
 	{
 		auto const guard = std::scoped_lock<std::mutex>(lockfiles_mutex);
@@ -302,6 +298,10 @@ class locker
 		}
 		lockfiles.clear();
 	}
+	
+	locker() = default;
+	
+	public:
 	
 	locker(locker const &) = delete;
 	locker(locker &&) = delete;
