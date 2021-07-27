@@ -93,15 +93,16 @@ class locker
 		key_t(key_t &&) = default;
 		key_t & operator=(key_t const &) = default;
 		key_t & operator=(key_t &&) = default;
+		~key_t() = default;
 		
-		friend auto operator==(key_t const & x, key_t const & y)
+		friend auto operator==(key_t const & lhs, key_t const & rhs)
 		{
-			return x.inode == y.inode and x.device == y.device;
+			return lhs.inode == rhs.inode and lhs.device == rhs.device;
 		}
 		
-		friend auto operator<(key_t const & x, key_t const & y)
+		friend auto operator<(key_t const & lhs, key_t const & rhs)
 		{
-			return x.inode < y.inode and x.device < y.device;
+			return lhs.inode < rhs.inode or (lhs.inode == rhs.inode and lhs.device < rhs.device);
 		}
 	};
 	
@@ -120,6 +121,7 @@ class locker
 		value_t(value_t &&) = default;
 		value_t & operator=(value_t const &) = default;
 		value_t & operator=(value_t &&) = default;
+		~value_t() = default;
 	};
 	
 	std::map<key_t, value_t> lockfiles;
