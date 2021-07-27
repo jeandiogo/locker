@@ -81,19 +81,12 @@ class locker
 {
 	struct key_t
 	{
-		::ino_t inode  = 0;
-		::dev_t device = 0;
+		::ino_t inode;
+		::dev_t device;
 		
-		key_t(::ino_t _inode, ::dev_t _device) : inode(_inode), device(_device)
+		key_t(::ino_t _inode = 0, ::dev_t _device = 0) : inode(_inode), device(_device)
 		{
 		}
-		
-		key_t() = default;
-		key_t(key_t const &) = default;
-		key_t(key_t &&) = default;
-		key_t & operator=(key_t const &) = default;
-		key_t & operator=(key_t &&) = default;
-		~key_t() = default;
 		
 		friend auto operator==(key_t const & lhs, key_t const & rhs)
 		{
@@ -108,20 +101,13 @@ class locker
 	
 	struct value_t
 	{
-		int descriptor = -1;
-		int num_locks  =  0;
-		::pid_t pid    = -1;
+		int descriptor;
+		int num_locks;
+		::pid_t pid;
 		
-		value_t(int _descriptor, int _num_locks, ::pid_t _pid) : descriptor(_descriptor), num_locks(_num_locks), pid(_pid)
+		value_t(int _descriptor = -1, int _num_locks = 0, ::pid_t _pid = -1) : descriptor(_descriptor), num_locks(_num_locks), pid(_pid)
 		{
 		}
-		
-		value_t() = default;
-		value_t(value_t const &) = default;
-		value_t(value_t &&) = default;
-		value_t & operator=(value_t const &) = default;
-		value_t & operator=(value_t &&) = default;
-		~value_t() = default;
 	};
 	
 	std::map<key_t, value_t> lockfiles;
@@ -134,7 +120,7 @@ class locker
 	}
 	
 	template <bool is_non_blocking = false>
-	static inline std::pair<key_t, value_t> lock(std::string const & filename)
+	static inline auto lock(std::string const & filename)
 	{
 		auto & singleton = get_singleton();
 		auto const guard = std::scoped_lock<std::mutex>(singleton.lockfiles_mutex);
@@ -267,7 +253,7 @@ class locker
 	}
 	
 	template <bool should_keep_empty = false>
-	static inline void unlock(key_t const & id)
+	static inline auto unlock(key_t const & id)
 	{
 		auto & singleton = get_singleton();
 		auto const guard = std::scoped_lock<std::mutex>(singleton.lockfiles_mutex);
