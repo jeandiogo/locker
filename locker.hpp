@@ -296,10 +296,10 @@ class locker
 	auto & operator=(locker const &) = delete;
 	auto & operator=(locker &&) = delete;
 	
-	template <bool should_keep_empty = false, bool is_non_blocking = false>
+	template <bool is_non_blocking = false, bool should_keep_empty = false>
 	static auto lock_guard(std::string const & filename)
 	{
-		return lock_guard_t<should_keep_empty, is_non_blocking>(filename);
+		return lock_guard_t<is_non_blocking, should_keep_empty>(filename);
 	}
 	
 	template <bool should_strip_newlines = false>
@@ -449,7 +449,7 @@ class locker
 		}
 	}
 	
-	template <bool should_keep_empty = false, bool is_non_blocking = false>
+	template <bool is_non_blocking = false, bool should_keep_empty = false>
 	class [[nodiscard]] lock_guard_t
 	{
 		key_t id;
