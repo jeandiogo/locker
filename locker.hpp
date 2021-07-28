@@ -18,7 +18,7 @@
 // 
 // A class with static functions to lock files in Linux systems, so they can be accessed exclusively or used as inter-process mutexes.
 // The locker provides process-safety but not thread-safety. Once a process has acquired the lock, its threads and future forks will not be stopped by it.
-// If the lockfile does not exist it will be created. If the lockfile is empty during unlock, it will be erased.
+// If the lockfile does not exist at lock, it will be created. If the lockfile is empty during unlock, it will be erased.
 // An exception will be thrown if the given filename refers to a file which existis but is not regular, or if its directory is not authorized for writing.
 // When compiling with g++ use the flag "-std=c++20" (available in GCC 10 or later).
 // 
@@ -26,9 +26,9 @@
 // 
 // #include "locker.hpp"
 // 
-// locker::lock_guard_t my_lock = locker::lock_guard("a.lock");              //locks a file and automatically unlocks it before leaving current scope (creates lockfile if it does not exist)
-// locker::lock_guard_t my_lock = locker::lock_guard<true>("a.lock");        //same, but does not delete the lockfile in case it is an empty file
-// locker::lock_guard_t my_lock = locker::lock_guard<false, true>("a.lock"); //use second template argument to make it non-blocking (will throw if file is already locked)
+// locker::lock_guard_t my_lock = locker::lock_guard("a.lock");              //locks a file and automatically unlocks it before leaving current scope (the lockfile will be created if it not exists)
+// locker::lock_guard_t my_lock = locker::lock_guard<true>("a.lock");        //use first template argument to make it non-blocking (will throw if file is already locked)
+// locker::lock_guard_t my_lock = locker::lock_guard<false, true>("a.lock"); //use second template argument to not delete lockfile in case it is an empty file (by default it is erased if it is empty)
 // 
 // std::string       my_data = locker::xread("a.txt");                       //exclusively reads a file and returns its content as a string (returns an empty string if file does not exist)
 // std::string       my_data = locker::xread<true>("a.txt");                 //use template argument to remove trailing newlines ("\n" and "\r\n")
