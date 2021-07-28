@@ -18,9 +18,9 @@ To compile and run the test, enter *make test* in the terminal.
 ```
 #include "locker.hpp"
 
-locker::lock_guard_t my_lock = locker::lock_guard("a.lock");              //locks a file and automatically unlocks it before leaving current scope (creates lockfile if it does not exist)
-locker::lock_guard_t my_lock = locker::lock_guard<true>("a.lock");        //same, but does not delete the lockfile in case it is an empty file
-locker::lock_guard_t my_lock = locker::lock_guard<false, true>("a.lock"); //use second template argument to make it non-blocking (will throw if file is already locked)
+locker::lock_guard_t my_lock = locker::lock_guard("a.lock");              //locks a file and automatically unlocks it before leaving current scope (the lockfile will be created if it not exists)
+locker::lock_guard_t my_lock = locker::lock_guard<true>("a.lock");        //use first template argument to make it non-blocking (will throw if file is already locked)
+locker::lock_guard_t my_lock = locker::lock_guard<false, true>("a.lock"); //use second template argument to not delete lockfile in case it is an empty file (by default it is erased if it is empty)
 
 std::string       my_data = locker::xread("a.txt");                       //exclusively reads a file and returns its content as a string (returns an empty string if file does not exist)
 std::string       my_data = locker::xread<true>("a.txt");                 //use template argument to remove trailing newlines ("\n" and "\r\n")
