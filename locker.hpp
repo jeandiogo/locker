@@ -26,10 +26,9 @@
 // 
 // #include "locker.hpp"
 // 
-// locker::lock_guard_t my_lock = locker::lock_guard("a.lock");              //locks a file and automatically unlocks it before leaving current scope (the lockfile will be created if it not exists)
-// locker::lock_guard_t my_lock = locker::lock_guard<true>("a.lock");        //use first template argument to make it non-blocking (will throw if file is already locked)
-// locker::lock_guard_t my_lock = locker::lock_guard<false, true>("a.lock"); //use second template argument to not delete lockfile in case it is an empty file (by default it is erased if it is empty)
-// 
+// locker::lock_guard_t my_lock = locker::lock_guard("a.lock");              //locks a file and automatically unlocks it before leaving current scope (an empty lockfile will be created if it does not exist)
+// locker::lock_guard_t my_lock = locker::lock_guard<true>("a.lock");        //use first template argument to make it "non-blocking" (i.e. will throw instead of wait if file is already locked)
+// locker::lock_guard_t my_lock = locker::lock_guard<false, true>("a.lock"); //use second template argument to not delete empty lockfiles (by default empty lockfiles are erased at destruction)// 
 // std::string       my_data = locker::xread("a.txt");                       //exclusively reads a file and returns its content as a string (returns an empty string if file does not exist)
 // std::string       my_data = locker::xread<true>("a.txt");                 //use template argument to remove trailing newlines ("\n" and "\r\n")
 // std::vector<char> my_data = locker::xread<char>("a.txt");                 //use template typename to get file content as a vector of some specified type
