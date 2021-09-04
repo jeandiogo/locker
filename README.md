@@ -22,17 +22,18 @@ locker::lock_guard_t my_lock = locker::lock_guard("a.lock");              //lock
 locker::lock_guard_t my_lock = locker::lock_guard<true>("a.lock");        //use first template argument to make it "non-blocking" (i.e. will throw instead of wait if file is already locked)
 locker::lock_guard_t my_lock = locker::lock_guard<false, true>("a.lock"); //use second template argument to not delete empty lockfiles (by default empty lockfiles are erased at destruction)
 
-std::string       my_data = locker::xread("a.txt");                       //exclusively reads a file and returns its content as a string (returns an empty string if file does not exist)
+std::string       my_data = locker::xread("a.txt");                       //exclusively formatted data from a file and returns its content as a string (returns an empty string if file does not exist)
 std::string       my_data = locker::xread<true>("a.txt");                 //use template argument to remove trailing newlines ("\n" and "\r\n")
 std::vector<char> my_data = locker::xread<char>("a.txt");                 //use template typename to get file content as a vector of some specified type
 std::vector<int>  my_data = locker::xread<int>("a.txt");                  //note that in these cases trailing bytes will be ignored if the size of the file is not a multiple of the size of the chosen type
 std::vector<long> my_data = locker::xread<long>("a.txt");                 //also note that an eventual traling newline may be included if it turns the file size into a multiple of the type size
-locker::xread("a.txt", my_container);                                     //inserts data from a file (std::fstream) into a container via a single call of the ">>" operator
+locker::xread("a.txt", my_container);                                     //exclusively inserts data from a file (std::fstream) into a container via a single call of the ">>" operator
 
-locker::xwrite("a.txt", my_data);                                         //inserts data from a container into a file (std::fstream) via a single call of the "<<" operator std::fstream via a single call to operator "<<")
+locker::xwrite("a.txt", "content");                                       //exclusively writes formatted data
 locker::xwrite("a.txt", "value", ':', 42);                                //exclusively writes multiple data to file
 locker::xwrite<true>("a.txt", "order", ':', 66);                          //use first template argument to append data instead of overwrite
 locker::xwrite<false, true>("a.txt", "foobar");                           //use second template argument to write a trailing newline
+locker::xwrite("a.txt", my_data);                                         //exclusively inserts data from a container into a file (std::fstream) via a single call of the "<<" operator
 
 locker::xflush("a.txt", my_vector);                                       //exclusively writes binary data from a std::vector to a file
 locker::xflush("a.txt", my_span);                                         //same as above, but with an std::span instead of a vector
