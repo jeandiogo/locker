@@ -51,6 +51,9 @@
 // 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+#ifndef LOCKER_HPP
+#define LOCKER_HPP
+
 #include <cstddef>
 #include <cstdio>
 #include <cstdlib>
@@ -472,3 +475,5 @@ class locker
 		}
 	};
 };
+
+#endif
