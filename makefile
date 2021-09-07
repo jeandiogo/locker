@@ -18,9 +18,10 @@
 # 
 ########################################################################################################################
 #
-LIB = #link your libs here
+LIB = #link libs here
 BIN = test.out
-SRC = $(wildcard *.cpp)
+DIR = .
+SRC = $(wildcard $(DIR)/*.cpp)
 OBJ = $(SRC:.cpp=.o)
 DEP = $(OBJ:.o=.d)
 OPT = -std=c++20 -O3 -march=native -pipe -flto -pthread -fopenmp -fopenacc -fPIC
@@ -42,7 +43,7 @@ $(BIN): $(OBJ)
 	@g++ -o $@ $< -MMD -MP -c $(FLG)
 #
 clear:
-	@sudo rm -rf *~ *.o *.d *.gch *.gcda *.gcno
+	@sudo rm -rf $(DIR)/*~ $(DIR)/*.o $(DIR)/*.d $(DIR)/*.gch $(DIR)/*.gcda $(DIR)/*.gcno
 #
 permissions:
 	@sudo chown -R `whoami`:`whoami` .
