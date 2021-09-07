@@ -29,7 +29,7 @@ XTR = -Wcast-align=strict -Wpacked -Wcast-qual -Wredundant-decls -Wundef -Wusele
 WNO = -Wno-unused -Wno-vla
 FLG = $(OPT) $(LIB) $(WRN) $(XTR) $(WNO)
 #
-.PHONY: all clear permissions profile static test valgrind zip
+.PHONY: all clear permissions profile safe static test valgrind zip
 #
 all: $(BIN)
 #
@@ -52,6 +52,9 @@ profile: clear
 	@g++ $(SRC) -o $(BIN) $(FLG) -fwhole-program -fprofile-generate
 	@./$(BIN)
 	@g++ $(SRC) -o $(BIN) $(FLG) -fwhole-program -fprofile-use -fprofile-correction
+#
+safe:
+	@g++ $(SRC) -o $(BIN) $(FLG) -fwhole-program -fstack-protector-all -fstack-clash-protection -fsplit-stack -fsanitize=undefined #-fsanitize=thread
 #
 static:
 	@g++ $(SRC) -o $(BIN) -fwhole-program -static -static-libgcc -static-libstdc++ $(FLG)
