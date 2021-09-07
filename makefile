@@ -54,7 +54,7 @@ profile: clear
 	@g++ $(SRC) -o $(BIN) $(FLG) -fwhole-program -fprofile-use -fprofile-correction
 #
 safe:
-	@g++ $(SRC) -o $(BIN) $(FLG) -fwhole-program -fstack-protector-all -fstack-clash-protection -fsplit-stack -fsanitize=undefined #-fsanitize=thread
+	@g++ $(SRC) -o $(BIN) $(FLG) -fwhole-program -fstack-protector-all -fstack-clash-protection -fsplit-stack -fsanitize=undefined
 #
 static:
 	@g++ $(SRC) -o $(BIN) -fwhole-program -static -static-libgcc -static-libstdc++ $(FLG)
