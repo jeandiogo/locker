@@ -29,7 +29,7 @@ XTR = -Wcast-align=strict -Wpacked -Wcast-qual -Wredundant-decls -Wundef -Wusele
 WNO = -Wno-unused -Wno-vla
 FLG = $(OPT) $(LIB) $(WRN) $(XTR) $(WNO)
 #
-.PHONY: all test clear profgen protest prouse profile valgrind permissions zip
+.PHONY: all clear permissions profile static test valgrind zip
 #
 all: $(BIN)
 #
@@ -42,7 +42,7 @@ $(BIN): $(OBJ)
 	@g++ -o $@ $< -MMD -MP -c $(FLG)
 #
 clear:
-	@sudo rm -rf *~ *.o *.d *.gch *.gcda *.gcno $(BIN)
+	@sudo rm -rf *~ *.o *.d *.gch *.gcda *.gcno
 #
 permissions:
 	@sudo chown -R `whoami`:`whoami` .
@@ -53,7 +53,13 @@ profile: clear
 	@./$(BIN)
 	@g++ $(SRC) -o $(BIN) $(FLG) -fwhole-program -fprofile-use -fprofile-correction
 #
-test: all permissions
+static:
+	@g++ $(SRC) -o $(BIN) -fwhole-program -static -static-libgcc -static-libstdc++ $(FLG)
+	@readelf -d $(BIN)
+	@ldd $(BIN) || true
+	@nm -D $(BIN)
+#
+test: all
 	@time -f "[ %es ]" ./$(BIN)
 #
 valgrind: all
