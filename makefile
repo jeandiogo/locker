@@ -24,6 +24,7 @@ DIR = .
 SRC = $(wildcard $(DIR)/*.cpp)
 OBJ = $(SRC:.cpp=.o)
 DEP = $(OBJ:.o=.d)
+TMP = $(BIN)~
 OPT = -std=c++20 -O3 -march=native -pipe -flto -pthread -fopenmp -fopenacc -fPIC
 WRN = -Wall -Wextra -pedantic -Werror -pedantic-errors -Wfatal-errors -Wnull-dereference -Wshadow -Wconversion -Wsign-conversion -Warith-conversion
 XTR = -Wcast-align=strict -Wpacked -Wcast-qual -Wredundant-decls -Wundef -Wuseless-cast -Wsuggest-override -Wsuggest-final-methods -Wsuggest-final-types
@@ -32,10 +33,11 @@ FLG = $(OPT) $(LIB) $(WRN) $(XTR) $(WNO)
 #
 .PHONY: all clear permissions profile safe static test valgrind zip
 #
-all: $(BIN)
+all: $(TMP)
 #
-$(BIN): $(OBJ)
+$(TMP): $(OBJ)
 	@g++ -o $@ $^ $(FLG) -fuse-linker-plugin
+	@mv -f $@ $(BIN)
 #
 %.o: %.cpp
 	@clear
