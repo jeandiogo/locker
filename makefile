@@ -45,7 +45,7 @@ $(TMP): $(OBJ)
 	@g++ -o $@ $< -MMD -MP -c $(FLG)
 #
 clear:
-	@sudo rm -rf $(DIR)/*~ $(DIR)/*.o $(DIR)/*.d $(DIR)/*.gch $(DIR)/*.gcda $(DIR)/*.gcno
+	@cd $(DIR) && sudo rm -rf *~ *.o *.d *.gch *.gcda *.gcno
 #
 permissions:
 	@sudo chown -R `whoami`:`whoami` .
