@@ -21,7 +21,7 @@
 LIB = #link libs here
 BIN = test.out
 DIR = .
-SRC = $(wildcard $(DIR)/*.cpp) $(wildcard $(DIR)/*.c)
+SRC = $(wildcard $(DIR)/*.cpp)
 #
 OPT = -std=c++20 -O3 -march=native -pipe -flto -pthread -fopenmp -fopenacc -fPIC
 WRN = -Wall -Wextra -pedantic -Werror -pedantic-errors -Wfatal-errors -Wnull-dereference -Wshadow -Wconversion -Wsign-conversion -Warith-conversion
