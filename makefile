@@ -21,21 +21,26 @@
 LIB = #link libs here
 BIN = test.out
 DIR = .
-SRC = $(wildcard $(DIR)/*.cpp)
-OBJ = $(SRC:.cpp=.o)
-DEP = $(OBJ:.o=.d)
-TMP = $(BIN)~
+SRC = $(wildcard $(DIR)/*.cpp) $(wildcard $(DIR)/*.c)
+#
 OPT = -std=c++20 -O3 -march=native -pipe -flto -pthread -fopenmp -fopenacc -fPIC
 WRN = -Wall -Wextra -pedantic -Werror -pedantic-errors -Wfatal-errors -Wnull-dereference -Wshadow -Wconversion -Wsign-conversion -Warith-conversion
 XTR = -Wcast-align=strict -Wpacked -Wcast-qual -Wredundant-decls -Wundef -Wuseless-cast -Wsuggest-override -Wsuggest-final-methods -Wsuggest-final-types
 WNO = -Wno-unused -Wno-vla
+#
+OUT = $(BIN)~
+NMS = $(basename $(SRC))
+OBJ = $(addsuffix .o,$(NMS))
+DEP = $(addsuffix .d,$(NMS))
+TMP = $(addsuffix ~,$(NMS)) $(addsuffix .gch,$(NMS)) $(addsuffix .gcda,$(NMS)) $(addsuffix .gcno,$(NMS))
 FLG = $(OPT) $(LIB) $(WRN) $(XTR) $(WNO)
+WHL = g++ $(SRC) -o $(BIN) $(FLG) -fwhole-program
 #
 .PHONY: all clear permissions profile safe static test valgrind zip
 #
-all: $(TMP)
+all: $(OUT)
 #
-$(TMP): $(OBJ)
+$(OUT): $(OBJ)
 	@g++ -o $@ $^ $(FLG) -fuse-linker-plugin
 	@mv -f $@ $(BIN)
 #
@@ -45,22 +50,22 @@ $(TMP): $(OBJ)
 	@g++ -o $@ $< -MMD -MP -c $(FLG)
 #
 clear:
-	@cd $(DIR) && sudo rm -rf *~ *.o *.d *.gch *.gcda *.gcno
+	@sudo rm -rf $(OBJ) $(DEP) $(TMP)
 #
 permissions:
 	@sudo chown -R `whoami`:`whoami` .
 	@sudo chmod -R u=rwX,go=rX .
 #
 profile: clear
-	@g++ $(SRC) -o $(BIN) $(FLG) -fwhole-program -fprofile-generate
+	@$(WHL) -fprofile-generate
 	@./$(BIN)
-	@g++ $(SRC) -o $(BIN) $(FLG) -fwhole-program -fprofile-use -fprofile-correction
+	@$(WHL) -fprofile-use -fprofile-correction
 #
 safe:
-	@g++ $(SRC) -o $(BIN) $(FLG) -fwhole-program -fstack-protector-all -fstack-clash-protection -fsplit-stack -fsanitize=undefined
+	@$(WHL) -fstack-protector-all -fstack-clash-protection -fsplit-stack -fsanitize=undefined
 #
 static:
-	@g++ $(SRC) -o $(BIN) -fwhole-program -static -static-libgcc -static-libstdc++ $(FLG)
+	@$(WHL) -static -static-libgcc -static-libstdc++
 	@readelf -d $(BIN)
 	@ldd $(BIN) || true
 	@nm -D $(BIN)
