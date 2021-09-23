@@ -45,8 +45,8 @@
 // 
 // locker::xflush("a.txt", my_vector);                                       //exclusively writes binary data from a std::vector to a file
 // locker::xflush("a.txt", my_span);                                         //same as above, but with an std::span instead of a vector
-// locker::xflush("a.txt", my_data_pointer, my_data_size);                   //you can also send a raw void pointer to the data, and its length in bytes
 // locker::xflush<true>("a.txt", my_vector);                                 //use template argument to append data instead of overwrite
+// locker::xflush("a.txt", my_data_pointer, my_data_size);                   //you can also send a raw void pointer to the data, and its length in bytes
 // 
 // locker::xremove("filename");                                              //locks a file, then removes it
 // 
