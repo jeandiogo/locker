@@ -36,7 +36,7 @@ TMP = $(addsuffix ~,$(NMS)) $(addsuffix .gch,$(NMS)) $(addsuffix .gcda,$(NMS)) $
 FLG = $(OPT) $(LIB) $(WRN) $(XTR) $(WNO)
 WHL = g++ $(SRC) -o $(BIN) $(FLG) -fwhole-program
 #
-.PHONY: all clear permissions profile safe static test valgrind zip
+.PHONY: all clear permissions profile safe static test unsafe valgrind zip
 #
 all: $(OUT)
 #
@@ -72,6 +72,9 @@ static:
 #
 test: all
 	@time -f "[ %es ]" ./$(BIN)
+#
+unsafe:
+	@g++ $(SRC) -o $(BIN) $(OPT) -fwhole-program
 #
 valgrind: all
 	@valgrind -v --leak-check=full --show-leak-kinds=all --expensive-definedness-checks=yes --track-origins=yes --track-fds=yes --trace-children=yes ./$(BIN)
