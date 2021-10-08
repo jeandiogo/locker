@@ -92,6 +92,12 @@ class locker
 		{
 		}
 		
+		~key_t()
+		{
+			inode = 0;
+			device = 0;
+		}
+		
 		friend auto operator==(key_t const & lhs, key_t const & rhs)
 		{
 			return lhs.inode == rhs.inode and lhs.device == rhs.device;
@@ -111,6 +117,13 @@ class locker
 		
 		value_t(int _descriptor = -1, int _num_locks = 0, ::pid_t _pid = -1) : descriptor(_descriptor), num_locks(_num_locks), pid(_pid)
 		{
+		}
+		
+		~value_t()
+		{
+			descriptor = -1;
+			num_locks = 0;
+			pid = -1;
 		}
 	};
 	
@@ -205,18 +218,7 @@ class locker
 		filename = filename.c_str();
 		if(descriptor_stat.st_nlink > 0)
 		{
-			if constexpr(should_keep_empty)
-			{
-				if(::fsync(descriptor) < 0)
-				{
-					throw std::runtime_error("could not fsync file \"" + filename + "\"");
-				}
-				if(::close(descriptor) < 0)
-				{
-					throw std::runtime_error("could not close file \"" + filename + "\"");
-				}
-			}
-			else
+			if constexpr(!should_keep_empty)
 			{
 				struct ::stat filelink_stat;
 				if(::stat(filename.c_str(), &filelink_stat) < 0)
@@ -227,10 +229,13 @@ class locker
 				{
 					throw std::runtime_error("could not match file descriptor \"" + std::to_string(descriptor) + "\" with filename \"" + filename + "\"");
 				}
-				if(::fsync(descriptor) < 0)
-				{
-					throw std::runtime_error("could not fsync file \"" + filename + "\"");
-				}
+			}	
+			if(::fsync(descriptor) < 0)
+			{
+				throw std::runtime_error("could not fsync file \"" + filename + "\"");
+			}
+			if constexpr(!should_keep_empty)
+			{	
 				size = ::lseek(descriptor, 0, SEEK_END);
 				if(size < 0)
 				{
@@ -240,18 +245,11 @@ class locker
 				{
 					throw std::runtime_error("could not unlink file \"" + filename + "\"");
 				}
-				if(::close(descriptor) < 0)
-				{
-					throw std::runtime_error("could not close file \"" + filename + "\"");
-				}
 			}
 		}
-		else
+		if(::close(descriptor) < 0)
 		{
-			if(::close(descriptor) < 0)
-			{
-				throw std::runtime_error("could not close file \"" + filename + "\"");
-			}
+			throw std::runtime_error("could not close file \"" + filename + "\"");
 		}
 		return filename;
 	}
@@ -299,6 +297,30 @@ class locker
 	locker(locker &&) = delete;
 	auto & operator=(locker const &) = delete;
 	auto & operator=(locker &&) = delete;
+	
+	template <bool is_non_blocking = false, bool should_keep_empty = false>
+	class [[nodiscard]] lock_guard_t
+	{
+		key_t id;
+		
+		public:
+		
+		lock_guard_t(lock_guard_t const &) = delete;
+		lock_guard_t(lock_guard_t &&) = delete;
+		auto & operator=(lock_guard_t const &) = delete;
+		auto & operator=(lock_guard_t &&) = delete;
+		auto operator&() = delete;
+		
+		lock_guard_t(std::string const & filename)
+		{
+			id = lock<is_non_blocking>(filename).first;
+		}
+		
+		~lock_guard_t()
+		{
+			unlock<should_keep_empty>(id);
+		}
+	};
 	
 	template <bool is_non_blocking = false, bool should_keep_empty = false>
 	static auto lock_guard(std::string const & filename)
@@ -451,30 +473,6 @@ class locker
 			throw std::runtime_error("could not remove \"" + filename + "\"");
 		}
 	}
-	
-	template <bool is_non_blocking = false, bool should_keep_empty = false>
-	class [[nodiscard]] lock_guard_t
-	{
-		key_t id;
-		
-		public:
-		
-		lock_guard_t(lock_guard_t const &) = delete;
-		lock_guard_t(lock_guard_t &&) = delete;
-		auto & operator=(lock_guard_t const &) = delete;
-		auto & operator=(lock_guard_t &&) = delete;
-		auto operator&() = delete;
-		
-		lock_guard_t(std::string const & filename)
-		{
-			id = lock<is_non_blocking>(filename).first;
-		}
-		
-		~lock_guard_t()
-		{
-			unlock<should_keep_empty>(id);
-		}
-	};
 };
 
 #endif
