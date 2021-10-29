@@ -36,7 +36,7 @@ TMP = $(addsuffix ~,$(NMS)) $(addsuffix .gch,$(NMS)) $(addsuffix .gcda,$(NMS)) $
 FLG = $(OPT) $(LIB) $(WRN) $(XTR) $(WNO)
 WHL = g++ $(SRC) -o $(BIN) $(FLG) -fwhole-program
 #
-.PHONY: all clear permissions profile safe static test unsafe valgrind zip
+.PHONY: all clear permissions profile safe static test upload unsafe valgrind zip
 #
 all: $(OUT)
 #
@@ -72,6 +72,10 @@ static:
 #
 test: all
 	@time -f "[ %es ]" ./$(BIN)
+#
+upload: zip
+	@nohup google-chrome --new-window https://drive.google.com/drive/my-drive </dev/null >/dev/null 2>&1 &
+	@nohup nemo `pwd`  </dev/null >/dev/null 2>&1 &
 #
 unsafe:
 	@g++ $(SRC) -o $(BIN) $(OPT) -fwhole-program
