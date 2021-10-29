@@ -38,7 +38,7 @@ WHL = g++ $(SRC) -o $(BIN) $(FLG) -fwhole-program
 #
 .PHONY: all clear permissions profile safe static test unsafe upload valgrind zip
 #
-all: $(OUT) permissions
+all: permissions $(OUT)
 #
 $(OUT): $(OBJ)
 	@g++ -o $@ $^ $(FLG) -fuse-linker-plugin
