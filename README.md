@@ -2,7 +2,7 @@
 
 Locker is a single header C++20 library for Linux, providing a function that locks a file so it can be accessed exclusively or used for process synchronization (e.g. as slow inter-process mutexes).
 
-The locking policy is guaranteed only to programs using this library. Locking a file does not prevent other processes from opening it, but it ensures that only one program will get the lock at a time. The locker provides process-safety but not thread-safety, so one should avoid forking a proccess while it has some file locked and use mutexes to synchronize its inner threads. Once the lock has been acquired, one still has to open the file to read it and close it after read (or use the auxiliary process-safe functions also available in this library). An exception will be throw if the file is unauthorized or if a directory name is given.
+The locking policy is guaranteed only to programs using this library. Locking a file does not prevent other processes from opening it, but it ensures that only one program will get the lock at a time. The locker provides process-safety but not thread-safety, so one should use mutexes to synchronize its inner threads and avoid forking a proccess while it has some file locked. Once the lock has been acquired, one still has to open the file to read it and close it after read (or use the auxiliary process-safe functions also available in this library). An exception will be throw if the file is invalid or unauthorized. A lockfile will be created if it does not exist, and will be erased if it is empty at destruction.
 
 When compiling with g++, use the flag *-std=c++20* (available since GCC 10).
 
