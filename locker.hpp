@@ -444,24 +444,6 @@ class locker
 		output.flush();
 	}
 	
-	template <bool should_append = false>
-	static auto xflush(std::string const & filename, void * data, std::size_t const size)
-	{
-		auto const guard = lock_guard(filename);
-		auto flag = std::fstream::out | std::fstream::binary;
-		if constexpr(should_append)
-		{
-			flag |= std::fstream::app;
-		}
-		auto output = std::fstream(filename, flag);
-		if(!output.good())
-		{
-			throw std::runtime_error("could not open file \"" + filename + "\" for binary output");
-		}
-		output.write(static_cast<char *>(data), static_cast<std::streamsize>(size));
-		output.flush();
-	}
-	
 	static auto xremove(std::string const & filename)
 	{
 		auto const guard = lock_guard(filename);
