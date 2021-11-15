@@ -16,21 +16,24 @@ locker::lock_guard_t my_lock = locker::lock_guard("a.lock");              //lock
 locker::lock_guard_t my_lock = locker::lock_guard<true>("a.lock");        //use first template argument to make it "non-blocking" (i.e. will throw instead of wait if file is already locked)
 locker::lock_guard_t my_lock = locker::lock_guard<false, true>("a.lock"); //use second template argument to not erase empty lockfiles (by default empty lockfiles are erased at destruction)
 
-std::string       my_data = locker::xread("a.txt");                       //exclusively reads text file and returns it as string (returns empty string if file dont exist)
-std::string       my_data = locker::xread<true>("a.txt");                 //use template argument to remove trailing newlines ("\n" and "\r\n")
-std::vector<char> my_data = locker::xread<char>("a.txt");                 //use template typename to read binary file as a vector of some specified type
-std::vector<int>  my_data = locker::xread<int>("a.txt");                  //note that trailing bytes will be ignored if file size is not multiple of type size
-std::vector<long> my_data = locker::xread<long>("a.txt");                 //note that traling newlines may be included if they make file size multiple of type size
-locker::xread("a.txt", my_container);                                     //xreads from std::fstream to container via single call of ">>" operator
+std::string          my_data = locker::read("a.txt");                     //exclusively reads text file and returns it as string (returns empty string if file dont exist)
+std::string          my_data = locker::read<true>("a.txt");               //use template argument to remove trailing newlines ("\n" and "\r\n")
 
-locker::xwrite("a.txt", "order", ':', 66);                                //exclusively writes formatted data to file
-locker::xwrite<true>("a.txt", "foobar");                                  //use first template argument to append data instead of overwrite
-locker::xwrite<false, true>("a.txt", "foobar");                           //use second template argument to write a trailing newline
-locker::xwrite("a.txt", my_container);                                    //xwrites from container to std::fstream via single call of "<<" operator
+std::vector<char>    my_data = locker::read<char>("a.txt");               //use template typename to read binary file as a vector of some specified type
+std::vector<int>     my_data = locker::read<int>("a.txt");                //note that trailing bytes will be ignored if file size is not multiple of type size
+std::vector<long>    my_data = locker::read<long>("a.txt");               //note that traling newlines may be included if they make file size multiple of type size
+locker::read("a.txt", my_container);                                      //reads from std::fstream to container via single call of ">>" operator
 
-locker::xflush("a.txt", my_vector_or_my_span);                            //exclusively writes binary data to file
-locker::xflush<true>("a.txt", my_vector_or_my_span);                      //use template argument to append instead of overwrite
+locker::write("a.txt", "order", ':', 66);                                 //exclusively writes formatted data to file
+locker::write<true>("a.txt", "foobar");                                   //use first template argument to append data instead of overwrite
+locker::write<false, true>("a.txt", "foobar");                            //use second template argument to write a trailing newline
+locker::write("a.txt", my_container);                                     //writes from container to std::fstream via single call of "<<" operator
 
-locker::xremove("filename");                                              //locks a file, then removes it (ensures no one was reading the file)
+locker::flush("a.txt", my_vector_or_my_span);                             //exclusively writes binary data to file
+locker::flush<true>("a.txt", my_vector_or_my_span);                       //use template argument to append instead of overwrite
+
+locker::copy("file_1", "file_2");                                         //locks a file, then copies it to another
+locker::move("file_1", "file_2");                                         //locks a file, then renames it to another
+locker::remove("filename");                                               //locks a file, then removes it
 ```
 *Copyright (C) 2020 Jean "Jango" Diogo*
