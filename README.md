@@ -18,7 +18,6 @@ locker::lock_guard_t my_lock = locker::lock_guard<false, true>("a.lock"); //use 
 
 std::string          my_data = locker::read("a.txt");                     //exclusively reads text file and returns it as string (returns empty string if file dont exist)
 std::string          my_data = locker::read<true>("a.txt");               //use template argument to remove trailing newlines ("\n" and "\r\n")
-
 std::vector<char>    my_data = locker::read<char>("a.txt");               //use template typename to read binary file as a vector of some specified type
 std::vector<int>     my_data = locker::read<int>("a.txt");                //note that trailing bytes will be ignored if file size is not multiple of type size
 std::vector<long>    my_data = locker::read<long>("a.txt");               //note that traling newlines may be included if they make file size multiple of type size
