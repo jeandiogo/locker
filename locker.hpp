@@ -36,11 +36,13 @@
 // std::vector<char>    my_data = locker::read<char>("a.txt");               //use template typename to read binary file as a vector of some specified type
 // std::vector<int>     my_data = locker::read<int>("a.txt");                //note that trailing bytes will be ignored if file size is not multiple of type size
 // std::vector<long>    my_data = locker::read<long>("a.txt");               //note that traling newlines may be included if they make file size multiple of type size
+// 
 // locker::read("a.txt", my_container);                                      //reads from std::fstream to container via single call of ">>" operator
 // 
 // locker::write("a.txt", "order", ':', 66);                                 //exclusively writes formatted data to file
 // locker::write<true>("a.txt", "foobar");                                   //use first template argument to append data instead of overwrite
 // locker::write<false, true>("a.txt", "foobar");                            //use second template argument to write a trailing newline
+// 
 // locker::write("a.txt", my_container);                                     //writes from container to std::fstream via single call of "<<" operator
 // 
 // locker::flush("a.txt", my_vector_or_my_span);                             //exclusively writes binary data to file
