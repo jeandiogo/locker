@@ -34,11 +34,10 @@ OBJ = $(addsuffix .o,$(NMS))
 DEP = $(addsuffix .d,$(NMS))
 TMP = $(addsuffix ~,$(NMS)) $(addsuffix .gch,$(NMS)) $(addsuffix .gcda,$(NMS)) $(addsuffix .gcno,$(NMS))
 FLG = $(OPT) $(LIB) $(WRN) $(XTR) $(WNO)
-WHL = g++ $(SRC) -o $(BIN) $(FLG) -fwhole-program
 #
-.PHONY: all clear permissions safe static test unsafe valgrind
+.PHONY: all clear test
 #
-all: permissions $(OUT)
+all: $(OUT)
 #
 $(OUT): $(OBJ)
 	@g++ -o $@ $^ $(FLG) -fuse-linker-plugin
@@ -52,27 +51,8 @@ $(OUT): $(OBJ)
 clear:
 	@sudo rm -rf $(OBJ) $(DEP) $(TMP)
 #
-permissions:
-	@sudo chown -R `whoami`:`whoami` .
-	@sudo chmod -R u=rwX,go=rX .
-#
-safe:
-	@$(WHL) -fstack-protector-all -fstack-clash-protection -fsplit-stack -fsanitize=undefined
-#
-static:
-	@$(WHL) -static -static-libgcc -static-libstdc++
-	@readelf -d $(BIN)
-	@ldd $(BIN) || true
-	@nm -D $(BIN)
-#
 test: all
 	@time -f "[ %es ]" ./$(BIN)
-#
-unsafe:
-	@g++ $(SRC) -o $(BIN) $(OPT) -fwhole-program
-#
-valgrind: all
-	@valgrind -v --leak-check=full --show-leak-kinds=all --expensive-definedness-checks=yes --track-origins=yes --track-fds=yes --trace-children=yes ./$(BIN)
 #
 -include $(DEP)
 #
