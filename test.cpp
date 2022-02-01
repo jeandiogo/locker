@@ -74,7 +74,7 @@ int main()
 			while((pid = wait(&status)) > 0);
 			auto const guard = locker::lock_guard(filename);
 			safe_open(filename, std::fstream::in) >> data;
-			std::cout << "The test was" << (data != NUM_FORKS ? " not" : "") << " successful." << std::endl;
+			std::cout << (data == NUM_FORKS ? "The test was successful." : "The test has failed.") << std::endl;
 			return EXIT_SUCCESS;
 		}
 	}
