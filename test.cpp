@@ -39,7 +39,7 @@ inline auto safe_open(std::string const & filename, std::ios_base::openmode cons
 	auto file = std::fstream(filename, mode);
 	if(!file.good())
 	{
-		throw std::runtime_error("could not open file \"" + filename + "\"");
+		throw std::runtime_error("could not open file '" + filename + "'");
 	}
 	return file;
 }
@@ -49,11 +49,13 @@ int main()
 	int data = 0;
 	std::string const filename = "test.txt";
 	safe_open(filename, std::fstream::out) << data << std::flush;
-	std::cout << "Process " << getpid() << " initialized \"" << filename << "\" with value 0.\nExpecting " << NUM_FORKS << " at the end of the test.\n" << std::flush;
+	std::cout << "Process " << getpid() << " initialized file '" << filename << "' with value '" << data << "'.\n";
+	std::cout << "(Expecting value " << NUM_FORKS << " at the end of the test.)\n";
+	std::cout << std::flush;
 	
 	for(std::size_t i = 0; i < NUM_FORKS; ++i)
 	{
-		auto pid = fork();
+		auto pid = ::fork();
 		if(pid < 0)
 		{
 			throw std::runtime_error("fork did not work");
@@ -64,17 +66,17 @@ int main()
 			safe_open(filename, std::fstream::in) >> data;
 			auto const new_data = data + 1;
 			safe_open(filename, std::fstream::out) << new_data << std::flush;
-			std::cout << "Child " << getpid() << " read " << data << " and wrote " << new_data << std::endl;
+			std::cout << "Child " << getpid() << " read '" << data << "' and wrote '" << new_data << "'.\n" << std::flush;
 			std::this_thread::sleep_for(std::chrono::milliseconds(50));
 			return EXIT_SUCCESS;
 		}
 		else if(i == NUM_FORKS - 1)
 		{
-			int status;
+			auto status = int();
 			while((pid = wait(&status)) > 0);
 			auto const guard = locker::lock_guard(filename);
 			safe_open(filename, std::fstream::in) >> data;
-			std::cout << (data == NUM_FORKS ? "The test was successful." : "The test has failed.") << std::endl;
+			std::cout << (data == NUM_FORKS ? "The test was successful.\n" : "The test has failed.\n") << std::flush;
 			return EXIT_SUCCESS;
 		}
 	}
