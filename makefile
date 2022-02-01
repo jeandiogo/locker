@@ -36,7 +36,7 @@ TMP = $(addsuffix ~,$(NMS)) $(addsuffix .gch,$(NMS)) $(addsuffix .gcda,$(NMS)) $
 FLG = $(OPT) $(LIB) $(WRN) $(XTR) $(WNO)
 WHL = g++ $(SRC) -o $(BIN) $(FLG) -fwhole-program
 #
-.PHONY: all clear permissions profile safe static test unsafe upload valgrind zip
+.PHONY: all backup clear permissions profile safe static test unsafe valgrind zip
 #
 all: permissions $(OUT)
 #
@@ -48,6 +48,10 @@ $(OUT): $(OBJ)
 	@clear
 	@clear
 	@g++ -o $@ $< -MMD -MP -c $(FLG)
+#
+backup: zip
+	@nohup google-chrome --new-window https://drive.google.com/drive/my-drive </dev/null >/dev/null 2>&1 &
+	@nohup nemo `pwd` </dev/null >/dev/null 2>&1 &
 #
 clear:
 	@sudo rm -rf $(OBJ) $(DEP) $(TMP)
@@ -75,10 +79,6 @@ test: all
 #
 unsafe:
 	@g++ $(SRC) -o $(BIN) $(OPT) -fwhole-program
-#
-upload: zip
-	@nohup google-chrome --new-window https://drive.google.com/drive/my-drive </dev/null >/dev/null 2>&1 &
-	@nohup nemo `pwd`  </dev/null >/dev/null 2>&1 &
 #
 valgrind: all
 	@valgrind -v --leak-check=full --show-leak-kinds=all --expensive-definedness-checks=yes --track-origins=yes --track-fds=yes --trace-children=yes ./$(BIN)
