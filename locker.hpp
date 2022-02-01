@@ -30,27 +30,6 @@
 // locker::lock_guard_t my_lock = locker::lock_guard<true>("a.lock");        //use first template argument to make it "non-blocking" (i.e. will throw instead of wait if file is already locked)
 // locker::lock_guard_t my_lock = locker::lock_guard<false, true>("a.lock"); //use second template argument to not erase empty lockfiles (by default empty lockfiles are erased at destruction)
 // 
-// std::string       my_data = locker::read("a.txt");                        //exclusively reads text file and returns it as string (returns empty string if file dont exist)
-// std::string       my_data = locker::read<true>("a.txt");                  //use template argument to remove trailing newlines ("\n" and "\r\n")
-// std::vector<char> my_data = locker::read<char>("a.txt");                  //use template typename to read binary file as a vector of some specified type
-// std::vector<int>  my_data = locker::read<int>("a.txt");                   //note that trailing bytes will be ignored if file size is not multiple of type size
-// std::vector<long> my_data = locker::read<long>("a.txt");                  //note that traling newlines may be included if they make file size multiple of type size
-// 
-// locker::read("a.txt", my_container);                                      //reads from std::fstream to container via single call of ">>" operator
-// 
-// locker::write("a.txt", "order", ':', 66);                                 //exclusively writes formatted data to file
-// locker::write<true>("a.txt", "foobar");                                   //use first template argument to append data instead of overwrite
-// locker::write<false, true>("a.txt", "foobar");                            //use second template argument to write a trailing newline
-// 
-// locker::write("a.txt", my_container);                                     //writes from container to std::fstream via single call of "<<" operator
-// 
-// locker::flush("a.txt", my_vector_or_my_span);                             //exclusively writes binary data to file
-// locker::flush<true>("a.txt", my_vector_or_my_span);                       //use template argument to append instead of overwrite
-// 
-// locker::copy("file_1", "file_2");                                         //locks a file, then copies it to another
-// locker::move("file_1", "file_2");                                         //locks a file, then renames it to another
-// locker::remove("filename");                                               //locks a file, then removes it
-// 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #ifndef LOCKER_HPP
@@ -61,10 +40,8 @@
 #include <cstdlib>
 #include <cstring>
 #include <filesystem>
-#include <fstream>
 #include <map>
 #include <mutex>
-#include <span>
 #include <stdexcept>
 #include <string>
 #include <thread>
@@ -327,156 +304,6 @@ class locker
 	static auto lock_guard(std::string const & filename)
 	{
 		return lock_guard_t<is_non_blocking, should_keep_empty>(filename);
-	}
-	
-	template <bool should_strip_newlines = false>
-	static auto read(std::string const & filename)
-	{
-		auto const guard = lock_guard(filename);
-		auto input = std::fstream(filename, std::fstream::in | std::fstream::ate);
-		if(!input.good())
-		{
-			throw std::runtime_error("could not open file \"" + filename + "\" for input");
-		}
-		std::string data;
-		data.resize(static_cast<std::size_t>(input.tellg()));
-		if(data.size())
-		{
-			input.seekg(0);
-			input.read(data.data(), static_cast<long>(data.size()));
-			if constexpr(should_strip_newlines)
-			{
-				while(data.size() and data.back() == '\n')
-				{
-					data.pop_back();
-					if(data.size() and data.back() == '\r')
-					{
-						data.pop_back();
-					}
-				}
-			}
-		}
-		return data;
-	}
-	
-	template <typename T>
-	static auto read(std::string const & filename)
-	{
-		auto const guard = lock_guard(filename);
-		auto input = std::fstream(filename, std::fstream::in | std::fstream::ate | std::fstream::binary);
-		if(!input.good())
-		{
-			throw std::runtime_error("could not open file \"" + filename + "\" for binary input");
-		}
-		auto const num_bytes = input.tellg();
-		auto data = std::vector<T>(static_cast<std::size_t>(num_bytes) / sizeof(T));
-		if(data.size())
-		{
-			input.seekg(0);
-			input.read(reinterpret_cast<char *>(data.data()), static_cast<long>(num_bytes));
-		}
-		return data;
-	}
-	
-	template <typename T>
-	static auto read(std::string const & filename, T & container)
-	{
-		auto const guard = lock_guard(filename);
-		auto input = std::fstream(filename, std::fstream::in);
-		if(!input.good())
-		{
-			throw std::runtime_error("could not open file \"" + filename + "\" for input");
-		}
-		input >> container;
-	}
-	
-	template <bool should_append = false, bool should_add_newline = false, typename ... TS>
-	static auto write(std::string const & filename, TS && ... data)
-	{
-		auto const guard = lock_guard(filename);
-		auto flag = std::fstream::out;
-		if constexpr(should_append)
-		{
-			flag |= std::fstream::app;
-		}
-		auto output = std::fstream(filename, flag);
-		if(!output.good())
-		{
-			throw std::runtime_error("could not open file \"" + filename + "\" for output");
-		}
-		if constexpr(should_add_newline)
-		{
-			(output << ... << std::forward<TS>(data)) << std::endl;
-		}
-		else
-		{
-			(output << ... << std::forward<TS>(data)) << std::flush;
-		}
-	}
-	
-	template <bool should_append = false, typename T>
-	static auto flush(std::string const & filename, std::vector<T> const & data)
-	{
-		auto const guard = lock_guard(filename);
-		auto flag = std::fstream::out | std::fstream::binary;
-		if constexpr(should_append)
-		{
-			flag |= std::fstream::app;
-		}
-		auto output = std::fstream(filename, flag);
-		if(!output.good())
-		{
-			throw std::runtime_error("could not open file \"" + filename + "\" for binary output");
-		}
-		output.write(reinterpret_cast<char const *>(data.data()), static_cast<std::streamsize>(data.size() * sizeof(T)));
-		output.flush();
-	}
-	
-	template <bool should_append = false, typename T>
-	static auto flush(std::string const & filename, std::span<T> const data)
-	{
-		auto const guard = lock_guard(filename);
-		auto flag = std::fstream::out | std::fstream::binary;
-		if constexpr(should_append)
-		{
-			flag |= std::fstream::app;
-		}
-		auto output = std::fstream(filename, flag);
-		if(!output.good())
-		{
-			throw std::runtime_error("could not open file \"" + filename + "\" for binary output");
-		}
-		output.write(reinterpret_cast<char const *>(data.data()), static_cast<std::streamsize>(data.size() * sizeof(T)));
-		output.flush();
-	}
-	
-	static auto copy(std::string const & input, std::string const & output)
-	{
-		auto const guard_input = lock_guard(input);
-		auto const guard_output = lock_guard(output);
-		if(!std::filesystem::copy_file(input, output, std::filesystem::copy_options::overwrite_existing))
-		{
-			throw std::runtime_error("could not copy \"" + input + "\" to \"" + output + "\"");
-		}
-	}
-	
-	static auto move(std::string const & input, std::string const & output)
-	{
-		auto const guard_input = lock_guard(input);
-		auto const guard_output = lock_guard(output);
-		if(!std::filesystem::copy_file(input, output, std::filesystem::copy_options::overwrite_existing) or !std::filesystem::remove(input))
-		{
-			throw std::runtime_error("could not rename \"" + input + "\" to \"" + output + "\"");
-		}
-	}
-	
-	static auto remove(std::string const & filename)
-	{
-		auto const guard = lock_guard(filename);
-		if(!std::filesystem::remove(filename))
-		{
-			throw std::runtime_error("could not remove \"" + filename + "\"");
-		}
 	}
 };
 
