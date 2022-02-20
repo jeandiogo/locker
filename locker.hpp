@@ -63,10 +63,10 @@ class locker
 {
 	struct key_t
 	{
-		::ino_t inode;
-		::dev_t device;
+		::ino_t inode = 0;
+		::dev_t device = 0;
 		
-		key_t(::ino_t _inode = 0, ::dev_t _device = 0) : inode(_inode), device(_device)
+		key_t(::ino_t _inode, ::dev_t _device) : inode(_inode), device(_device)
 		{
 		}
 		
@@ -75,6 +75,12 @@ class locker
 			inode = 0;
 			device = 0;
 		}
+		
+		key_t() = default;
+		key_t(key_t const & other) = default;
+		key_t(key_t && other) = default;
+		key_t & operator=(key_t const & other) = default;
+		key_t & operator=(key_t && other) = default;
 		
 		friend auto operator==(key_t const & lhs, key_t const & rhs)
 		{
@@ -89,11 +95,17 @@ class locker
 	
 	struct value_t
 	{
-		int descriptor;
-		int num_locks;
-		::pid_t pid;
+		int descriptor = -1;
+		int num_locks = 0;
+		::pid_t pid = -1;
 		
-		value_t(int _descriptor = -1, int _num_locks = 0, ::pid_t _pid = -1) : descriptor(_descriptor), num_locks(_num_locks), pid(_pid)
+		value_t() = default;
+		value_t(value_t const & other) = default;
+		value_t(value_t && other) = default;
+		value_t & operator=(value_t const & other) = default;
+		value_t & operator=(value_t && other) = default;
+		
+		value_t(int _descriptor, int _num_locks, ::pid_t _pid) : descriptor(_descriptor), num_locks(_num_locks), pid(_pid)
 		{
 		}
 		
@@ -105,8 +117,8 @@ class locker
 		}
 	};
 	
+	std::mutex mtx;
 	std::map<key_t, value_t> lockfiles;
-	std::mutex lockfiles_mutex;
 	
 	static auto & get_singleton()
 	{
@@ -114,11 +126,11 @@ class locker
 		return singleton;
 	}
 	
-	template <bool is_non_blocking = false>
+	template <bool should_not_block>
 	static inline auto lock(std::string const & filename)
 	{
 		auto & singleton = get_singleton();
-		auto const guard = std::scoped_lock<std::mutex>(singleton.lockfiles_mutex);
+		auto const guard = std::scoped_lock<std::mutex>(singleton.mtx);
 		while(true)
 		{
 			::mode_t mask = ::umask(0);
@@ -152,7 +164,7 @@ class locker
 					}
 				}
 				auto flag = LOCK_EX;
-				if constexpr(is_non_blocking)
+				if constexpr(should_not_block)
 				{
 					flag |= LOCK_NB;
 				}
@@ -178,7 +190,7 @@ class locker
 		}
 	}
 	
-	template <bool should_keep_empty = false>
+	template <bool should_keep_trace>
 	static inline auto release(int const descriptor)
 	{
 		struct ::stat descriptor_stat;
@@ -196,7 +208,7 @@ class locker
 		filename = filename.c_str();
 		if(descriptor_stat.st_nlink > 0)
 		{
-			if constexpr(!should_keep_empty)
+			if constexpr(!should_keep_trace)
 			{
 				struct ::stat filelink_stat;
 				if(::stat(filename.c_str(), &filelink_stat) < 0)
@@ -212,7 +224,7 @@ class locker
 			{
 				throw std::runtime_error("could not fsync file \"" + filename + "\"");
 			}
-			if constexpr(!should_keep_empty)
+			if constexpr(!should_keep_trace)
 			{	
 				size = ::lseek(descriptor, 0, SEEK_END);
 				if(size < 0)
@@ -232,17 +244,17 @@ class locker
 		return filename;
 	}
 	
-	template <bool should_keep_empty = false>
+	template <bool should_keep_trace>
 	static inline auto unlock(key_t const & id)
 	{
 		auto & singleton = get_singleton();
-		auto const guard = std::scoped_lock<std::mutex>(singleton.lockfiles_mutex);
+		auto const guard = std::scoped_lock<std::mutex>(singleton.mtx);
 		if(singleton.lockfiles.contains(id))
 		{
 			auto & lockfile = singleton.lockfiles.at(id);
 			if(--lockfile.num_locks <= 0)
 			{
-				auto const filename = release<should_keep_empty>(lockfile.descriptor);
+				auto const filename = release<should_keep_trace>(lockfile.descriptor);
 				if(!singleton.lockfiles.erase(id))
 				{
 					throw std::runtime_error("could not erase file \"" + filename + "\" from locker");
@@ -253,12 +265,12 @@ class locker
 	
 	~locker()
 	{
-		auto const guard = std::scoped_lock<std::mutex>(lockfiles_mutex);
-		for(auto const & lockfile : lockfiles)
+		auto const guard = std::scoped_lock<std::mutex>(mtx);
+		for(auto && [key, value] : lockfiles)
 		{
 			try
 			{
-				release<true>(lockfile.second.descriptor);
+				release<true>(value.descriptor);
 			}
 			catch(...)
 			{
@@ -276,7 +288,7 @@ class locker
 	locker & operator=(locker const &) = delete;
 	locker & operator=(locker &&) = delete;
 	
-	template <bool is_non_blocking = false, bool should_keep_empty = false>
+	template <bool should_not_block, bool should_keep_trace>
 	class [[nodiscard]] lock_guard_t
 	{
 		key_t id;
@@ -291,19 +303,19 @@ class locker
 		
 		lock_guard_t(std::string const & filename)
 		{
-			id = lock<is_non_blocking>(filename).first;
+			id = lock<should_not_block>(filename).first;
 		}
 		
 		~lock_guard_t()
 		{
-			unlock<should_keep_empty>(id);
+			unlock<should_keep_trace>(id);
 		}
 	};
 	
-	template <bool is_non_blocking = false, bool should_keep_empty = false>
+	template <bool should_not_block = false, bool should_keep_trace = false>
 	static auto lock_guard(std::string const & filename)
 	{
-		return lock_guard_t<is_non_blocking, should_keep_empty>(filename);
+		return lock_guard_t<should_not_block, should_keep_trace>(filename);
 	}
 };
 
