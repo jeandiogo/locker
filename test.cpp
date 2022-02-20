@@ -50,7 +50,7 @@ int main()
 	std::string const filename = "test.txt";
 	safe_open(filename, std::fstream::out) << data << std::flush;
 	std::cout << "Process " << getpid() << " initialized file '" << filename << "' with value '" << data << "'\n";
-	std::cout << "(Expecting value " << NUM_FORKS << " at the end of the test)\n";
+	std::cout << "Spawning " << NUM_FORKS << " children to increment the value...\n";
 	std::cout << std::flush;
 	
 	for(std::size_t i = 0; i < NUM_FORKS; ++i)
@@ -76,7 +76,7 @@ int main()
 			while((pid = wait(&status)) > 0);
 			auto const guard = locker::lock_guard(filename);
 			safe_open(filename, std::fstream::in) >> data;
-			std::cout << (data == NUM_FORKS ? "The test was successful\n" : "The test has failed\n") << std::flush;
+			std::cout << (data == NUM_FORKS ? "The test was successful!\n" : "The test has failed!\n") << std::flush;
 			return EXIT_SUCCESS;
 		}
 	}
