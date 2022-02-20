@@ -46,7 +46,7 @@ inline auto safe_open(std::string const & filename, std::ios_base::openmode cons
 
 int main()
 {
-	auto data = int();
+	int data = 0;
 	std::string const filename = "test.txt";
 	safe_open(filename, std::fstream::out) << data << std::flush;
 	std::cout << "Process " << getpid() << " initialized file '" << filename << "' with value '" << data << "'\n";
@@ -72,7 +72,7 @@ int main()
 		}
 		else if(i == NUM_FORKS - 1)
 		{
-			auto status = int();
+			int status = 0;
 			while((pid = wait(&status)) > 0);
 			auto const guard = locker::lock_guard(filename);
 			safe_open(filename, std::fstream::in) >> data;
