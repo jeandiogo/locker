@@ -46,7 +46,7 @@ inline auto safe_open(std::string const & filename, std::ios_base::openmode cons
 
 int main()
 {
-	int data = 0;
+	auto data = int();
 	std::string const filename = "test.txt";
 	safe_open(filename, std::fstream::out) << data << std::flush;
 	std::cout << "Process " << getpid() << " initialized file '" << filename << "' with value '" << data << "'\n";
