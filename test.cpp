@@ -49,8 +49,8 @@ int main()
 	int data = 0;
 	std::string const filename = "test.txt";
 	safe_open(filename, std::fstream::out) << data << std::flush;
-	std::cout << "Process " << getpid() << " initialized file '" << filename << "' with value '" << data << "'\n";
-	std::cout << "Spawning " << NUM_FORKS << " children to increment the value...\n";
+	std::cout << "Process " << getpid() << " initialized file '" << filename << "' with value '" << data << "'.\n";
+	std::cout << "Spawning " << NUM_FORKS << " children to increment the value:\n";
 	std::cout << std::flush;
 	
 	for(std::size_t i = 0; i < NUM_FORKS; ++i)
@@ -66,7 +66,7 @@ int main()
 			safe_open(filename, std::fstream::in) >> data;
 			auto const new_data = data + 1;
 			safe_open(filename, std::fstream::out) << new_data << std::flush;
-			std::cout << "Child " << getpid() << " read '" << data << "' and wrote '" << new_data << "'\n" << std::flush;
+			std::cout << "Child " << getpid() << " read '" << data << "' and wrote '" << new_data << "'.\n" << std::flush;
 			std::this_thread::sleep_for(std::chrono::milliseconds(50));
 			return EXIT_SUCCESS;
 		}
