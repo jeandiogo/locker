@@ -297,9 +297,9 @@ class locker
 		
 		lock_guard_t(lock_guard_t const &) = delete;
 		lock_guard_t(lock_guard_t &&) = delete;
-		auto & operator=(lock_guard_t const &) = delete;
-		auto & operator=(lock_guard_t &&) = delete;
-		auto operator&() = delete;
+		lock_guard_t & operator=(lock_guard_t const &) = delete;
+		lock_guard_t & operator=(lock_guard_t &&) = delete;
+		lock_guard_t * operator&() = delete;
 		
 		lock_guard_t(std::string const & filename)
 		{
