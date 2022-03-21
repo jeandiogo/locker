@@ -35,7 +35,7 @@ DEP = $(addsuffix .d,$(NMS))
 TMP = $(addsuffix ~,$(NMS)) $(addsuffix .gch,$(NMS)) $(addsuffix .gcda,$(NMS)) $(addsuffix .gcno,$(NMS))
 FLG = $(OPT) $(LIB) $(WRN) $(XTR) $(WNO)
 #
-.PHONY: all clear test
+.PHONY: all clean test
 #
 all: $(OUT)
 #
