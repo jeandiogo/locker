@@ -17,7 +17,7 @@ int main()
 {
     auto const my_lock = locker::lock_guard("my_file.txt");
     
-    //you can now access the file with exclusivity until the end of this scope
+    //you now have exclusive access to "my_file.txt" until the end of this scope
     
     auto my_stream = std::ofstream("my_file.txt");
     
