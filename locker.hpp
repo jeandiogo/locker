@@ -105,7 +105,7 @@ class locker
 		value_t & operator=(value_t const & other) = default;
 		value_t & operator=(value_t && other) = default;
 		
-		value_t(int _descriptor, int _num_locks, ::pid_t _pid) : descriptor(_descriptor), num_locks(_num_locks), pid(_pid)
+		value_t(int const _descriptor, int const _num_locks, ::pid_t const _pid) : descriptor(_descriptor), num_locks(_num_locks), pid(_pid)
 		{
 		}
 		
@@ -266,7 +266,7 @@ class locker
 	~locker()
 	{
 		auto const guard = std::scoped_lock<std::mutex>(mtx);
-		for(auto && [key, value] : lockfiles)
+		for(auto const & [key, value] : lockfiles)
 		{
 			try
 			{
