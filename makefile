@@ -23,8 +23,8 @@ BIN = test.out
 DIR = .
 SRC = $(wildcard $(DIR)/*.cpp)
 #
-OPT = -std=c++20 -O3 -march=native -pipe -flto -pthread #-fPIC -fopenmp -fopenacc
-WRN = -Wall -Wextra -pedantic -Werror -pedantic-errors -Wfatal-errors -Wnull-dereference -Wshadow -Wconversion -Wsign-conversion -Warith-conversion
+OPT = -std=c++20 -O3 -march=native -pipe -flto -pthread -fopenmp #-fopenacc -fPIC
+WRN = -Wall -Wextra -pedantic -Werror -pedantic-errors -Wfatal-errors -Wnull-dereference -Wconversion -Wsign-conversion -Warith-conversion -Wshadow
 XTR = -Wcast-align=strict -Wpacked -Wcast-qual -Wredundant-decls #-Wundef -Wuseless-cast -Wsuggest-override -Wsuggest-final-methods -Wsuggest-final-types
 WNO = -Wno-unused -Wno-vla
 #
