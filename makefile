@@ -58,8 +58,8 @@ static: clean
 	@nm -D $(BIN)
 #
 test: all
-	@sudo chown -R `whoami`:`whoami` .
-	@sudo chmod -R u=rwX,go=rX .
+	@sudo chown -R `whoami`:`whoami` $(BIN)
+	@sudo chmod -R u=rwX,go=rX $(BIN)
 	@time -f "[ %es ]" ./$(BIN)
 #
 -include $(DEP)
