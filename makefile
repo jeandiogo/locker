@@ -23,9 +23,9 @@ BIN = test.out
 DIR = .
 SRC = $(wildcard $(DIR)/*.cpp)
 #
-OPT = -std=c++20 -O3 -march=native -pipe -flto -pthread -fopenmp #-fopenacc -fPIC
+OPT = -std=c++20 -O3 -march=native -pipe -flto -pthread -fopenmp
 WRN = -Wall -Wextra -pedantic -Werror -pedantic-errors -Wfatal-errors -Wnull-dereference -Wconversion -Wsign-conversion -Warith-conversion -Wshadow
-XTR = -Wcast-align=strict -Wpacked -Wcast-qual -Wredundant-decls #-Wundef -Wuseless-cast -Wsuggest-override -Wsuggest-final-methods -Wsuggest-final-types
+XTR = -Wcast-align=strict -Wpacked -Wcast-qual -Wredundant-decls -Wundef -Wsuggest-override #-Wsuggest-final-methods -Wsuggest-final-types -Wuseless-cast
 WNO = -Wno-unused -Wno-vla
 #
 OUT = $(BIN)~
@@ -35,7 +35,7 @@ DEP = $(addsuffix .d,$(NMS))
 TMP = $(addsuffix ~,$(NMS)) $(addsuffix .gch,$(NMS)) $(addsuffix .gcda,$(NMS)) $(addsuffix .gcno,$(NMS))
 FLG = $(OPT) $(LIB) $(WRN) $(XTR) $(WNO)
 #
-.PHONY: all clean test
+.PHONY: all clean static test
 #
 all: $(OUT)
 #
@@ -51,7 +51,15 @@ $(OUT): $(OBJ)
 clean:
 	@rm -rf $(OBJ) $(DEP) $(TMP)
 #
+static: clean
+	@g++ $(SRC) -o $(BIN) $(FLG) -fwhole-program -fPIC -static -static-libgcc -static-libstdc++
+	@readelf -d $(BIN)
+	@ldd $(BIN) || true
+	@nm -D $(BIN)
+#
 test: all
+	@sudo chown -R `whoami`:`whoami` .
+	@sudo chmod -R u=rwX,go=rX .
 	@time -f "[ %es ]" ./$(BIN)
 #
 -include $(DEP)
