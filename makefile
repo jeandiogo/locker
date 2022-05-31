@@ -24,8 +24,11 @@ DIR = .
 SRC = $(wildcard $(DIR)/*.cpp)
 #
 OPT = -std=c++20 -O3 -march=native -pipe -flto -pthread -fopenmp
-WRN = -Wall -Wextra -pedantic -Werror -pedantic-errors -Wfatal-errors -Wnull-dereference -Wconversion -Wsign-conversion -Warith-conversion -Wshadow -Wold-style-cast
-XTR = -Wcast-align=strict -Wpacked -Wcast-qual -Wredundant-decls -Wundef -Wabi -Wsuggest-override #-Wsuggest-final-methods -Wsuggest-final-types -Wuseless-cast
+W00 = -Wall -Wextra -pedantic -Werror -pedantic-errors -Wfatal-errors
+W01 = -Wnull-dereference -Wconversion -Wsign-conversion -Warith-conversion -Wold-style-cast -Wshadow
+W02 = -Wcast-align=strict -Wpacked -Wcast-qual -Wredundant-decls -Wundef -Wabi
+W03 = -Wsuggest-override #-Wsuggest-final-methods -Wsuggest-final-types -Wuseless-cast
+WRN = $(W00) $(W01) $(W02) $(W03)
 WNO = -Wno-unused -Wno-vla
 #
 OUT = $(BIN)~
