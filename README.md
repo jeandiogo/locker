@@ -13,13 +13,11 @@ To compile and run the test, enter *make test* in the terminal.
 #include "locker.hpp"
 #include <fstream>
 
-std::string const my_file = "my_file.txt";
-
 int main()
 {
-    auto const my_lock = locker::lock_guard(my_file);
+    auto my_lock = locker::lock_guard("my_file.txt");
     
-    auto my_stream = std::ofstream(my_file);
+    auto my_stream = std::ofstream("my_file.txt");
     
     //...
 }
