@@ -36,7 +36,7 @@ NMS = $(basename $(SRC))
 OBJ = $(addsuffix .o,$(NMS))
 DEP = $(addsuffix .d,$(NMS))
 TMP = $(addsuffix ~,$(NMS)) $(addsuffix .gch,$(NMS)) $(addsuffix .gcda,$(NMS)) $(addsuffix .gcno,$(NMS))
-FLG = $(OPT) $(LIB) $(WRN) $(XTR) $(WNO)
+FLG = $(OPT) $(LIB) $(WRN) $(WNO)
 #
 .PHONY: all clean static test
 #
