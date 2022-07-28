@@ -15,7 +15,7 @@ To compile and run the test, enter *make test* in the terminal.
 
 int main()
 {
-    auto my_lock = locker::lock_guard("my_file.txt");
+    auto const my_lock = locker::lock_guard("my_file.txt");
     
     auto my_stream = std::ofstream("my_file.txt");
     
