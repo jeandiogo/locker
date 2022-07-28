@@ -15,11 +15,13 @@ To compile and run the test, enter *make test* in the terminal.
 
 int main()
 {
+	//lock the file
     auto const my_lock = locker::lock_guard("my_file.txt");
     
+	//open the file with your favorite handler
     auto my_stream = std::ofstream("my_file.txt");
     
-    //...
+    //now you can read from and write to the file exclusively until the end of this scope
 }
 ```
 *Copyright (C) 2020 Jean "Jango" Diogo*
