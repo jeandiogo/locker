@@ -21,7 +21,7 @@ int main()
 	//open the file with your favorite handler
 	auto my_stream = std::ofstream("my_file.txt");
 	
-	//now you can read from and write to the file exclusively until the end of this scope
+	//now you can read and write exclusively until the end of this scope
 }
 ```
 *Copyright (C) 2020 Jean "Jango" Diogo*
