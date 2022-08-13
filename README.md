@@ -18,10 +18,10 @@ int main()
 	//lock the file
 	auto const my_lock = locker::lock_guard("my_file.txt");
     	
-	//open the file with your favorite handler
+	//now you have exclusive access to the file until the end of this scope, open it with your favorite handler
 	auto my_stream = std::ofstream("my_file.txt");
 	
-	//now you can read and write exclusively until the end of this scope
+	//...
 }
 ```
 *Copyright (C) 2020 Jean "Jango" Diogo*
