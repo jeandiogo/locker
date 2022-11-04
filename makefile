@@ -23,7 +23,7 @@ BIN = test.out
 DIR = .
 SRC = $(wildcard $(DIR)/*.cpp)
 #
-OPT  = -std=c++20 -O3 -march=native -pipe -flto -pthread -fopenmp
+OPT  = -std=c++20 -O3 -march=native -pipe -flto -pthread
 OPT += #-fimplicit-constexpr -fmodule-implicit-inline
 WRN  = -Wall -Wextra -pedantic -Werror -pedantic-errors -Wfatal-errors
 WRN += -Wnull-dereference -Wshadow -Wconversion -Wsign-conversion -Warith-conversion -Wold-style-cast
