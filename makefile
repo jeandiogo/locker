@@ -23,12 +23,11 @@ BIN = test.out
 DIR = .
 SRC = $(wildcard $(DIR)/*.cpp)
 #
-OPT  = -std=c++20 -O3 -march=native -pipe -flto -pthread
-OPT += #-fimplicit-constexpr -fmodule-implicit-inline
+OPT  = -std=c++20 -O3 -march=native -pipe -flto -pthread #-fimplicit-constexpr -fmodule-implicit-inline
 WRN  = -Wall -Wextra -pedantic -Werror -pedantic-errors -Wfatal-errors
 WRN += -Wnull-dereference -Wshadow -Wconversion -Wsign-conversion -Warith-conversion -Wold-style-cast
-WRN += -Wcast-align=strict -Wpacked -Wcast-qual -Wredundant-decls -Wundef -Wabi #-Wabi-tag
-WRN += -Wsuggest-override #-Wsuggest-final-methods -Wsuggest-final-types -Wuseless-cast
+WRN += -Wcast-align=strict -Wpacked -Wcast-qual -Wredundant-decls -Wundef -Wabi #-Wuseless-cast
+WRN += -Wsuggest-override #-Wsuggest-final-methods -Wsuggest-final-types
 WNO  = -Wno-unused -Wno-vla
 #
 OUT = $(BIN)~
@@ -53,9 +52,6 @@ $(OUT): $(OBJ)
 #
 clean:
 	@rm -rf $(OBJ) $(DEP) $(TMP)
-#
-safe: clean
-	@g++ -o $(BIN) $(SRC) $(FLG) -fwhole-program -fstack-protector-all -fstack-clash-protection -fsplit-stack -fno-omit-frame-pointer -fsanitize=address -fsanitize=undefined
 #
 static: clean
 	@g++ -o $(BIN) $(SRC) $(FLG) -fwhole-program -fPIC -static -static-libgcc -static-libstdc++
