@@ -26,7 +26,7 @@ SRC = $(wildcard $(DIR)/*.cpp)
 OPT  = -std=c++20 -O3 -march=native -pipe -flto -pthread #-fimplicit-constexpr -fmodule-implicit-inline
 WRN  = -Wall -Wextra -pedantic -Werror -pedantic-errors -Wfatal-errors
 WRN += -Wnull-dereference -Wshadow -Wconversion -Wsign-conversion -Warith-conversion -Wold-style-cast
-WRN += -Wcast-align=strict -Wpacked -Wcast-qual -Wredundant-decls -Wundef -Wabi #-Wuseless-cast
+WRN += -Wcast-align=strict -Wpacked -Wcast-qual -Wredundant-decls -Wundef #-Wabi -Wuseless-cast
 WRN += -Wsuggest-override #-Wsuggest-final-methods -Wsuggest-final-types
 WNO  = -Wno-unused -Wno-vla
 #
