@@ -23,17 +23,18 @@ BIN = test.out
 DIR = .
 SRC = $(wildcard $(DIR)/*.cpp)
 #
-OPT = -std=c++23 -O3 -march=native -pipe -flto -pthread #-fimplicit-constexpr -fmodule-implicit-inline
-WRN = -Wall -Wextra -pedantic -Werror -pedantic-errors -Wfatal-errors -Wnull-dereference -Wshadow -Wconversion -Wsign-conversion -Warith-conversion -Wold-style-cast
-XTR = -Wcast-align=strict -Wcast-qual -Wundef -Wredundant-decls -Wmismatched-tags -Wsuggest-override #-Wsuggest-final-methods -Wsuggest-final-types
-WNO = -Wno-unused -Wno-vla
+OPT =  -std=c++23 -O3 -march=native -pipe -flto -pthread #-fimplicit-constexpr -fmodule-implicit-inline
+WRN =  -Wall -Wextra -pedantic -Werror -pedantic-errors -Wfatal-errors
+WRN += -Wnull-dereference -Wshadow -Wconversion -Wsign-conversion -Warith-conversion -Wold-style-cast
+WRN += -Wcast-align=strict -Wcast-qual -Wredundant-decls -Wmismatched-tags -Wsuggest-override #-Wsuggest-final-methods -Wsuggest-final-types
+WNO =  -Wno-unused -Wno-vla
 #
 OUT = $(BIN)~
 NMS = $(basename $(SRC))
 OBJ = $(addsuffix .o,$(NMS))
 DEP = $(addsuffix .d,$(NMS))
 TMP = $(addsuffix ~,$(NMS)) $(addsuffix .gch,$(NMS)) $(addsuffix .gcda,$(NMS)) $(addsuffix .gcno,$(NMS))
-FLG = $(OPT) $(LIB) $(WRN) $(XTR) $(WNO)
+FLG = $(OPT) $(LIB) $(WRN) $(WNO)
 WHL = g++ -o $(BIN) $(SRC) $(FLG) -fwhole-program
 #
 .PHONY: all clean safe static test
