@@ -25,7 +25,7 @@ SRC = $(wildcard $(DIR)/*.cpp)
 #
 OPT = -std=c++23 -O3 -march=native -pipe -flto -pthread #-fimplicit-constexpr -fmodule-implicit-inline
 WRN = -Wall -Wextra -pedantic -Werror -pedantic-errors -Wfatal-errors -Wnull-dereference -Wshadow -Wconversion -Wsign-conversion -Warith-conversion -Wold-style-cast
-XTR = -Wcast-align=strict -Wcast-qual -Wundef -Wredundant-decls -Wredundant-tags -Wmismatched-tags -Wsuggest-override #-Wsuggest-final-methods -Wsuggest-final-types
+XTR = -Wcast-align=strict -Wcast-qual -Wundef -Wredundant-decls -Wmismatched-tags -Wsuggest-override #-Wsuggest-final-methods -Wsuggest-final-types
 WNO = -Wno-unused -Wno-vla
 #
 OUT = $(BIN)~
