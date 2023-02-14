@@ -15,10 +15,9 @@ To compile and run the test, enter *make test* in the terminal.
 
 int main()
 {
-	//lock the file
+	//lock the file to have exclusive access until the end of this scope
 	auto const my_lock = locker::lock_guard("my_file.txt");
     	
-	//now you have exclusive access to it until the end of this scope
 	//open it with your favorite handler
 	auto my_stream = std::ofstream("my_file.txt");
 	
