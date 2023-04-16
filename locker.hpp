@@ -257,7 +257,7 @@ class locker
 				auto const filename = release<should_keep_trace>(lockfile.descriptor);
 				if(!singleton.lockfiles.erase(id))
 				{
-					throw std::runtime_error("could not erase file \"" + filename + "\" from locker");
+					throw std::runtime_error("could not remove file \"" + filename + "\" from locker");
 				}
 			}
 		}
