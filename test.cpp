@@ -28,30 +28,16 @@
 #include <string>
 #include <thread>
 
-#define runtime_error(x) runtime_error("[" + std::string(__FILE__) + ":" + std::string(__func__) + ":" + std::to_string(__LINE__) + "] " + (x))
-
 #include "locker.hpp"
 
 #define NUM_FORKS 50
-
-inline auto safe_open(std::string const & filename, std::ios_base::openmode const mode)
-{
-	auto file = std::fstream(filename, mode);
-	if(!file.good())
-	{
-		throw std::runtime_error("could not open file '" + filename + "'");
-	}
-	return file;
-}
 
 int main()
 {
 	int data = 0;
 	std::string const filename = "test.txt";
-	safe_open(filename, std::fstream::out) << data << std::flush;
-	std::cout << "Process " << getpid() << " initialized file '" << filename << "' with value '" << data << "'\n";
-	std::cout << "Spawning " << NUM_FORKS << " children to increment the value\n";
-	std::cout << std::flush;
+	std::ofstream(filename) << data;
+	std::cout << "process " << getpid() << " initialized " << filename << " with " << data << "\nspawning " << NUM_FORKS << " incrementers:" << std::endl;
 	
 	for(std::size_t i = 0; i < NUM_FORKS; ++i)
 	{
@@ -63,10 +49,10 @@ int main()
 		else if(pid == 0)
 		{
 			auto const guard = locker::lock_guard(filename);
-			safe_open(filename, std::fstream::in) >> data;
+			std::ifstream(filename) >> data;
 			auto const new_data = data + 1;
-			safe_open(filename, std::fstream::out) << new_data << std::flush;
-			std::cout << "Child " << getpid() << " read '" << data << "' and wrote '" << new_data << "'\n" << std::flush;
+			std::ofstream(filename) << new_data;
+			std::cout << "child " << getpid() << " read " << data << " and wrote " << new_data << std::endl;
 			std::this_thread::sleep_for(std::chrono::milliseconds(50));
 			return EXIT_SUCCESS;
 		}
@@ -75,8 +61,8 @@ int main()
 			int status = 0;
 			while((pid = wait(&status)) > 0);
 			auto const guard = locker::lock_guard(filename);
-			safe_open(filename, std::fstream::in) >> data;
-			std::cout << (data == NUM_FORKS ? "The test was successful!\n" : "The test has failed!\n") << std::flush;
+			std::ifstream(filename) >> data;
+			std::cout << (data == NUM_FORKS ? "the test was successful!" : "the test has failed!") << std::endl;
 			return EXIT_SUCCESS;
 		}
 	}
