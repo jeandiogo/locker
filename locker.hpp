@@ -288,7 +288,7 @@ class locker
 	locker & operator=(locker const &) = delete;
 	locker & operator=(locker &&) = delete;
 	
-	template <bool should_not_block, bool should_keep_trace>
+	template <bool should_not_block = false, bool should_keep_trace = false>
 	class [[nodiscard]] lock_guard_t
 	{
 		key_t id;
@@ -312,10 +312,14 @@ class locker
 		}
 	};
 	
-	template <bool should_not_block = false, bool should_keep_trace = false>
 	static auto lock_guard(std::string const & filename)
 	{
-		return lock_guard_t<should_not_block, should_keep_trace>(filename);
+		return lock_guard_t(filename);
+	}
+
+	static auto try_lock_guard(std::string const & filename)
+	{
+		return lock_guard_t<true>(filename);
 	}
 };
 
